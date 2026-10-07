@@ -7481,6 +7481,1782 @@ window.P34={
 </script>
 <!-- ===== MERGED PATCH END ===== -->
 
+
+
+<!-- ===== MERGED PATCH START ===== -->
+<!-- ===== MERGED PATCH START ===== -->
+<!-- LIFE SIM PATCH 35: ROMANCE FIX + EVENT QUEUE + VLOG DECISIONS + LIVE CASINO + PURCHASE RECEIPTS + REALISTIC FAME -->
+<style>
+#p35Pop{position:fixed;inset:0;z-index:100600;background:#020617c9;backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:16px}
+#p35Pop.on{display:flex}
+.p35-box{width:min(440px,100%);max-height:88vh;overflow:auto;background:#111827;color:#f8fafc;border:1px solid #334155;border-radius:22px;padding:18px;box-shadow:0 24px 70px #000a}
+html[data-theme=light] .p35-box{background:#fff;color:#17191e;border-color:#e2e5ea}
+.p35-h{font-size:1.05rem;font-weight:900;margin-bottom:6px}.p35-p{font-size:.74rem;opacity:.7;line-height:1.5;margin:0 0 8px}
+.p35-ic{font-size:2.6rem;text-align:center}.p35-row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid #94a3b81f;font-size:.74rem}.p35-row:last-child{border:0}.p35-row span{opacity:.65}
+.p35-opt{display:block;width:100%;text-align:left;margin-top:8px;padding:11px 12px;border:1px solid #334155;border-radius:12px;background:#1b2230;color:inherit}
+html[data-theme=light] .p35-opt{background:#f4f5f8;border-color:#e2e5ea}
+.p35-opt b{display:block;font-size:.8rem}.p35-opt span{font-size:.62rem;opacity:.65}
+.p35-btn{display:block;width:100%;margin-top:9px;padding:11px;border:0;border-radius:12px;font-weight:850;background:#7c3aed;color:#fff}.p35-btn.alt{background:#334155}
+.p35-cancel{display:block;width:100%;margin-top:9px;padding:9px;border:0;background:transparent;color:inherit;opacity:.6;font-size:.72rem}
+.p35-event .p32-close{display:none!important}
+.p35-lane{height:22px;border-radius:8px;background:#94a3b822;margin:5px 0;position:relative;overflow:hidden}
+.p35-lane i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#7c3aed,#ec4899);transition:width .4s linear}
+.p35-lane b{position:absolute;left:7px;top:3px;font-size:.62rem;color:#fff;text-shadow:0 1px 2px #000}
+.p35-sel{outline:2px solid #8b5cf6}
+</style>
+<script>
+/* LIFE SIM PATCH 35 */
+(function(){
+'use strict';
+if(window.__DESTINY35__)return;window.__DESTINY35__=1;
+const R=Math.random,pick=a=>a[Math.floor(R()*a.length)],cl=(n,a=0,b=100)=>Math.max(a,Math.min(b,n)),ri=(a,b)=>Math.floor(a+R()*(b-a+1));
+const gauss=()=>{let s=0;for(let i=0;i<6;i++)s+=R();return(s-3)/.7071};
+const fm=n=>typeof formatMoney==='function'?formatMoney(n):'$'+Math.round(n||0).toLocaleString();
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const gm=()=>document.getElementById('gameModal');
+const S=()=>game.p35=game.p35||{fx:null,sel:null,live:null,race:null,rsel:null,fc:null,cands:[]};
+const log=t=>{game.logs=game.logs||[];game.logs.push(`Age ${game.age}: ${t}`)};
+const save=()=>{try{P26.autosave(false)}catch(e){}};
+const ui=()=>{try{updateUI()}catch(e){}};
+const toast=(t,i)=>{try{showToast(t,i)}catch(e){}};
+
+/* ---------- popup helper ---------- */
+let pp=document.createElement('div');pp.id='p35Pop';pp.innerHTML='<div class="p35-box" id="p35Box"></div>';document.body.appendChild(pp);
+const pop=h=>{document.getElementById('p35Box').innerHTML=h;pp.classList.add('on')};
+const popClose=()=>pp.classList.remove('on');
+let OPTS=[];
+function ask(title,desc,opts){OPTS=opts;pop(`<div class="p35-h">${esc(title)}</div><p class="p35-p">${esc(desc)}</p>${opts.map((o,i)=>`<button class="p35-opt" onclick="P35.opt(${i})"><b>${esc(o.t)}</b><span>${esc(o.s)}</span></button>`).join('')}<button class="p35-cancel" onclick="P35.popClose()">Cancel</button>`)}
+function show(icon,title,lines,back){pop(`<div class="p35-ic">${icon}</div><div class="p35-h" style="text-align:center">${esc(title)}</div>${lines.map(l=>`<div class="p35-row"><span>${esc(l[0])}</span><b>${l[1]}</b></div>`).join('')}<button class="p35-btn" onclick="P35.popClose();${back||''}">Continue</button>`)}
+
+/* ---------- 1. EVENT QUEUE (stops events replacing each other) ---------- */
+const EVRE=/⚡|FAME EVENT|RELATIONSHIP EVENT|reached out|Company Event/;
+let evOpen=false,Q=[],qt=0;
+const _open=window.openModal;
+window.openModal=openModal=function(h){
+ const ev=typeof h==='string'&&EVRE.test(h),vis=!gm().classList.contains('hidden');
+ if(ev&&evOpen&&vis){if(Q.length<2)Q.push(h);return}
+ evOpen=ev;const r=_open.apply(this,arguments);
+ document.getElementById('modalContent')?.classList.toggle('p35-event',ev);return r};
+new MutationObserver(()=>{if(gm().classList.contains('hidden')){evOpen=false;if(Q.length&&!qt)qt=setTimeout(()=>{qt=0;if(gm().classList.contains('hidden')&&Q.length)window.openModal(Q.shift())},500)}}).observe(gm(),{attributes:true,attributeFilter:['class']});
+document.addEventListener('pointerdown',e=>{if(evOpen&&e.target===gm())e.stopImmediatePropagation()},true);
+document.addEventListener('keydown',e=>{if(evOpen&&e.key==='Escape')e.stopImmediatePropagation()},true);
+
+/* ---------- 2. VLOG: decision + outcome for every event ---------- */
+const SK=['happiness','health','smarts','looks','reputation','fame','money'];
+const snap=()=>Object.fromEntries(SK.map(k=>[k,Number(game[k])||0]));
+function chips(b){const IC={happiness:'😊',health:'❤️',smarts:'🧠',looks:'✨',reputation:'🤝',fame:'⭐'};let o='';SK.forEach(k=>{const d=Math.round((Number(game[k])||0)-b[k]);if(!d)return;const u=d>0;o+=`<span class="v19-chip ${u?'up':'dn'}">${k==='money'?'💰 '+(u?'+':'−')+fm(Math.abs(d)):IC[k]+' '+(u?'+':'−')+Math.abs(d)}</span>`});return o||'<span class="v19-chip">No lasting change</span>'}
+function record(t,d,p,b,l){game.vlog=game.vlog||{};const e=game.vlog[game.age]||(game.vlog[game.age]={base:null,end:null,ch:[],ar:[]});e.ch.push({t,d,p,o:chips(b),l:l?[].concat(l):[]});try{window.__v19Render&&__v19Render()}catch(x){}}
+const ptxt=b=>{if(!b)return'';const n=[...b.childNodes].find(x=>x.nodeType===3&&x.textContent.trim());return(n?n.textContent:(b.querySelector('b')||b).textContent).trim()};
+function wrapChoice(obj,name,sel,idx,fallback){const f=obj&&obj[name];if(typeof f!=='function')return;
+ obj[name]=function(){let c=null;try{const m=document.getElementById('modalContent'),bt=[...m.querySelectorAll(sel)][arguments[idx]];c={t:(m.querySelector('h3')?.textContent||fallback).replace(/^[^\w]+/,'').trim(),d:(m.querySelector('p')?.textContent||'').trim(),p:ptxt(bt),b:snap(),n:(game.logs||[]).length}}catch(e){}
+  const r=f.apply(this,arguments);try{if(c)record(c.t,c.d,c.p,c.b,(game.logs||[]).slice(c.n).map(x=>x.replace(/^Age \d+: ?/,'')).filter(x=>!/You chose "/.test(x)).slice(0,2))}catch(e){}return r}}
+/* dampen celebrity-event windfalls first, then record */
+if(window.P28&&P28.choose){const pc=P28.choose;P28.choose=function(){const f0=game.fame||0,m0=game.money||0,r=pc.apply(this,arguments);const df=(game.fame||0)-f0,dm=(game.money||0)-m0;if(df>0)game.fame=f0+Math.ceil(df*.4);if(dm>0)game.money=m0+Math.round(dm*.35);ui();return r}}
+wrapChoice(window.P28,'choose','button[onclick^="P28.choose"]',1,'Celebrity moment');
+wrapChoice(window.P31,'choose','button[onclick^="P31.choose"]',2,'Relationship moment');
+wrapChoice(window,'sc7ResolveEvent','button[onclick^="sc7ResolveEvent"]',1,'Company event');
+
+/* ---------- 3. ROMANCE + CHILDREN ---------- */
+const NM={M:['Daniel','Michael','David','Noah','Ethan','Tobi','Kelechi','Marcus'],F:['Amara','Chloe','Sophia','Maya','Jessica','Ada','Zainab','Grace']},VB=['Funny','Ambitious','Creative','Adventurous','Romantic','Calm','Loyal','Outgoing'];
+const RL=()=>game.p27rel=game.p27rel||{marital:'single',engaged:false,marriedAge:null,prenup:false,birthControl:false,pregnancy:null};
+function love(){
+ const r=RL(),p=game.partner,kids=game.children||[],b=(f,t,c)=>`<button class="p27-btn ${c||''}" onclick="${f}">${t}</button>`;
+ const st=r.marital==='married'?'Married':r.engaged?'Engaged':'Dating';
+ let h=`<h3 class="text-xl font-bold text-purple-400">❤️ Relationships</h3><div class="space-y-3 text-sm"><div class="p27-famecard"><b>Partner & Romance</b>`;
+ if(!p)h+=game.age>=16?`<div class="p27-mini" style="margin:6px 0">Meet some new people and see who clicks.</div>${b('P35.meet()','💘 Meet someone','pink')}`:`<div class="p27-mini">Romance unlocks at age 16.</div>`;
+ else h+=`<div style="margin-top:6px"><b>${esc(p.name)}</b> <span class="p27-pill">${st}</span></div><div class="p27-mini">Age ${p.age||'—'} · ${esc(p.trait||'')} · Relationship ${p.relationship}%</div><div class="p27-meter"><i style="width:${cl(p.relationship)}%"></i></div>
+ ${r.pregnancy?'<div class="p27-mini" style="color:#f9a8d4">🍼 Expecting a baby next year.</div>':''}
+ <div class="p27-relgrid">${b('P27.date()','🌹 Date')}${b('P27.gift()','🎁 Gift')}${b('P27.intimacy()','❤️ Intimacy')}${r.marital==='single'&&!r.engaged?b('P27.propose()','💍 Propose'):''}${r.engaged?b('P27.wedding()','💒 Get married'):''}${r.engaged&&!r.prenup?b('P27.prenup()','📄 Ask for prenup'):''}${r.marital==='married'?b('P27.birthControl()','💊 Birth control: '+(r.birthControl?'On':'Off')):''}${game.age>=18&&!r.pregnancy?b('P35.baby()','👶 Try for a baby','purple'):''}${r.marital==='married'?b('P27.divorce()','⚖️ Divorce','red'):b('P27.breakup()','💔 Break up','red')}</div>`;
+ h+=`</div><div class="p27-famecard"><b>Children (${kids.length})</b>${kids.map((c,i)=>`<div style="margin-top:7px;display:flex;justify-content:space-between;align-items:center"><span><b>${esc(c.name||'Child')}</b><div class="p27-mini">Age ${c.age||0} · ${esc(c.gender||'')}</div></span>${b('P27.child('+i+')','Spend time')}</div>`).join('')||'<div class="p27-mini" style="margin-top:6px">No children yet. Build a relationship, then try for a baby.</div>'}</div>
+ ${b('P31.render()','👥 Family & Friends')}</div><button onclick="closeModal()" class="w-full py-2.5 bg-slate-700 rounded-xl font-bold mt-3">Close</button>`;
+ openModal(h)}
+function meet(){if(game.age<16)return;const c=[];for(let i=0;i<3;i++){const g=R()<.5?'M':'F';c.push({name:pick(NM[g])+' '+pick(['A.','B.','C.','D.','E.']),age:Math.max(16,Math.min(game.age+3,game.age+ri(-4,4))),trait:pick(VB),att:ri(40,90)})}S().cands=c;meetUI()}
+function meetUI(){const c=S().cands;openModal(`<h3 class="text-xl font-bold text-purple-400">💘 Someone catches your eye</h3>${c.map((x,i)=>`<div class="p27-famecard"><b>${esc(x.name)}</b><div class="p27-mini">Age ${x.age} · ${x.trait} · Chemistry ${x.att}%</div><button class="p27-btn pink" style="margin-top:7px" onclick="P35.ask(${i})">Ask out</button></div>`).join('')||'<div class="p27-mini">Nobody else around. Try again later.</div>'}<button onclick="renderRelationshipsTab()" class="w-full py-2.5 bg-slate-700 rounded-xl font-bold mt-3">Back</button>`)}
+function askOut(i){const x=S().cands[i];if(!x)return;const p=cl(.3+(game.looks-50)/250+(game.reputation-50)/500+(game.fame||0)/400+(x.att-60)/300,.1,.85);
+ if(R()<p){game.partner={name:x.name,age:x.age,trait:x.trait,relationship:55+ri(0,20),relation:'Partner'};const r=RL();r.marital='single';r.engaged=false;r.prenup=false;r.birthControl=false;r.pregnancy=null;log(`Started dating ${x.name}.`);toast(`${x.name} said yes!`,'💖');S().cands=[];save();ui();love()}
+ else{S().cands.splice(i,1);game.happiness=cl(game.happiness-3);toast(`${x.name} turned you down.`,'💔');meetUI()}}
+function baby(){const p=game.partner,r=RL();if(!p||game.age<18||r.pregnancy)return;const ch=r.birthControl?.06:.3;p.relationship=cl(p.relationship+3);
+ if(R()<ch){r.pregnancy={dueAge:game.age+1,parent:p.name};log(`You and ${p.name} are expecting a baby.`);toast('You are expecting!','🍼')}else{log(`You and ${p.name} tried for a baby without luck.`);toast('Not this time. Keep trying.','🍼')}save();love()}
+window.renderRelationshipsTab=renderRelationshipsTab=love;if(window.P31)P31.partnerActions=love;
+
+/* ---------- 4. PURCHASE / LEASE RECEIPT ---------- */
+function receipt(k,it,mode,c0,isLease){
+ const IC={car:'🚗',home:'🏠',yacht:'🛥️',jet:'✈️'}[k];
+ const sp={car:[['Year',it.year],['Power',it.hp+' hp'],['Mileage',(it.mileage||0).toLocaleString()+' mi'],['Condition',it.condition]],home:[['Location',it.location],['Bedrooms',it.beds],['Bathrooms',it.baths],['Size',(it.sqft||0).toLocaleString()+' sq ft'],['Condition',it.condition],['Market rent',fm(it.marketRent)+'/mo']],yacht:[['Year',it.year],['Length',it.feet+' ft'],['Guests',it.guests],['Crew',it.crew],['Top speed',it.speed+' kn']],jet:[['Year',it.year],['Seats',it.seats],['Range',(it.range||0).toLocaleString()+' nm'],['Cruise',it.speed+' kt'],['Airframe hours',(it.hours||0).toLocaleString()]]}[k]||[];
+ const loan=mode==='finance'?(game.financialOverhaul?.loans||[]).slice(-1)[0]:null,ls=isLease?(game.p26.leases||[]).slice(-1)[0]:null,paid=c0.money-game.money;
+ const pay=loan?[['Method','Financed'],['Down payment',fm(loan.downPayment)],['Loan amount',fm(loan.principal)],['Interest rate',loan.rate+'% APR'],['Term',loan.term+' months'],['Monthly payment',fm(loan.payment)]]:ls?[['Method','Lease'],['Monthly payment',fm(ls.monthly)],['Deposit paid today',fm(paid)]]:[['Method','Cash'],['Paid today',fm(paid)]];
+ pop(`<div class="p35-ic">${IC}</div><div class="p35-h" style="text-align:center">${isLease?'Lease signed':'Purchase complete'}</div><p class="p35-p" style="text-align:center"><b>${esc(it.name)}</b> · ${esc(it.type)}</p>
+ <div class="p35-row"><span>List price</span><b>${fm(it.price)}</b></div>${sp.map(r=>`<div class="p35-row"><span>${r[0]}</span><b>${esc(r[1])}</b></div>`).join('')}
+ <div class="p35-h" style="margin-top:12px;font-size:.8rem">Payment</div>${pay.map(r=>`<div class="p35-row"><span>${r[0]}</span><b>${esc(r[1])}</b></div>`).join('')}
+ <div class="p35-row"><span>Est. yearly upkeep</span><b>${fm(it.annual)}</b></div><div class="p35-row"><span>Cash remaining</span><b>${fm(game.money)}</b></div>
+ <button class="p35-btn" onclick="P35.popClose();P26.assets('all')">View in My Assets</button><button class="p35-btn alt" onclick="P35.popClose()">Continue shopping</button>`)}
+if(window.P26&&P26.buy){const ob=P26.buy;P26.buy=function(k,id,mode){const s=game.p26||{},it=(s[{car:'cars',home:'homes',yacht:'yachts',jet:'jets'}[k]]||[]).find(x=>x.id===id),c0={own:game.realEstate.length+game.vehicles.length,lease:(s.leases||[]).length,money:game.money};
+ const r=ob.apply(this,arguments);try{const own=game.realEstate.length+game.vehicles.length>c0.own,ls=(game.p26.leases||[]).length>c0.lease;if(it&&(own||ls))receipt(k,it,mode,c0,ls)}catch(e){}return r}}
+
+/* ---------- 5. LIVE CASINO: SPORTSBOOK + HORSE RACING ---------- */
+const Phi=x=>{const t=1/(1+.2316419*Math.abs(x)),d=.3989423*Math.exp(-x*x/2),p=d*t*(.3193815+t*(-.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));return x>0?1-p:p};
+const poisson=l=>{const L=Math.exp(-l);let k=0,p=1;do{k++;p*=R()}while(p>L);return k-1};
+const SP={Football:{ic:'⚽',dur:90,tot:2.7,vavg:1,draw:1,v:()=>1,g:()=>'GOAL'},Basketball:{ic:'🏀',dur:48,tot:90,vavg:2.3,draw:0,v:()=>R()<.3?3:2,g:v=>v===3?'THREE-POINTER':'Basket'},Hockey:{ic:'🏒',dur:60,tot:5.8,vavg:1,draw:0,v:()=>1,g:()=>'GOAL'}};
+const TEAMS={Football:['Arsenal','Barcelona','Real Madrid','Bayern Munich','Inter Milan','PSG','Liverpool','Man City','Ajax','Napoli'],Basketball:['Los Angeles','Boston','Miami','Denver','Phoenix','Milwaukee','Dallas','New York'],Hockey:['Toronto','Boston','Chicago','Montreal','Detroit','Vegas']};
+function probs(L){const c=SP[L.sport],f=Math.max(0,1-L.min/L.dur),v=L.vavg,m=(L.sh-L.sa)+(L.Eh-L.Ea)*f*v,sd=Math.max(.3*v,Math.sqrt((L.Eh+L.Ea)*f)*v),b=.5;
+ let pd=Phi((b-m)/sd)-Phi((-b-m)/sd),ph=1-Phi((b-m)/sd),pa=Phi((-b-m)/sd);if(!c.draw){const t=ph+pa||1;ph/=t;pa/=t;pd=0}return{h:ph,d:pd,a:pa}}
+function mkFx(){const out=[];[['Football',3],['Basketball',2],['Hockey',1]].forEach(([sp,n])=>{const pool=TEAMS[sp].slice().sort(()=>R()-.5),c=SP[sp];for(let i=0;i<n;i++){const ra=ri(55,95),rb=ri(55,95),H={sport:sp,dur:c.dur,min:0,sh:0,sa:0,vavg:c.vavg,Eh:c.tot*(ra+4)/(ra+rb+4),Ea:c.tot*rb/(ra+rb+4)},p=probs(H),od=k=>Math.max(1.05,+(1/(p[k]*1.07)).toFixed(2));out.push({id:'f'+i+sp[0]+Date.now().toString(36),sport:sp,home:pool[i*2],away:pool[i*2+1],Eh:H.Eh,Ea:H.Ea,odds:{h:od('h'),d:c.draw?od('d'):0,a:od('a')}})}});return out}
+function cres(st,ret){const c=(game.p26=game.p26||{}).casino=game.p26.casino||{wagered:0,wins:0,losses:0,profit:0};c.wagered+=st;c.profit+=ret-st;ret>st?c.wins++:c.losses++}
+function tabs(a){const c=(game.p26&&game.p26.casino)||{wagered:0,wins:0,losses:0,profit:0};return `<div class="p26-kpis"><div><b>${fm(c.wagered)}</b><small>WAGERED</small></div><div><b>${c.wins}-${c.losses}</b><small>W / L</small></div><div><b>${fm(c.profit)}</b><small>P/L</small></div></div><div class="p26-tabs">${[['blackjack','Blackjack'],['roulette','Roulette'],['slots','Slots'],['sports','Sports Betting'],['horses','Horse Racing']].map(t=>`<button class="${a===t[0]?'on':''}" onclick="P26.casino('${t[0]}')">${t[1]}</button>`).join('')}</div>`}
+const cashVal=L=>{const p=probs(L)[L.pick];return Math.round(L.stake*L.odds*p*.93)};
+function liveHtml(L){const c=SP[L.sport];return `<div class="p26-card"><div class="p26-row" style="justify-content:space-between"><span class="p26-badge">${c.ic} ${L.sport} · LIVE</span><span id="p35Min" class="p26-badge"></span></div><div style="text-align:center;margin:10px 0"><div class="p26-muted">${esc(L.home)} vs ${esc(L.away)}</div><div id="p35Score" style="font-size:2rem;font-weight:900"></div></div><div class="p26-track"><i id="p35Bar"></i></div>
+ <div class="p26-muted" style="margin-top:8px">Your bet: <b>${esc(L.pickName)}</b> @ ${L.odds.toFixed(2)} · Stake ${fm(L.stake)} · Returns ${fm(L.stake*L.odds)}</div>
+ <div class="p26-kpis" style="margin-top:8px"><div><b id="p35Prob">—</b><small>WIN CHANCE</small></div><div><b id="p35Odds">—</b><small>LIVE ODDS</small></div><div><b id="p35Cash">—</b><small>CASH-OUT</small></div></div><div class="p26-row" id="p35Ctl"></div><div id="p35Feed" class="p26-log" style="margin-top:8px"></div></div>`}
+function updLive(){const L=S().live,g=id=>document.getElementById(id);if(!L||!g('p35Score'))return;g('p35Score').textContent=`${L.sh} – ${L.sa}`;g('p35Min').textContent=L.done?'FULL TIME':Math.round(L.min)+"'";g('p35Bar').style.width=(L.min/L.dur*100)+'%';
+ const p=probs(L)[L.pick],cv=cashVal(L);g('p35Prob').textContent=L.done?(L.result.win?'WON':'LOST'):Math.round(p*100)+'%';g('p35Odds').textContent=L.done?'—':Math.max(1.01,1/(Math.max(.01,p)*1.07)).toFixed(2);g('p35Cash').textContent=L.done?(L.cashed!=null?fm(L.cashed):'—'):fm(cv);
+ g('p35Feed').innerHTML=L.feed.slice(0,30).map(x=>`<div>${esc(x)}</div>`).join('');const k=`${L.done}-${L.speed}`,ct=g('p35Ctl');
+ if(ct.dataset.k!==k){ct.dataset.k=k;ct.innerHTML=L.done?`<div style="width:100%"><b>${L.cashed!=null?'You cashed out for '+fm(L.cashed):L.result.win?'Bet won! Returned '+fm(L.result.ret):'Bet lost.'}</b></div><button class="p26-btn primary" onclick="P35.endLive()">Back to matches</button>`:`<button class="p26-btn green" onclick="P35.cash()">Cash out</button><button class="p26-btn" onclick="P35.speed()">Speed ×${L.speed}</button><button class="p26-btn" onclick="P35.skip()">Skip to end</button>`}}
+function stepLive(L){L.min=Math.min(L.dur,L.min+L.dur/60);[['h','Eh',L.home],['a','Ea',L.away]].forEach(([k,e,n])=>{const c=poisson(L[e]/60);for(let i=0;i<c;i++){const v=SP[L.sport].v();L['s'+k]+=v;L.feed.unshift(`${Math.round(L.min)}' — ${SP[L.sport].g(v)} ${n}! (${L.sh}–${L.sa})`)}});if(L.min>=L.dur)finishLive(L)}
+function finishLive(L){let side=L.sh>L.sa?'h':L.sh<L.sa?'a':'d';if(side==='d'&&!SP[L.sport].draw){side=R()<.5?'h':'a';L.feed.unshift(`Overtime — ${side==='h'?L.home:L.away} edge it.`)}
+ const win=side===L.pick,ret=win?Math.round(L.stake*L.odds):0;L.done=true;L.result={side,win,ret};if(ret)game.money+=ret;cres(L.stake,ret);log(`Sports bet on ${L.pickName}: ${win?'won '+fm(ret):'lost '+fm(L.stake)} (${L.home} ${L.sh}–${L.sa} ${L.away}).`);toast(win?`Bet won! +${fm(ret)}`:'Bet lost.',win?'🎉':'📉');ui();save()}
+function sports(){const s=S();if(!s.fx)s.fx=mkFx();let b=tabs('sports');
+ if(s.live)b+=liveHtml(s.live);
+ else{if(s.sel){const f=s.fx.find(x=>x.id===s.sel.fid);if(f){const nm=s.sel.side==='h'?f.home:s.sel.side==='a'?f.away:'Draw';b+=`<div class="p26-card" style="border-color:#8b5cf6"><h3>Place bet: ${esc(nm)} @ ${f.odds[s.sel.side]}</h3><div class="p26-muted">${esc(f.home)} vs ${esc(f.away)} · Cash ${fm(game.money)}</div><input id="p35Stake" class="p26-input" type="number" min="10" value="100" oninput="P35.est()"><div class="p26-row">${[100,500,1000,5000].map(n=>`<button class="p26-btn" onclick="P35.stake(${n})">${fm(n)}</button>`).join('')}</div><div id="p35Est" class="p26-muted" style="margin:8px 0"></div><button class="p26-btn primary" onclick="P35.place()">Place bet & watch live</button> <button class="p26-btn" onclick="P35.pick(null)">Cancel</button></div>`}}
+  b+=`<div class="p26-muted" style="margin:8px 0">Matches play out live. Watch the score, track your win chance and cash out whenever you like.</div><div class="p26-grid">${s.fx.map(f=>`<div class="p26-card"><span class="p26-badge">${SP[f.sport].ic} ${f.sport}</span><h3>${esc(f.home)} vs ${esc(f.away)}</h3><div class="p26-row"><button class="p26-btn" onclick="P35.pick('${f.id}','h')">${esc(f.home)} · ${f.odds.h}</button>${f.odds.d?`<button class="p26-btn" onclick="P35.pick('${f.id}','d')">Draw · ${f.odds.d}</button>`:''}<button class="p26-btn" onclick="P35.pick('${f.id}','a')">${esc(f.away)} · ${f.odds.a}</button></div></div>`).join('')}</div><button class="p26-btn" style="margin-top:10px" onclick="P35.newSlate()">🔄 New matches</button>`}
+ P26.open('Casino & Sportsbook',b);updLive();est()}
+function est(){const s=S(),e=document.getElementById('p35Est');if(!e||!s.sel)return;const f=s.fx.find(x=>x.id===s.sel.fid),st=+document.getElementById('p35Stake').value||0;e.textContent=`Potential return ${fm(st*f.odds[s.sel.side])}`}
+function place(){const s=S(),f=s.fx.find(x=>x.id===s.sel.fid),st=Math.floor(+document.getElementById('p35Stake').value);if(!(st>=10))return toast('Minimum stake is $10.','⚠️');if(st>game.money)return toast('Not enough cash.','💸');
+ game.money-=st;const c=SP[f.sport],sd=s.sel.side;s.live={fid:f.id,sport:f.sport,home:f.home,away:f.away,pick:sd,pickName:sd==='h'?f.home:sd==='a'?f.away:'Draw',stake:st,odds:f.odds[sd],min:0,dur:c.dur,sh:0,sa:0,Eh:f.Eh,Ea:f.Ea,vavg:c.vavg,speed:1,feed:[`Kick-off! ${f.home} vs ${f.away}`],done:false};s.sel=null;ui();save();sports()}
+/* horse racing */
+function mkRace(){const n=['Midnight','Golden','Royal','Silver','Crimson','Lucky','Storm','Velvet','Northern','Rapid'],m=['Comet','Crown','Thunder','Spirit','Arrow','Dream','Legend','Star','Empire','Runner'],u=new Set(),hs=[];while(hs.length<8){const nm=pick(n)+' '+pick(m);if(u.has(nm))continue;u.add(nm);hs.push({id:hs.length,name:nm,r:ri(62,98),form:ri(1,5),pos:0,fin:null})}
+ const w=hs.map(h=>Math.exp((h.r+h.form*2-80)/9)),t=w.reduce((a,b)=>a+b,0);hs.forEach((h,i)=>{h.odds=Math.max(1.3,+(1/(w[i]/t*1.12)).toFixed(2));h.place=+(1+(h.odds-1)*.38).toFixed(2)});return{horses:hs,bet:null,done:false,order:[],tick:0}}
+function stepRace(r){r.tick++;r.horses.forEach(h=>{if(h.fin!=null)return;const st=(1+(h.r+h.form*2-80)/260)*(2.6+R()*2.2);h.pos+=st;if(h.pos>=100){h.fin=r.tick-(h.pos-100)/st;h.pos=100;r.order.push(h)}});
+ if(r.order.length>=3||r.tick>70){r.order.sort((a,b)=>a.fin-b.fin);r.horses.filter(h=>h.fin==null).sort((a,b)=>b.pos-a.pos).forEach(h=>r.order.push(h));r.done=true;const b=r.bet,h=r.horses[b.id],top=r.order.slice(0,3).includes(h),win=r.order[0]===h;
+  const ret=b.type==='win'?(win?Math.round(b.stake*h.odds):0):(top?Math.round(b.stake*h.place):0);if(ret)game.money+=ret;cres(b.stake,ret);r.res={ret,win,top};log(`Horse race: ${r.order[0].name} won. Your ${b.type} bet on ${h.name} ${ret?'returned '+fm(ret):'lost'}.`);toast(ret?`Race win! +${fm(ret)}`:'Your horse did not come in.',ret?'🏇':'📉');ui();save()}}
+function updRace(){const r=S().race;if(!r||!document.getElementById('p35H0'))return;r.horses.forEach(h=>{const e=document.getElementById('p35H'+h.id);if(e)e.style.width=h.pos+'%'});const l=r.horses.slice().sort((a,b)=>b.pos-a.pos)[0],c=document.getElementById('p35Cm');if(c)c.textContent=r.done?`${r.order[0].name} wins!`:`${l.name} leads at ${Math.round(l.pos)}%`;
+ if(r.done&&!r.shown){r.shown=1;horses()}}
+function horses(){const s=S();if(!s.race)s.race=mkRace();const r=s.race;let b=tabs('horses');
+ if(r.bet){const h=r.horses[r.bet.id];b+=`<div class="p26-card"><h3>🏇 Race ${r.done?'result':'in progress'}</h3><div class="p26-muted">Your ${r.bet.type} bet: ${esc(h.name)} · ${fm(r.bet.stake)}</div>${r.horses.map(x=>`<div class="p35-lane"><i id="p35H${x.id}" style="width:${x.pos}%"></i><b>${esc(x.name)}${x.id===r.bet.id?' ⭐':''}</b></div>`).join('')}<div id="p35Cm" class="p26-muted" style="margin:6px 0"></div>${r.done?`<p><b>${esc(r.order[0].name)} won. ${r.res.ret?'You won '+fm(r.res.ret)+'!':'Your bet lost.'}</b></p><div class="p26-muted">${r.order.slice(0,3).map((x,i)=>(i+1)+'. '+esc(x.name)).join(' · ')}</div><button class="p26-btn primary" style="margin-top:8px" onclick="P35.nextRace()">Next race</button>`:''}</div>`}
+ else{if(s.rsel!=null){const h=r.horses[s.rsel.id];b+=`<div class="p26-card" style="border-color:#8b5cf6"><h3>Bet on ${esc(h.name)}</h3><div class="p26-row"><button class="p26-btn ${s.rsel.type==='win'?'primary':''}" onclick="P35.rpick(${h.id},'win')">Win · ${h.odds}</button><button class="p26-btn ${s.rsel.type==='place'?'primary':''}" onclick="P35.rpick(${h.id},'place')">Place (top 3) · ${h.place}</button></div><input id="p35RStake" class="p26-input" type="number" min="10" value="100"><div class="p26-row">${[100,500,1000].map(n=>`<button class="p26-btn" onclick="document.getElementById('p35RStake').value=${n}">${fm(n)}</button>`).join('')}</div><button class="p26-btn green" style="margin-top:8px" onclick="P35.rbet()">Place bet & start race</button> <button class="p26-btn" onclick="P35.rpick(null)">Cancel</button></div>`}
+  b+=`<div class="p26-card"><h3>Race card</h3><div class="p26-muted">Pick a runner, choose Win or Place and watch the race unfold live.</div>${r.horses.map(h=>`<div style="padding:8px 0;border-bottom:1px solid #334155"><b>${esc(h.name)}</b> · ${h.odds}<div class="p26-muted">Rating ${h.r} · Form ${'●'.repeat(h.form)}</div><button class="p26-btn" style="margin-top:5px" onclick="P35.rpick(${h.id},'win')">Bet</button></div>`).join('')}</div>`}
+ P26.open('Casino & Sportsbook',b);updRace()}
+if(window.P26){const oc=P26.casino;P26.casino=function(tab){if(tab==='sports'||tab==='horses'){if(game.age<18){toast('You must be 18 or older to enter the casino.','🔞');return}return tab==='sports'?sports():horses()}return oc.apply(this,arguments)}}
+setInterval(()=>{const s=game&&game.p35;if(!game.alive||!s)return;if(s.live&&!s.live.done){for(let i=0;i<(s.live.speed||1);i++)if(!s.live.done)stepLive(s.live);updLive()}if(s.race&&s.race.bet&&!s.race.done){stepRace(s.race);updRace()}},450);
+
+/* ---------- 6. REALISTIC FAME CAREERS ---------- */
+const CR={athlete:['🏆','Professional Athlete',16,'Compete in a match',['Amateur','Club Player','Pro Contender','League Starter','National Star','Global Champion']],musician:['🎤','Musician',14,'Play a live gig',['Street Performer','Local Act','Signed Artist','Touring Act','Chart Topper','Global Superstar']],actor:['🎬','Actor',16,'Go to an audition',['Extra','Bit-Part Actor','Supporting Actor','Lead Actor','Award Contender','A-List Star']],producer:['🎛️','Music Producer',18,'Pitch a beat',['Bedroom Producer','Studio Assistant','Indie Producer','Hit Producer','Label Mogul','Legendary Producer']],director:['🎥','Movie Director',21,'Shoot a short film',['Film Student','Indie Shooter','Festival Director','Studio Director','Awarded Auteur','Legendary Director']]};
+const THR=[0,30,90,200,420,800],INC=[0,6000,35000,140000,550000,2400000],FCAP=[8,22,42,65,85,100],FFL=[0,2,8,20,35,50];
+const FC=()=>S().fc,sn=f=>CR[f.id][4][f.stage];
+function mirror(f){game.p27=game.p27||{};game.p27.career={id:f.id,level:sn(f),fans:f.fans,earnings:0,skill:f.skill,projects:f.projects,awards:0};game.fame=Math.min(FCAP[f.stage],game.fame||0)}
+function fame(){const f=FC();if(!f){if(game.p27&&game.p27.career&&CR[game.p27.career.id]){S().fc=fcInit(game.p27.career.id);if(game.job&&game.job.title===CR[game.p27.career.id][1])game.job=null;return dash()}
+ return openModal(`<h3 class="text-xl font-bold text-purple-400">⭐ Fame & Entertainment</h3><div class="p27-mini mb-2">Everyone starts at the bottom: no pay, no fame. Progress takes years of work, money, contacts and luck. Most people never leave the first tiers. Starting gear costs $500.</div>${Object.keys(CR).map(k=>`<div class="p27-famecard"><b>${CR[k][0]} ${CR[k][1]}</b><div class="p27-mini">Minimum age ${CR[k][2]}</div><button class="p27-btn purple" style="margin-top:7px" onclick="P35.join('${k}')">Start this path</button></div>`).join('')}<button onclick="renderCareerTab()" class="w-full py-2.5 bg-slate-700 rounded-xl font-bold mt-3">Back</button>`);}
+ dash()}
+function fcInit(id){const t=id==='athlete'?game.health:(id==='musician'||id==='actor')?game.looks:game.smarts;return{id,stage:0,standing:0,skill:Math.round(8+(t+game.smarts)/2*.2+R()*6),contacts:0,slots:4,used:0,projects:0,fans:0,lastInc:0,since:game.age}}
+function join(id){if(game.age<CR[id][2])return toast(`Minimum age is ${CR[id][2]}.`,'⚠️');if(game.money<500)return toast('You need $500 for starting gear.','💸');game.money-=500;S().fc=fcInit(id);mirror(S().fc);log(`Started a path as a ${CR[id][1]}.`);save();ui();dash()}
+function dash(){const f=FC(),c=CR[f.id],nx=THR[f.stage+1],pr=nx?cl(Math.round((f.standing-THR[f.stage])/(nx-THR[f.stage])*100)):100,cost=1500*(f.stage+1)**2,tc=150+f.stage*250,nc=300*(f.stage+1),b=(fn,t,c2,dis)=>`<button class="p27-btn ${c2||''}" ${dis?'disabled style="opacity:.4"':''} onclick="${fn}">${t}</button>`,no=!f.slots;
+ openModal(`<h3 class="text-xl font-bold text-purple-400">${c[0]} ${c[1]}</h3><div class="p27-famecard"><span class="p27-pill">${sn(f)}</span><span class="p27-pill">Tier ${f.stage+1}/6</span><span class="p27-pill">Time left: ${'●'.repeat(f.slots)+'○'.repeat(4-f.slots)}</span><div class="p27-mini" style="margin-top:6px">${nx?`Standing ${Math.round(f.standing)} / ${nx} for the next tier`:'You have reached the top tier.'}</div><div class="p27-meter"><i style="width:${pr}%"></i></div>
+ <div class="p27-relgrid" style="margin-top:8px"><div class="p27-mini">Skill <b>${Math.round(f.skill)}</b></div><div class="p27-mini">Contacts <b>${f.contacts}</b></div><div class="p27-mini">Fame <b>${game.fame||0}%</b> (cap ${FCAP[f.stage]}%)</div><div class="p27-mini">Fans <b>${f.fans.toLocaleString()}</b></div><div class="p27-mini">Last year's income <b>${fm(f.lastInc)}</b></div><div class="p27-mini">Cash <b>${fm(game.money)}</b></div></div></div>
+ <div class="p27-relgrid">${b('P35.train()',`🏋️ Train · ${fm(tc)}`,'',no)}${b('P35.perform()',`🎯 ${c[3]}`,'purple',no)}${b('P35.network()',`🤝 Network · ${fm(nc)}`,'',no)}${b('P35.media()','📺 Media & image','',no)}${b('P35.bigBreak()',`🚀 Big Break · ${fm(cost)}`,'pink',!nx)}${b('P35.quit()','🚪 Quit path','red')}</div><div class="p27-mini" style="margin-top:8px">Each action uses a time slot; slots refresh when you age up. Standing and fame fade if you stop working.</div><button onclick="renderCareerTab()" class="w-full py-2.5 bg-slate-700 rounded-xl font-bold mt-3">Back</button>`)}
+function use(f){if(f.slots<=0){toast('No time left this year. Age up to continue.','⏳');return false}f.slots--;f.used++;return true}
+function train(){const f=FC(),tc=150+f.stage*250;if(game.money<tc)return toast(`Training costs ${fm(tc)}.`,'💸');if(!use(f))return;game.money-=tc;const g=(1.5+R()*2.5)*(1+(game.smarts-50)/200);f.skill=cl(f.skill+g);
+ if(f.id==='athlete'&&R()<.05+(100-game.health)/900){game.health=cl(game.health-8);f.skill-=1.5;toast('You picked up an injury in training.','🩹')}else toast(`Skill +${g.toFixed(1)}`,'🏋️');mirror(f);ui();dash()}
+function perform(){const f=FC();ask(CR[f.id][3],'Choose how hard to push. Bigger risks mean bigger rewards and bigger failures.',[{t:'Play it safe',s:'Steady result, small gains',fn:()=>doPerf('Play it safe',6,8,.6)},{t:'Give it everything',s:'Balanced risk and reward',fn:()=>doPerf('Give it everything',0,14,1)},{t:'Take a huge risk',s:'Rare breakout, frequent flop',fn:()=>doPerf('Take a huge risk',-8,26,2.3)}])}
+function doPerf(lab,bias,vr,mult){const f=FC();if(!use(f))return;const b=snap(),D=18+f.stage*14,m=f.skill+((game.luck||50)-50)/6+bias+gauss()*vr-D,base=5+f.stage*3,I=INC[Math.max(1,f.stage)];let tier,gain,pay=0,fg=0,fans=0,hp,rp=0;
+ if(m>=18){tier='Standout';gain=base*mult*1.5;pay=Math.round(I/70*(.5+R()));fg=Math.floor((f.stage+1)*.8+R());fans=ri(40,200)*(f.stage+1)**2;hp=5;rp=2}
+ else if(m>=0){tier='Solid';gain=base*mult;pay=Math.round(I/120*(.3+R()));fans=ri(10,80)*(f.stage+1)**2;hp=2}
+ else if(m>=-12){tier='Mixed';gain=base*.25;pay=Math.round(I/400*R());hp=-1}
+ else{tier='Flop';gain=-(3+f.stage*2);rp=-2;hp=-4}
+ f.standing=Math.max(0,f.standing+gain);f.fans+=fans;f.projects++;f.skill=cl(f.skill+(m>=0?.6:.3));game.money+=pay;game.happiness=cl(game.happiness+hp);game.reputation=cl(game.reputation+rp);game.fame=Math.min(FCAP[f.stage],(game.fame||0)+fg);
+ let extra='';if(f.id==='athlete'&&R()<.06+(100-game.health)/800){game.health=cl(game.health-10);f.skill-=2;extra=' You were injured.'}
+ const t=`${tier}: standing ${gain>=0?'+':''}${gain.toFixed(1)}${pay?', earned '+fm(pay):''}${fans?', +'+fans.toLocaleString()+' fans':''}.${extra}`;log(`${CR[f.id][3]} (${lab}). ${t}`);record(CR[f.id][3],'You decided how hard to push yourself.',lab,b,[t]);mirror(f);ui();save();
+ show(tier==='Flop'?'💥':tier==='Standout'?'🌟':'🎯',tier,[['Approach',esc(lab)],['Standing',(gain>=0?'+':'')+gain.toFixed(1)],['Earned',fm(pay)],['New fans','+'+fans.toLocaleString()]],'P35.fame()')}
+function network(){const f=FC(),nc=300*(f.stage+1);if(game.money<nc)return toast(`Networking costs ${fm(nc)}.`,'💸');if(!use(f))return;game.money-=nc;const b=snap(),ok=R()<cl(.45+(game.looks-50)/300+(game.fame||0)/250+((game.luck||50)-50)/400,.15,.8);
+ if(ok){f.contacts++;log('Made a valuable industry contact.');record('Networking','You spent time and money building industry relationships.','Attend industry events',b,['Made a useful contact.']);show('🤝','New contact',[['Industry contacts',f.contacts],['Cost',fm(nc)]],'P35.fame()')}
+ else{log('Networking led nowhere.');record('Networking','You spent time and money building industry relationships.','Attend industry events',b,['Nobody important showed interest.']);show('😕','Nothing came of it',[['Cost',fm(nc)]],'P35.fame()')}ui()}
+function media(){ask('Media & image','How do you present yourself to the public?',[{t:'Stay humble and professional',s:'Reputation up, slow fan growth',fn:()=>doMedia(0)},{t:'Stir some controversy',s:'Fans and fame chance, reputation risk',fn:()=>doMedia(1)}])}
+function doMedia(c){const f=FC();if(!use(f))return;const b=snap();let t;
+ if(!c){game.reputation=cl(game.reputation+3);f.fans+=ri(30,150)*(f.stage+1);t='Came across as professional. Reputation up.'}
+ else if(R()<.5){f.fans+=ri(200,900)*(f.stage+1)**2;if(R()<.5)game.fame=Math.min(FCAP[f.stage],(game.fame||0)+1);t='The controversy got people talking. Fans up.'}
+ else{game.reputation=cl(game.reputation-8);t='It backfired and your reputation took a hit.'}
+ log('Media appearance: '+t);record('Media appearance','You chose how to present yourself publicly.',c?'Stir some controversy':'Stay humble',b,[t]);mirror(f);ui();show('📺','Media result',[['Outcome',esc(t)]],'P35.fame()')}
+function bigBreak(){const f=FC(),nx=THR[f.stage+1],cost=1500*(f.stage+1)**2;if(!nx)return toast('You are at the top tier.','🏆');if(f.standing<nx)return toast(`You need ${nx} standing first (you have ${Math.round(f.standing)}).`,'🔒');if(f.contacts<f.stage+1)return toast(`You need ${f.stage+1} industry contacts.`,'🔒');if(game.money<cost)return toast(`This costs ${fm(cost)}.`,'💸');
+ const p=cl(.22+(f.skill-(30+f.stage*12))/120+((game.luck||50)-50)/300+f.contacts*.015,.05,.8);
+ ask('Your Big Break',`A shot at ${CR[f.id][4][f.stage+1]}. It costs ${fm(cost)} and is far from guaranteed (about ${Math.round(p*100)}% with your current skill).`,[{t:'Back your craft',s:'Standard odds, lose 25% standing on failure',fn:()=>doBB(p,.25,0,'Back your craft')},{t:'Go all in with publicity',s:'12 points worse odds, more fame, lose 50% standing on failure',fn:()=>doBB(p-.12,.5,1,'All in with publicity')}])}
+function doBB(p,lose,pub,lab){const f=FC(),cost=1500*(f.stage+1)**2;if(game.money<cost)return;game.money-=cost;const b=snap();let t;
+ if(R()<cl(p,.04,.85)){f.stage++;game.fame=Math.min(FCAP[f.stage],Math.max(game.fame||0,FFL[f.stage])+(pub?3:0));f.fans+=ri(500,3000)*f.stage**2;game.happiness=cl(game.happiness+12);f.standing=Math.max(f.standing,THR[f.stage]);t=`You broke through to ${sn(f)}!`;show('🚀','Breakthrough!',[['New tier',sn(f)],['Cost',fm(cost)]],'P35.fame()')}
+ else{f.standing*=1-lose;game.happiness=cl(game.happiness-8);t=`It didn't land. You lost ${Math.round(lose*100)}% of your standing and ${fm(cost)}.`;show('📉','It fell flat',[['Cost',fm(cost)],['Standing lost',Math.round(lose*100)+'%']],'P35.fame()')}
+ log('Big Break: '+t);record('Your Big Break','You went for the next tier of your career.',lab,b,[t]);mirror(f);ui();save()}
+function quit(){ask('Quit this path?','You will lose your standing, contacts and fans.',[{t:'Yes, quit',s:'This cannot be undone',fn:()=>{S().fc=null;if(game.p27)game.p27.career=null;log('Gave up on a fame career.');ui();renderCareerTab()}},{t:'Keep going',s:'Stay on the path',fn:()=>dash()}])}
+function careerYear(){const f=FC();if(!f)return;f.slots=4;const used=f.used;f.used=0;let inc=0;
+ if(f.stage>=1){inc=Math.round(INC[f.stage]*(f.stage>=2?.35+R()*1.3:.2+R()*.9)*(used>=2?1:.3));if(f.stage>=2)inc=Math.round(inc*.85)}
+ game.money+=inc;f.lastInc=inc;f.standing*=used>=3?.95:.88;
+ if(f.stage>0&&f.standing<THR[f.stage]*.55){f.stage--;log(`Your career slipped back to ${sn(f)}.`)}
+ if(f.id==='athlete'&&game.age>31)f.skill=cl(f.skill-(game.age>36?3:1.5));
+ game.fame=Math.max(FFL[f.stage]*.5,(game.fame||0)-(used>=2?1:3));f.fans=Math.round(f.fans*(used>=2?.97:.9));
+ if(R()<.28){const r=R();if(r<.3*((game.luck||50)/50)){f.standing+=25;log('A lucky break boosted your career.')}else if(r<.6&&f.id==='athlete'){game.health=cl(game.health-12);f.skill-=4;game.money-=Math.min(game.money,3000);log('A bad injury set your career back.')}else{game.reputation=cl(game.reputation-5);log('A scandal damaged your image.')}}
+ log(`Career year as ${sn(f)}: earned ${fm(inc)}.`);mirror(f)}
+const _age=window.ageOneYear;window.ageOneYear=ageOneYear=function(){const a=game.age,r=_age.apply(this,arguments);if(game.alive&&game.age>a){try{careerYear()}catch(e){console.error(e)}}return r};
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('#p27FameBtn,#p33FameEntry');if(t){e.preventDefault();e.stopImmediatePropagation();fame()}},true);
+
+window.P35={marker:'LIFE SIM PATCH 35',popClose,opt:i=>{const o=OPTS[i];popClose();o&&o.fn()},meet,ask:askOut,baby,fame,join,train,perform,network,media,bigBreak,quit,
+ pick:(id,side)=>{S().sel=id?{fid:id,side}:null;sports()},stake:n=>{document.getElementById('p35Stake').value=n;est()},est,place,
+ newSlate:()=>{S().fx=null;S().sel=null;sports()},
+ speed:()=>{const L=S().live;if(L){L.speed=L.speed===1?3:L.speed===3?8:1;updLive()}},
+ skip:()=>{const L=S().live;while(L&&!L.done)stepLive(L);updLive()},
+ cash:()=>{const L=S().live;if(!L||L.done)return;const v=cashVal(L);game.money+=v;L.done=true;L.cashed=v;L.result={win:v>=L.stake,ret:v};cres(L.stake,v);log(`Cashed out a ${L.sport} bet for ${fm(v)}.`);toast(`Cashed out ${fm(v)}`,'💵');ui();save();updLive()},
+ endLive:()=>{S().live=null;S().fx=null;sports()},
+ rpick:(id,type)=>{S().rsel=id==null?null:{id,type:type||'win'};horses()},
+ rbet:()=>{const s=S(),r=s.race,st=Math.floor(+document.getElementById('p35RStake').value);if(!(st>=10))return toast('Minimum stake is $10.','⚠️');if(st>game.money)return toast('Not enough cash.','💸');game.money-=st;r.bet={id:s.rsel.id,type:s.rsel.type,stake:st};s.rsel=null;ui();save();horses()},
+ nextRace:()=>{S().race=null;S().rsel=null;horses()}};
+console.log('[Patch 35] Romance fix, event queue, vlog decisions, live casino, receipts and realistic fame active.');
+})();
+</script>
+<!-- ===== MERGED PATCH END ===== -->
+
+<!-- ===== MERGED PATCH END ===== -->
+
+
+
+<!-- ===== MERGED PATCH START ===== -->
+<!-- ===== LIFE SIM PATCH 36: ALERTS ABOVE EVERYTHING + LUXURY BANKING INTEGRATION =====
+Merge after all other patches (paste directly before the final </body>).
+1) Alerts/toasts render above every menu, sheet and popup (max z-index, stacked, theme-aware).
+2) Luxury shopping, financing, leasing and asset management are wired into the real Bank / Credit / Loan
+   system (Markets > Bank > Credit & Loans):
+   - Financing creates a REAL loan (auto / mortgage) with your credit score, APR, DTI and approval odds,
+     visible in Bank, linked to the asset. Lender counter-offers can be accepted or declined.
+   - Leasing is a real contract: monthly autopay from cash then savings, credit effects, missed payments,
+     repossession, early termination, end-of-lease buyout.
+   - Purchases can draw on cash and bank savings (toggle).
+   - Yearly upkeep/taxes/insurance are paid from your funds; skipping them reduces asset value.
+   - Selling an asset pays off its loan first. Defaulting on a loan repossesses the asset.
+   - Old Patch 26 asset loans/leases are migrated into the real system automatically.
+=============================================== -->
+<style>
+/* ---------- ALERTS ABOVE EVERYTHING ---------- */
+#toastNotification{display:none!important}
+#p36Toasts{position:fixed;left:0;right:0;top:max(10px,env(safe-area-inset-top));z-index:2147483647;display:flex;flex-direction:column;align-items:center;gap:8px;padding:0 12px;pointer-events:none}
+.p36-toast{display:flex;align-items:center;gap:10px;max-width:min(440px,100%);padding:11px 16px;border-radius:15px;background:#1b1340;color:#fff;border:1px solid rgba(167,139,250,.55);box-shadow:0 14px 40px rgba(0,0,0,.6);font:700 13px/1.35 system-ui,sans-serif;animation:p36in .22s ease-out}
+.p36-toast.out{animation:p36out .25s ease-in forwards}
+.p36-toast i{font-style:normal;font-size:18px}
+html[data-theme="light"] .p36-toast{background:#fff;color:#17191e;border-color:#c4b5fd;box-shadow:0 14px 40px rgba(60,40,120,.28)}
+@keyframes p36in{from{opacity:0;transform:translateY(-14px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes p36out{to{opacity:0;transform:translateY(-12px) scale(.96)}}
+
+/* ---------- LUXURY / BANKING UI ---------- */
+.p36-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:9px}
+.p36-kpis>div{padding:9px 4px;border-radius:12px;background:#ffffff0d;text-align:center}
+.p36-kpis b{display:block;font-size:.8rem}.p36-kpis small{font-size:.5rem;color:#94a3b8;letter-spacing:.04em}
+.p36-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.p36-sw{font-size:.68rem;color:#94a3b8;display:flex;align-items:center;gap:6px}
+.p36-box{padding:4px 12px;border:1px solid #334155;border-radius:14px;background:#0f172a}
+html[data-theme="light"] .p36-box{background:#f8fafc;border-color:#e5e7eb}
+.p36-line{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid #94a3b822;font-size:.74rem}
+.p36-line:last-child{border-bottom:0}.p36-line span{color:#94a3b8}.p36-line b{text-align:right}
+.p36-tag{display:inline-block;margin:3px 4px 0 0;padding:3px 7px;border-radius:99px;font-size:.58rem;font-weight:900}
+.p36-tag.good{background:#05966933;color:#34d399}.p36-tag.warn{background:#f59e0b2e;color:#fbbf24}.p36-tag.bad{background:#dc262633;color:#fb7185}
+.p36-prob{margin:8px 0;padding:9px 11px;border-radius:11px;background:#dc262622;color:#fda4af;font-size:.7rem;line-height:1.45}
+.p36-note{margin:8px 0;font-size:.65rem;line-height:1.5;color:#94a3b8}
+.p36-chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 4px}
+.p36-chips button{border:1px solid #475569;border-radius:99px;padding:7px 12px;background:transparent;color:inherit;font-weight:800;font-size:.7rem}
+.p36-chips button.on{background:#7c3aed;border-color:#7c3aed;color:#fff}
+.p36-lbl{font-size:.6rem;font-weight:900;letter-spacing:.08em;color:#94a3b8;margin:12px 0 2px}
+.p36-full{width:100%;margin-top:10px}
+@media(max-width:520px){.p36-kpis{grid-template-columns:repeat(2,1fr)}}
+</style>
+<script>
+/* LIFE SIM PATCH 36: ALERTS ABOVE EVERYTHING + LUXURY BANKING INTEGRATION */
+(function(){
+'use strict';
+if(window.__DESTINY36__)return;window.__DESTINY36__=1;
+
+/* =====================================================================
+   1. ALERTS / TOASTS ABOVE EVERYTHING
+===================================================================== */
+let lastToast='',lastToastAt=0;
+function toastImpl(text,icon){
+ icon=icon||'✨';text=String(text==null?'':text);
+ const now=Date.now();if(text===lastToast&&now-lastToastAt<700)return;lastToast=text;lastToastAt=now;
+ let host=document.getElementById('p36Toasts');
+ if(!host){host=document.createElement('div');host.id='p36Toasts';document.body.appendChild(host)}
+ /* keep the host as the LAST child of body so it always wins stacking ties */
+ if(host.parentNode!==document.body||document.body.lastElementChild!==host)document.body.appendChild(host);
+ while(host.children.length>=3)host.firstElementChild.remove();
+ const t=document.createElement('div');t.className='p36-toast';
+ t.innerHTML='<i></i><span></span>';t.firstChild.textContent=icon;t.lastChild.textContent=text;
+ host.appendChild(t);
+ setTimeout(()=>{t.classList.add('out');setTimeout(()=>t.remove(),280)},3200);
+ try{playSound&&0}catch(e){}
+}
+window.showToast=toastImpl;try{showToast=toastImpl}catch(e){}
+const toast=(t,i)=>toastImpl(t,i);
+
+/* =====================================================================
+   2. HELPERS
+===================================================================== */
+const $=s=>document.querySelector(s);
+const R=Math.random,rnd=(a,b)=>Math.floor(R()*(b-a+1))+a,pick=a=>a[rnd(0,a.length-1)];
+const cl=(n,a,b)=>Math.max(a,Math.min(b,n)),R2=n=>Math.round(n*100)/100;
+const uid=()=>Date.now().toString(36)+R().toString(36).slice(2,7);
+const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fm=n=>{n=Math.round(Number(n)||0);return n<0?'−'+formatMoney(-n):formatMoney(n)};
+const glog=t=>{game.logs=game.logs||[];game.logs.push('Age '+game.age+': '+t)};
+const ui=()=>{try{updateUI()}catch(e){}};
+const save=()=>{try{window.P26&&P26.autosave&&P26.autosave(false)}catch(e){}};
+const rows=a=>a.map(r=>`<div class="p36-line"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('');
+const ICON={car:'🚗',home:'🏠',yacht:'🛥️',jet:'✈️'};
+const KINDS=['car','home','yacht','jet'];
+const FEE={car:.05,home:.06,yacht:.07,jet:.06};
+const tierName=s=>s>=800?'Excellent':s>=750?'Very Good':s>=700?'Good':s>=600?'Fair':s>=500?'Poor':'Very Poor';
+const tierCol=s=>s>=750?'#34d399':s>=700?'#a3e635':s>=600?'#facc15':'#fb7185';
+
+function st(){const g=game.p36=game.p36||{};if(!Array.isArray(g.leases))g.leases=[];if(g.useBank===undefined)g.useBank=true;return g}
+function fin(){if(!game.fin)game.fin={credit:650,loans:[],lastAge:-1,nid:1};return game.fin}
+const cash=()=>Number(game.money)||0,bank=()=>Number(game.bankBalance)||0;
+const fundsAll=()=>cash()+bank();
+const avail=()=>cash()+(st().useBank?bank():0);
+function spend(n,all){n=R2(n);const a=all?fundsAll():avail();if(a+1e-6<n)return false;const c=Math.min(cash(),n);game.money=R2(cash()-c);const rest=n-c;if(rest>0)game.bankBalance=R2(bank()-rest);return true}
+const income=()=>Math.max(15000,(game.job?game.job.salary:0)+(game.company?Math.max(0,game.company.profit||0)*(game.company.sharesOwned/100):0));
+const leaseMonthly=()=>st().leases.filter(l=>l.status==='active').reduce((n,l)=>n+l.monthly,0);
+const obligations=()=>(typeof window.finMonthly==='function'?window.finMonthly():0)+leaseMonthly();
+function loanQ(k,principal,term){return typeof window.finQuote==='function'?window.finQuote(k==='home'?'mortgage':'auto',principal,term):null}
+function lockFin(){if(game.age<18)return'Financing opens at age 18.';if(fin().loans.filter(l=>l.balance>0).length>=6)return'Too many open loans (maximum 6).';return''}
+
+/* =====================================================================
+   3. LISTINGS
+===================================================================== */
+const sp=t=>t.split('\n').map(l=>l.split('|'));
+const CARS=sp(`Toyota Corolla|Economy Sedan|132|18000
+Honda Civic|Compact|158|26000
+Toyota Camry|Sedan|203|34000
+Tesla Model 3|EV|283|46000
+BMW 5 Series|Luxury Sedan|375|76000
+Mercedes-Benz GLE|Luxury SUV|375|92000
+Range Rover Autobiography|Luxury SUV|523|168000
+Porsche 911 Carrera|Sports Car|379|145000
+Mercedes-AMG GT 63|Performance|577|190000
+Bentley Continental GT Speed|Grand Tourer|771|330000
+Rolls-Royce Cullinan|Ultra Luxury|563|475000
+McLaren 750S|Supercar|740|355000
+Lamborghini Revuelto|Supercar|1001|620000
+Ferrari SF90 Spider|Supercar|986|690000
+Bugatti Tourbillon|Hypercar|1800|4600000
+Koenigsegg Jesko|Hypercar|1600|3900000`);
+const HOMES=sp(`Studio Apartment|Apartment|1|1|550|95000
+City Apartment|Apartment|2|2|1050|235000
+Family Townhouse|Townhouse|3|3|1900|410000
+Suburban Home|House|4|3|2800|620000
+Waterfront Home|Luxury Home|4|4|4200|1450000
+Downtown Penthouse|Penthouse|3|4|3900|2800000
+Mediterranean Villa|Villa|5|6|7200|5200000
+Gated Estate|Estate|7|9|12500|11000000
+Oceanfront Mega Mansion|Mega Mansion|10|14|24000|32000000`);
+const YACHTS=sp(`Azimut 53|Motor Yacht|53|6|2|1900000
+Sunseeker 76|Motor Yacht|76|8|3|6200000
+Princess Y85|Luxury Yacht|85|8|4|9800000
+Ferretti 1000|Superyacht|98|10|5|14500000
+Benetti Oasis 40M|Superyacht|131|12|9|28500000
+Feadship 55M|Superyacht|180|12|13|72000000
+Lürssen 90M|Mega Yacht|295|18|30|185000000`);
+const JETS=sp(`HondaJet Elite II|Very Light Jet|4|1547|422|7200000
+Embraer Phenom 300E|Light Jet|8|2010|464|12500000
+Cessna Citation Latitude|Midsize Jet|9|2700|446|19500000
+Bombardier Challenger 3500|Super Midsize|10|3400|470|29000000
+Gulfstream G500|Large Cabin|14|5300|516|54000000
+Dassault Falcon 10X|Ultra Long Range|19|7500|600|79000000
+Gulfstream G700|Ultra Long Range|19|7750|516|82000000
+Bombardier Global 8000|Ultra Long Range|19|8000|487|81000000`);
+const LOCS=['Lagos','London','Dubai','New York','Los Angeles','Miami','Paris','Monaco','Singapore','Cape Town'];
+function annualFor(k,p){if(k==='car')return Math.round(Math.max(1200,p*(p<3e5?.04:p<2e6?.025:.012)));if(k==='home')return Math.round(p*.018);if(k==='yacht')return Math.round(p*.07);return Math.round(p*.045)}
+function gen(){const s=st(),v=(p,x)=>Math.round(p*(1+(R()*2-1)*(x||.12))),cond=()=>pick(['Fair','Good','Very Good','Excellent']);
+ s.inv={year:game.age,
+  car:CARS.map(r=>{const p=v(+r[3]);return{id:uid(),kind:'car',name:r[0],type:r[1],hp:+r[2],price:p,year:rnd(2016,2026),mileage:rnd(0,90000),condition:cond(),annual:annualFor('car',p)}}),
+  home:HOMES.map(r=>{const p=v(+r[5],.17);return{id:uid(),kind:'home',name:r[0],type:r[1],beds:+r[2],baths:+r[3],sqft:v(+r[4],.08),price:p,location:pick(LOCS),condition:cond(),annual:annualFor('home',p),marketRent:Math.round(p*(.0035+R()*.0025))}}),
+  yacht:YACHTS.map(r=>{const p=v(+r[5]);return{id:uid(),kind:'yacht',name:r[0],type:r[1],feet:+r[2],guests:+r[3],crew:+r[4],price:p,year:rnd(2016,2026),speed:rnd(17,33),condition:cond(),annual:annualFor('yacht',p)}}),
+  jet:JETS.map(r=>{const p=v(+r[5]);return{id:uid(),kind:'jet',name:r[0],type:r[1],seats:+r[2],range:+r[3],speed:+r[4],price:p,year:rnd(2017,2026),hours:rnd(30,4200),condition:cond(),annual:annualFor('jet',p)}})}}
+function inv(){const s=st();if(!s.inv||s.inv.year!==game.age)gen();return s.inv}
+const findItem=(k,id)=>inv()[k].find(x=>x.id===id);
+function specs(x,k){
+ if(k==='car')return `${x.year} · ${x.hp} hp · ${(x.mileage||0).toLocaleString()} mi · ${x.condition}`;
+ if(k==='home')return `${x.location} · ${x.beds} bed · ${x.baths} bath · ${(x.sqft||0).toLocaleString()} sq ft · ${x.condition}`;
+ if(k==='yacht')return `${x.year} · ${x.feet} ft · ${x.guests} guests · ${x.crew} crew · ${x.speed} kn`;
+ return `${x.year} · ${x.seats} seats · ${(x.range||0).toLocaleString()} nm · ${x.speed} kt · ${(x.hours||0).toLocaleString()} hrs`}
+
+/* =====================================================================
+   4. LEASE + FINANCE QUOTES (tied to credit score & debt-to-income)
+===================================================================== */
+function leaseQ(k,x,term){
+ if(k==='home'){const monthly=Math.round(x.marketRent||x.price*.0045);return{monthly,deposit:monthly,fee:0,resid:0,signing:monthly*2,total:monthly*term,req:560,term,upkeep:0,apr:0}}
+ const lq=loanQ('car',x.price,36),apr=(lq?lq.rate:7)+1;
+ const resid=Math.round(x.price*({24:.66,36:.58,48:.5}[term]||.55)),
+  monthly=Math.round((x.price-resid)/term+(x.price+resid)*apr/2400),fee=Math.round(Math.max(395,x.price*.004));
+ return{monthly,deposit:monthly,fee,resid,signing:monthly*2+fee,total:monthly*term+fee,req:600,term,upkeep:Math.round(x.annual*.45),apr}}
+function leaseChance(q){const sc=fin().credit,dti=(obligations()+q.monthly)*12/income();let ch=cl(Math.round(50+(sc-q.req)*.4),0,96);if(sc<q.req)ch=Math.min(ch,10);if(dti>.5)ch=0;else if(dti>.36)ch-=15;return{chance:cl(ch,0,96),dti}}
+function reach(k,x){const av=avail(),o={cash:av>=x.price,fin:null,lease:null};
+ if(k==='car'||k==='home'){const down=Math.round(x.price*.2),T=k==='home'?360:60,pr=x.price-down,q=pr>=500?loanQ(k,pr,T):null;
+  if(q&&!lockFin()&&av>=down&&pr<=q.avail&&q.chance>0&&q.dti+leaseMonthly()*12/income()<=.5)o.fin=q;
+  if(game.age>=18){const lq=leaseQ(k,x,k==='home'?12:36);if(av>=lq.signing&&leaseChance(lq).chance>0)o.lease=lq}}
+ return o}
+
+/* =====================================================================
+   5. OWNED ASSETS
+===================================================================== */
+function kindOf(a,dflt){if(a.assetType)return a.assetType;const t=((a.type||'')+' '+(a.name||'')).toLowerCase();return /yacht/.test(t)?'yacht':/\bjet\b|gulfstream|learjet/.test(t)?'jet':dflt}
+function owned(){const out=[];
+ (game.realEstate||[]).forEach(a=>{norm(a,'home');out.push({a,kind:'home'})});
+ (game.vehicles||[]).forEach(a=>{const k=kindOf(a,'car');norm(a,k);out.push({a,kind:k})});
+ return out}
+function norm(a,k){if(!a.id)a.id=uid();a.assetType=a.assetType||k;a.value=Math.round(Number(a.currentValue!=null?a.currentValue:(a.value!=null?a.value:a.price))||0);a.currentValue=a.value;if(a.purchasePrice==null)a.purchasePrice=a.value;if(k==='home'&&!a.marketRent)a.marketRent=Math.round(a.value*.0045)}
+const loanOf=a=>a.loanId!=null?fin().loans.find(l=>l.id===a.loanId&&l.balance>0):null;
+const upk=o=>Number(o.a.annual)||annualFor(o.kind,o.a.value);
+function addAsset(k,x,extra){
+ const a=Object.assign({},x,{assetType:k,value:x.price,currentValue:x.price,purchasePrice:x.price,purchaseAge:game.age,rent:null,tenant:null,loanId:null},extra||{});
+ (k==='home'?game.realEstate:game.vehicles).push(a);
+ const s=st();if(s.inv&&s.inv[k])s.inv[k]=s.inv[k].filter(z=>z.id!==x.id);
+ game.happiness=cl((game.happiness||0)+3,0,100);return a}
+function removeAsset(a){game.realEstate=(game.realEstate||[]).filter(x=>x!==a);game.vehicles=(game.vehicles||[]).filter(x=>x!==a)}
+
+/* =====================================================================
+   6. MIGRATION OF OLD (Patch 26) LOANS & LEASES INTO THE REAL SYSTEM
+===================================================================== */
+function migrate(){
+ const s=st();if(s.migrated)return;s.migrated=true;
+ const fo=game.financialOverhaul;
+ if(fo&&Array.isArray(fo.loans)){const keep=[];
+  fo.loans.forEach(l=>{if(l.assetId==null){keep.push(l);return}
+   const f=fin(),nl={id:f.nid++,type:l.type==='mortgage'?'mortgage':'auto',name:(l.name||'Loan')+' · '+(l.assetName||'Asset'),principal:l.principal,balance:l.balance,rate:l.rate,term:l.term,monthsLeft:l.monthsLeft,payment:l.payment,late:0,startAge:l.startAge!=null?l.startAge:game.age,asset:{id:l.assetId}};
+   f.loans.push(nl);const a=[].concat(game.realEstate||[],game.vehicles||[]).find(z=>z.id===l.assetId);if(a)a.loanId=nl.id});
+  fo.loans=keep}
+ const old=game.p26&&game.p26.leases;
+ if(Array.isArray(old))old.forEach(l=>{if(!l.active)return;const it=l.item||{},car=l.kind!=='home',term=36;
+  s.leases.push({id:uid(),kind:l.kind||'car',name:l.name,type:it.type||'',item:it,monthly:l.monthly,termMonths:term,monthsLeft:term,deposit:l.monthly*2,fee:0,resid:car?Math.round((it.price||l.monthly*60)*.58):0,upkeep:car?Math.round((it.annual||0)*.45):0,paid:0,late:0,everLate:false,status:'active',startAge:l.startAge||game.age});l.active=false})
+}
+
+/* =====================================================================
+   7. PAGE HELPERS
+===================================================================== */
+const UI={kind:'car',sort:'asc',reach:false,af:'all',redraw:null};let CK=null,PEND=null;
+function view(title,html,keep){
+ const sh=document.querySelector('#p26Modal .p26-sheet'),t=keep&&sh?sh.scrollTop:0;
+ if(window.P26&&P26.open)P26.open(title,html);
+ if(sh)sh.scrollTop=t}
+function head(){const f=fin(),sc=f.credit;
+ return `<div class="p36-kpis"><div><b>${fm(cash())}</b><small>CASH</small></div><div><b>${fm(bank())}</b><small>BANK SAVINGS</small></div><div><b style="color:${tierCol(sc)}">${sc}</b><small>CREDIT · ${tierName(sc).toUpperCase()}</small></div><div><b>${fm(obligations())}</b><small>PAYMENTS / MO</small></div></div>
+ <div class="p36-bar"><label class="p36-sw"><input type="checkbox" ${st().useBank?'checked':''} onchange="P36.bankToggle(this.checked)"> Pay from bank savings when cash runs short</label><button class="p26-btn" onclick="P36.toBank()">🏦 Bank &amp; Loans</button></div>`}
+function chips(arr,cur,fn){return `<div class="p36-chips">${arr.map(a=>`<button class="${String(a[0])===String(cur)?'on':''}" onclick="${fn}(${typeof a[0]==='number'?a[0]:`'${a[0]}'`})">${a[1]}</button>`).join('')}</div>`}
+const termLbl=n=>n>=120?(n/12)+' yr':n+' mo';
+
+/* =====================================================================
+   8. SHOP
+===================================================================== */
+function luxury(kind,keep){
+ migrate();if(kind==='owned')return assets('all');
+ UI.kind=kind||UI.kind||'car';const k=UI.kind;UI.redraw=()=>luxury(k,true);
+ let items=inv()[k].map(x=>({x,r:reach(k,x)}));
+ if(UI.reach)items=items.filter(o=>o.r.cash||o.r.fin||o.r.lease);
+ items.sort((a,b)=>UI.sort==='asc'?a.x.price-b.x.price:b.x.price-a.x.price);
+ const tabs=[['car','🚗 Cars'],['home','🏠 Property'],['yacht','🛥️ Yachts'],['jet','✈️ Jets']];
+ view('Luxury Shopping',head()+`<div class="p26-tabs">${tabs.map(t=>`<button class="${k===t[0]?'on':''}" onclick="P36.luxury('${t[0]}')">${t[1]}</button>`).join('')}<button onclick="P36.assets('all')">My Assets</button></div>
+ <div class="p36-note">Listings refresh every in-game year. Cars and properties can be paid in cash, financed with a real bank loan (credit score, debt-to-income and approval odds apply) or leased. Yachts and jets are cash purchases.</div>
+ <div class="p36-chips"><button class="${UI.sort==='asc'?'on':''}" onclick="P36.sort('asc')">Price ↑</button><button class="${UI.sort==='desc'?'on':''}" onclick="P36.sort('desc')">Price ↓</button><button class="${UI.reach?'on':''}" onclick="P36.reachToggle()">Within my reach</button></div>
+ <div class="p26-grid" style="margin-top:8px">${items.map(({x,r})=>{
+  let tags='';
+  if(r.cash)tags+='<span class="p36-tag good">💵 Pay cash</span>';
+  if(r.fin)tags+=`<span class="p36-tag warn">🏦 Finance ≈ ${fm(r.fin.payment)}/mo</span>`;
+  if(r.lease)tags+=`<span class="p36-tag warn">🔑 ${k==='home'?'Rent':'Lease'} ≈ ${fm(r.lease.monthly)}/mo</span>`;
+  if(!r.cash&&!r.fin&&!r.lease)tags='<span class="p36-tag bad">Out of reach</span>';
+  return `<div class="p26-card"><span class="p26-badge">${esc(x.type)}</span><h3>${esc(x.name)}</h3><div class="p26-muted">${esc(specs(x,k))}</div><div class="p26-price">${fm(x.price)}</div><div>${tags}</div><div class="p26-muted" style="margin-top:6px">Upkeep ≈ ${fm(x.annual)}/yr</div><button class="p26-btn primary p36-full" onclick="P36.deal('${k}','${x.id}')">View deal</button></div>`}).join('')||'<div class="p26-card"><div class="p26-muted">Nothing here is within reach right now.</div></div>'}</div>`,keep)}
+
+/* =====================================================================
+   9. DEAL / CHECKOUT
+===================================================================== */
+function deal(k,id,keep){
+ migrate();const x=findItem(k,id);
+ if(!x){toast('That listing is no longer available.','⚠️');return luxury(k)}
+ const can=k==='car'||k==='home';
+ if(!CK||CK.id!==id)CK={k,id,mode:(avail()>=x.price||!can)?'cash':'finance',down:Math.round(x.price*.2),term:k==='home'?360:60,lterm:k==='home'?12:36};
+ if(!can)CK.mode='cash';
+ UI.redraw=()=>deal(k,id,true);
+ const m=CK.mode;
+ const modes=[['cash','💵 Cash']].concat(can?[['finance','🏦 Finance'],['lease',k==='home'?'🔑 Rent / Lease':'🔑 Lease']]:[]);
+ let body='';
+ if(m==='cash'){const need=x.price-avail();
+  body=`<div class="p26-section">PAY IN FULL</div><div class="p36-box">${rows([['Price',fm(x.price)],['Cash on hand',fm(cash())],st().useBank?['Bank savings',fm(bank())]:['Bank savings','not used'],['Available',fm(avail())],['After purchase',`<span style="color:${need>0?'#fb7185':'inherit'}">${fm(avail()-x.price)}</span>`]])}</div>
+  ${need>0?`<div class="p36-prob">You need ${fm(need)} more${can?'. Try financing or leasing instead.':'.'}</div>`:''}
+  <button class="p26-btn green p36-full" ${need>0?'disabled':''} onclick="P36.confirm()">Buy for ${fm(x.price)}</button>`}
+ else if(m==='finance'){
+  body=`<div class="p36-lbl">DOWN PAYMENT (min 10%)</div><input id="p36Down" class="p26-input" type="number" min="0" value="${Math.round(CK.down)}" oninput="P36.down(this.value)">
+  <div class="p36-chips">${[10,20,30,50].map(p=>`<button onclick="P36.dpct(${p})">${p}%</button>`).join('')}</div>
+  <div class="p36-lbl">LOAN TERM</div>${chips((k==='home'?[180,240,360]:[36,48,60,72]).map(n=>[n,termLbl(n)]),CK.term,'P36.term')}
+  <div id="p36Q">${finBlock(x).html}</div>`}
+ else{
+  body=`<div class="p36-lbl">${k==='home'?'LEASE TERM':'LEASE TERM'}</div>${chips((k==='home'?[12,24,36]:[24,36,48]).map(n=>[n,n+' mo']),CK.lterm,'P36.lterm')}<div id="p36Q">${leaseBlock(x).html}</div>`}
+ view(x.name,head()+`<div class="p26-card" style="margin-bottom:10px"><span class="p26-badge">${ICON[k]} ${esc(x.type)}</span><h3>${esc(x.name)}</h3><div class="p26-muted">${esc(specs(x,k))}</div><div class="p26-price">${fm(x.price)}</div><div class="p26-muted">Yearly upkeep, tax &amp; insurance ≈ ${fm(x.annual)} (paid automatically when you age up)</div></div>
+ <div class="p26-tabs">${modes.map(a=>`<button class="${m===a[0]?'on':''}" onclick="P36.mode('${a[0]}')">${a[1]}</button>`).join('')}</div>${body}
+ <button class="p26-btn p36-full" onclick="P36.luxury('${k}')">‹ Back to listings</button>`,keep)}
+
+function finBlock(x){
+ const k=CK.k,price=x.price,minDown=Math.round(price*.1),down=cl(Math.round(CK.down)||0,0,price),pr=price-down,
+  q=pr>=500?loanQ(k,pr,CK.term):null,sc=fin().credit,probs=[],lk=lockFin();
+ if(lk)probs.push(lk);
+ if(down<minDown)probs.push(`Minimum down payment is ${fm(minDown)} (10%).`);
+ if(avail()<down)probs.push(`You need ${fm(down-avail())} more for the down payment.`);
+ let dti=0;
+ if(!q)probs.push('The financed amount must be at least $500.');
+ else{dti=q.dti+leaseMonthly()*12/income();
+  if(pr>q.avail)probs.push(`Exceeds your borrowing capacity (${fm(q.avail)} available).`);
+  else if(dti>.5)probs.push('Combined loan and lease payments would be too high for your income.');
+  else if(q.chance<=0)probs.push(`Your credit score (${sc}) is below the lender's requirement (${q.req}).`)}
+ const ok=!probs.length;
+ let html=`<div class="p26-section">LOAN TERMS (REAL BANK LOAN)</div><div class="p36-box">${rows([
+  ['Price',fm(price)],['Down payment (due today)',fm(down)],['Amount financed',fm(pr)],
+  ['Interest rate',q?q.rate+'% APR':'—'],['Term',termLbl(CK.term)],['Monthly payment',q?'<span style="color:#facc15">'+fm(q.payment)+'</span>':'—'],
+  ['Total interest',q?fm(q.interest):'—'],['Total repayment',q?fm(q.total+down):'—'],
+  ['Credit score',`<span style="color:${tierCol(sc)}">${sc}</span> (min ${q?q.req:'—'})`],
+  ['Borrowing capacity',q?fm(q.avail):'—'],['Debt-to-income after',q?(dti*100).toFixed(0)+'%':'—'],
+  ['Approval chance',q?`<span style="color:${q.chance>=70?'#34d399':q.chance>=40?'#facc15':'#fb7185'}">${q.chance}%</span>`:'—']])}</div>`;
+ if(probs.length)html+=`<div class="p36-prob">${probs.map(esc).join('<br>')}</div>`;
+ html+=`<div class="p36-note">Applying may be rejected or approved at worse terms. A rejection lowers your credit score slightly. Missed payments cause late fees, credit damage and eventually repossession.</div>
+ <button class="p26-btn primary p36-full" ${ok?'':'disabled'} onclick="P36.confirm()">Apply &amp; buy · ${fm(down)} down</button>`;
+ return{html,ok,probs,q,down,pr}}
+
+function leaseBlock(x){
+ const k=CK.k,q=leaseQ(k,x,CK.lterm),lc=leaseChance(q),sc=fin().credit,probs=[];
+ if(game.age<18)probs.push('Leasing opens at age 18.');
+ if(avail()<q.signing)probs.push(`You need ${fm(q.signing-avail())} more due at signing.`);
+ if(lc.dti>.5)probs.push('Combined loan and lease payments would be too high for your income.');
+ else if(sc<q.req)probs.push(`Your credit score (${sc}) is below the ${q.req} required.`);
+ else if(lc.chance<=0)probs.push('This lease would not be approved right now.');
+ const ok=!probs.length;
+ const r=[['Monthly payment','<span style="color:#facc15">'+fm(q.monthly)+'</span>'],['Term',q.term+' months'],
+  ['First payment',fm(q.monthly)],[k==='home'?'Security deposit (refundable)':'Security deposit (refundable)',fm(q.deposit)]];
+ if(q.fee)r.push(['Acquisition fee',fm(q.fee)]);
+ r.push(['Due at signing',`<b>${fm(q.signing)}</b>`]);
+ if(k==='car')r.push(['Residual / buyout price',fm(q.resid)],['Lease rate (credit-based)',q.apr.toFixed(2)+'%']);
+ r.push(['Total of payments',fm(q.total)]);
+ if(q.upkeep)r.push(['Your yearly insurance &amp; upkeep',fm(q.upkeep)]);
+ r.push(['Credit score',`<span style="color:${tierCol(sc)}">${sc}</span> (min ${q.req})`],['Debt-to-income after',(lc.dti*100).toFixed(0)+'%'],
+  ['Approval chance',`<span style="color:${lc.chance>=70?'#34d399':lc.chance>=40?'#facc15':'#fb7185'}">${lc.chance}%</span>`]);
+ let html=`<div class="p26-section">LEASE TERMS</div><div class="p36-box">${rows(r)}</div>`;
+ if(probs.length)html+=`<div class="p36-prob">${probs.map(esc).join('<br>')}</div>`;
+ html+=`<div class="p36-note">Payments are drawn automatically each month from your cash, then bank savings. Miss payments and your credit drops; after 3 missed payments the ${k==='home'?'lease is terminated':'vehicle is repossessed'} and the deposit is lost. ${k==='car'?'At the end you can buy it out at the residual price or return it.':'You own no equity in a rental.'}</div>
+ <button class="p26-btn primary p36-full" ${ok?'':'disabled'} onclick="P36.confirm()">${k==='home'?'Sign lease':'Sign lease'} · ${fm(q.signing)} today</button>`;
+ return{html,ok,probs,q,lc}}
+
+/* ---------- confirm actions ---------- */
+function doConfirm(){
+ const x=CK&&findItem(CK.k,CK.id);if(!x){toast('That listing is no longer available.','⚠️');return luxury(UI.kind)}
+ if(CK.mode==='cash')return buyCash(x);
+ if(CK.mode==='finance')return buyFinance(x);
+ return signLease(x)}
+function buyCash(x){const k=CK.k;if(!spend(x.price)){toast('Not enough funds.','💸');return}
+ addAsset(k,x);glog(`Bought ${x.name} for ${fm(x.price)} in cash.`);ui();save();playS();
+ receiptPage({title:'Purchase complete',icon:ICON[k],head:'Purchase complete',sub:x.name+' · '+x.type,blocks:[['PAYMENT',[['Method','Cash / savings'],['Price paid',fm(x.price)],['Est. yearly upkeep',fm(x.annual)]]],['YOUR FUNDS',[['Cash left',fm(cash())],['Bank savings',fm(bank())]]]],btns:receiptBtns(k)});
+ toast(x.name+' purchased.','✅')}
+function buyFinance(x){
+ const k=CK.k,b=finBlock(x);if(!b.ok){toast(b.probs[0],'⚠️');return}
+ if(typeof window.finApply!=='function'){toast('The bank loan system is unavailable.','⚠️');return}
+ const type=k==='home'?'mortgage':'auto',n0=(game.logs||[]).length,t0=(game.timeline||[]).length;
+ const r=window.finApply(type,b.pr,CK.term,{noCash:true,asset:{id:x.id,kind:k}});
+ if(r.status==='approved')return finishFinance(x,k,b.down,r.loan,null);
+ if(r.status==='worse'){PEND={x,k,down:b.down,loan:r.loan,orig:r.orig,n0,t0};return counterPage()}
+ const why=r.reason||'Application rejected.';
+ toast(why,'❌');ui();save();
+ view('Application rejected',`<div style="text-align:center"><div style="font-size:3rem">❌</div><h3 style="font-size:1.1rem;font-weight:900">Loan application rejected</h3><p class="p26-muted">${esc(why)}</p></div><div class="p36-box">${rows([['Credit score now',fin().credit],['Open loan payments',fm(window.finMonthly?finMonthly():0)+'/mo']])}</div><div class="p36-note">Tips: raise your credit score by paying on time, reduce existing debt, make a larger down payment or choose a longer term.</div><button class="p26-btn primary p36-full" onclick="P36.deal('${k}','${x.id}')">Adjust my offer</button><button class="p26-btn p36-full" onclick="P36.luxury('${k}')">Back to shop</button>`)}
+function counterPage(){const P=PEND;if(!P)return;const l=P.loan,o=P.orig;
+ view('Lender counter-offer',`<div style="text-align:center"><div style="font-size:3rem">⚠️</div><h3 style="font-size:1.1rem;font-weight:900">Approved with worse terms</h3><p class="p26-muted">The lender will only approve this at a higher rate.</p></div>
+ <div class="p36-box">${rows([['Asset',esc(P.x.name)],['Amount financed',fm(l.principal)],['Rate you wanted',o.rate+'% APR'],['Rate offered',`<span style="color:#fb7185">${l.rate}% APR</span>`],['Monthly payment',fm(l.payment)+' <small>(was '+fm(o.payment)+')</small>'],['Term',termLbl(l.term)],['Down payment today',fm(P.down)]])}</div>
+ <button class="p26-btn green p36-full" onclick="P36.counterYes()">Accept offer</button><button class="p26-btn red p36-full" onclick="P36.counterNo()">Decline &amp; walk away</button>`)}
+function finishFinance(x,k,down,loan,counter){
+ if(!spend(down)){fin().loans=fin().loans.filter(l=>l!==loan);toast('You no longer have the funds for the down payment.','💸');return luxury(k)}
+ const a=addAsset(k,x);a.loanId=loan.id;loan.name=(loan.name||'Loan')+' · '+x.name;loan.asset={id:a.id,kind:k};loan.assetName=x.name;
+ glog(`Bought ${x.name} for ${fm(x.price)} with ${fm(down)} down and a ${fm(loan.principal)} loan.`);ui();save();playS();
+ receiptPage({title:'Purchase complete',icon:ICON[k],head:'Financed purchase complete',sub:x.name+' · '+x.type,blocks:[
+  ['PAYMENT',[['Method','Bank financing'],['Price',fm(x.price)],['Down payment',fm(down)],['Loan amount',fm(loan.principal)],['Interest rate',loan.rate+'% APR'],['Term',termLbl(loan.term)],['Monthly payment',fm(loan.payment)],['Est. total interest',fm(loan.payment*loan.term-loan.principal)]]],
+  ['AFTER PURCHASE',[['Cash left',fm(cash())],['Bank savings',fm(bank())],['Est. yearly upkeep',fm(x.annual)],['Credit score',fin().credit]]]],
+  btns:receiptBtns(k).concat(['<button class="p26-btn" onclick="P36.toBank()">🏦 View loan in Bank</button>'])});
+ toast(x.name+' purchased.','✅')}
+function signLease(x){
+ const k=CK.k,b=leaseBlock(x);if(!b.ok){toast(b.probs[0],'⚠️');return}
+ if(R()*100>=b.lc.chance){const f=fin();f.credit=cl(f.credit-2,300,850);ui();save();toast('Lease application rejected.','❌');
+  view('Lease rejected',`<div style="text-align:center"><div style="font-size:3rem">❌</div><h3 style="font-size:1.1rem;font-weight:900">Lease application rejected</h3><p class="p26-muted">The lessor declined your application. Your credit score dropped slightly.</p></div><button class="p26-btn primary p36-full" onclick="P36.deal('${k}','${x.id}')">Try different terms</button><button class="p26-btn p36-full" onclick="P36.luxury('${k}')">Back to shop</button>`);return}
+ const q=b.q;if(!spend(q.signing)){toast('Not enough funds.','💸');return}
+ const l={id:uid(),kind:k,name:x.name,type:x.type,item:Object.assign({},x),monthly:q.monthly,termMonths:q.term,monthsLeft:q.term-1,deposit:q.deposit,fee:q.fee,resid:q.resid,upkeep:q.upkeep,paid:q.monthly,late:0,everLate:false,status:'active',startAge:game.age};
+ st().leases.push(l);const s=st();s.inv[k]=s.inv[k].filter(z=>z.id!==x.id);game.happiness=cl((game.happiness||0)+3,0,100);
+ glog(`Signed a ${q.term}-month ${k==='home'?'rental lease':'lease'} on ${x.name} for ${fm(q.monthly)} per month.`);ui();save();playS();
+ receiptPage({title:'Lease signed',icon:'🔑',head:k==='home'?'Lease signed':'Lease signed',sub:x.name+' · '+x.type,blocks:[
+  ['DUE TODAY',[['First payment',fm(q.monthly)],['Security deposit',fm(q.deposit)],q.fee?['Acquisition fee',fm(q.fee)]:['Fees','—'],['Paid today',fm(q.signing)]]],
+  ['CONTRACT',[['Monthly payment',fm(q.monthly)],['Term',q.term+' months'],k==='car'?['Buyout at end',fm(q.resid)]:['Equity','None (rental)'],q.upkeep?['Your yearly upkeep',fm(q.upkeep)]:['Upkeep','Included']]]],
+  btns:['<button class="p26-btn primary" onclick="P36.assets(\'lease\')">View my leases</button>','<button class="p26-btn" onclick="P36.luxury(\''+k+'\')">Continue shopping</button>']});
+ toast('Lease signed on '+x.name+'.','🔑')}
+const receiptBtns=k=>['<button class="p26-btn primary" onclick="P36.assets(\'all\')">View in My Assets</button>','<button class="p26-btn" onclick="P36.luxury(\''+k+'\')">Continue shopping</button>'];
+function receiptPage(o){view(o.title,`<div style="text-align:center"><div style="font-size:3rem">${o.icon}</div><h3 style="margin:4px 0;font-size:1.1rem;font-weight:900">${esc(o.head)}</h3><div class="p26-muted">${esc(o.sub)}</div></div>${o.blocks.map(b=>`<div class="p26-section">${b[0]}</div><div class="p36-box">${rows(b[1])}</div>`).join('')}<div class="p26-row" style="margin-top:12px">${o.btns.join('')}</div>`)}
+function playS(){try{playSound('success')}catch(e){}}
+
+/* =====================================================================
+   10. MY ASSETS
+===================================================================== */
+function assets(filter,keep){
+ migrate();UI.af=filter||UI.af||'all';UI.redraw=()=>assets(UI.af,true);
+ const all=owned(),show=UI.af==='all'?all:(UI.af==='lease'?[]:all.filter(o=>o.kind===UI.af)),L=st().leases.filter(l=>l.status==='active'||l.status==='ended');
+ const val=all.reduce((n,o)=>n+o.a.value,0),debt=all.reduce((n,o)=>{const l=loanOf(o.a);return n+(l?l.balance:0)},0),
+  yr=all.reduce((n,o)=>n+upk(o),0)+L.filter(l=>l.status==='active').reduce((n,l)=>n+l.monthly*12+(l.upkeep||0),0);
+ const tabs=[['all','All'],['home','Property'],['car','Cars'],['yacht','Yachts'],['jet','Jets'],['lease','Leases ('+L.length+')']];
+ let h=`<div class="p36-kpis"><div><b>${fm(val)}</b><small>ASSET VALUE</small></div><div><b style="color:${debt?'#fb7185':'inherit'}">${fm(debt)}</b><small>LOANS ON ASSETS</small></div><div><b>${fm(val-debt)}</b><small>EQUITY</small></div><div><b>${fm(yr)}</b><small>COST / YEAR</small></div></div>
+ <div class="p36-bar"><span class="p36-sw">Cash ${fm(cash())} · Savings ${fm(bank())} · Credit ${fin().credit}</span><button class="p26-btn" onclick="P36.toBank()">🏦 Bank &amp; Loans</button></div>
+ <div class="p26-tabs">${tabs.map(t=>`<button class="${UI.af===t[0]?'on':''}" onclick="P36.assets('${t[0]}')">${t[1]}</button>`).join('')}<button onclick="P36.luxury()">🛍️ Shop</button></div>`;
+ if(UI.af!=='lease'){
+  h+=show.length?show.map(o=>{const a=o.a,l=loanOf(a),gain=a.value-(a.purchasePrice||a.value);
+   return `<div class="p26-card" style="margin-bottom:9px"><span class="p26-badge">${ICON[o.kind]} ${esc(a.type||o.kind).toUpperCase()}</span><h3>${esc(a.name)}</h3><div class="p26-price">${fm(a.value)}</div>
+   <div class="p26-muted">Bought for ${fm(a.purchasePrice||a.value)} · <span style="color:${gain>=0?'#34d399':'#fb7185'}">${gain>=0?'▲':'▼'} ${fm(Math.abs(gain))}</span> · Upkeep ${fm(upk(o))}/yr${a.neglect?' · <span style="color:#fb7185">neglected</span>':''}</div>
+   ${l?`<div class="p36-box" style="margin-top:8px">${rows([['Loan balance','<span style="color:#fb7185">'+fm(l.balance)+'</span>'],['Payment',fm(l.payment)+'/mo · '+l.rate+'% APR'],['Months left',l.monthsLeft],['Your equity',fm(a.value-l.balance)]])}${l.late?`<div class="p36-prob">⚠️ ${l.late} missed payment(s). Risk of repossession.</div>`:''}</div>`:'<div class="p26-muted" style="margin-top:6px">Owned outright</div>'}
+   ${o.kind==='home'?`<div class="p26-muted" style="margin-top:6px">${a.rent&&a.rent.listed?`Listed ${fm(a.rent.ask)}/mo · ${a.tenant?'Occupied':'<b>Vacant</b>'}`:'Not rented out'}</div>`:''}
+   <div class="p26-row" style="margin-top:9px">${l?`<button class="p26-btn green" onclick="P36.payPage(${l.id})">Pay down loan</button>`:''}${o.kind==='home'?`<button class="p26-btn" onclick="P36.rentPage('${a.id}')">${a.rent&&a.rent.listed?'Manage rent':'Rent out'}</button>`:''}<button class="p26-btn red" onclick="P36.sellPage('${a.id}')">Sell</button></div></div>`}).join(''):`<div class="p26-card"><div class="p26-muted">You do not own assets in this category yet.</div><button class="p26-btn primary p36-full" onclick="P36.luxury()">Open Luxury Shopping</button></div>`;
+ }
+ if(UI.af==='all'||UI.af==='lease'){
+  h+=`<div class="p26-section">LEASES</div>`+(L.length?L.map(l=>{const done=l.termMonths-l.monthsLeft;
+   return `<div class="p26-card" style="margin-bottom:9px"><span class="p26-badge">${l.status==='ended'?'LEASE ENDED':'🔑 ACTIVE LEASE'}</span><h3>${esc(l.name)}</h3><div class="p26-muted">${fm(l.monthly)}/month · ${l.status==='ended'?'term complete':l.monthsLeft+' months left'}${l.late?` · <span style="color:#fb7185">${l.late} missed</span>`:''}</div>
+   <div class="p26-track"><i style="width:${cl(done/l.termMonths*100,0,100)}%"></i></div>
+   <div class="p26-muted" style="margin-top:6px">Deposit ${fm(l.deposit)}${l.resid?' · Buyout '+fm(l.resid):''}${l.upkeep?' · Upkeep '+fm(l.upkeep)+'/yr':''}</div>
+   <div class="p26-row" style="margin-top:9px">${l.status==='ended'?`${l.resid?`<button class="p26-btn green" onclick="P36.buyoutPage('${l.id}')">Buy out ${fm(l.resid)}</button>`:''}<button class="p26-btn" onclick="P36.returnLease('${l.id}')">Return</button>`:`<button class="p26-btn red" onclick="P36.endLeasePage('${l.id}')">End early</button>`}</div></div>`}).join(''):'<div class="p26-muted">No active leases.</div>');
+ }
+ if(window.P27&&P27.buyAgeDown&&UI.af==='all'){const on=game.p27&&game.p27.ageDown;
+  h+=`<div class="p26-card" style="margin-top:10px"><b>⏳ Premium Life Control</b><div class="p26-muted">Age Down adds a −1 button to the Age button. It only changes age; it cannot undo events or transactions.</div><button class="p26-btn primary" style="margin-top:8px" onclick="P27.buyAgeDown()">${on?'Age Down unlocked · 25 💎 per use':'Unlock Age Down · 500 💎'}</button></div>`}
+ view('Asset Management',h,keep)}
+
+/* ---------- sell ---------- */
+function sellPage(id){const o=owned().find(z=>z.a.id===id);if(!o)return assets();const a=o.a,l=loanOf(a),fee=FEE[o.kind]||.05,net=Math.round(a.value*(1-fee)),payoff=l?Math.min(l.balance,net):0,left=net-(l?l.balance:0);
+ UI.redraw=()=>sellPage(id);
+ view('Sell '+a.name,`<div class="p26-card"><h3>${esc(a.name)}</h3><div class="p26-price">${fm(a.value)}</div></div>
+ <div class="p26-section">SALE BREAKDOWN</div><div class="p36-box">${rows([['Market value',fm(a.value)],['Fees &amp; commission ('+Math.round(fee*100)+'%)','−'+fm(a.value-net)],['Sale proceeds',fm(net)],l?['Loan payoff to bank','−'+fm(payoff)]:['Loan','None'],['<b>Cash to you</b>',`<b style="color:${left>=0?'#34d399':'#fb7185'}">${fm(Math.max(0,left))}</b>`]])}</div>
+ ${l&&left<0?`<div class="p36-prob">The sale does not cover the loan. You will still owe ${fm(-left)} to the bank as an unsecured balance.</div>`:''}
+ <button class="p26-btn red p36-full" onclick="P36.sellGo('${id}')">Confirm sale</button><button class="p26-btn p36-full" onclick="P36.assets()">Cancel</button>`)}
+function sellGo(id){const o=owned().find(z=>z.a.id===id);if(!o)return;const a=o.a,l=loanOf(a),net=Math.round(a.value*(1-(FEE[o.kind]||.05)));removeAsset(a);
+ if(l){if(net>=l.balance){const rest=Math.round(net-l.balance);fin().loans=fin().loans.filter(x=>x!==l);fin().credit=cl(fin().credit+8,300,850);game.money=R2(cash()+rest);glog(`Sold ${a.name} for ${fm(net)}, paid off the loan and kept ${fm(rest)}.`)}
+  else{l.balance=R2(l.balance-net);l.asset=null;l.name='Remaining balance · '+a.name;relife(l);glog(`Sold ${a.name} for ${fm(net)}. ${fm(l.balance)} is still owed to the bank.`)}}
+ else{game.money=R2(cash()+net);glog(`Sold ${a.name} for ${fm(net)}.`)}
+ toast(a.name+' sold.','💰');ui();save();assets('all')}
+function relife(l){const r=l.rate/1200;if(l.balance>.5&&l.payment>l.balance*r)l.monthsLeft=Math.max(1,Math.ceil(-Math.log(1-l.balance*r/l.payment)/Math.log(1+r)))}
+
+/* ---------- pay down a loan ---------- */
+function payPage(lid){const l=fin().loans.find(x=>x.id===lid);if(!l)return assets();const max=Math.floor(Math.min(avail(),l.balance));UI.redraw=()=>payPage(lid);
+ view('Pay down loan',`<div class="p26-card"><h3>${esc(l.name)}</h3><div class="p26-price">${fm(l.balance)}</div><div class="p26-muted">${fm(l.payment)}/mo · ${l.rate}% APR · ${l.monthsLeft} months left</div></div>
+ <div class="p36-lbl">EXTRA PAYMENT (available ${fm(avail())})</div><input id="p36Pay" class="p26-input" type="number" min="1" value="${Math.max(1,Math.min(max,5000))}">
+ <div class="p36-chips"><button onclick="document.getElementById('p36Pay').value=${Math.min(max,1000)}">$1,000</button><button onclick="document.getElementById('p36Pay').value=${Math.min(max,10000)}">$10,000</button><button onclick="document.getElementById('p36Pay').value=${Math.floor(max/2)}">Half</button><button onclick="document.getElementById('p36Pay').value=${max}">Max</button></div>
+ <button class="p26-btn green p36-full" onclick="P36.payGo(${lid})">Pay</button><button class="p26-btn p36-full" onclick="P36.assets()">Cancel</button>`)}
+function payGo(lid){const f=fin(),l=f.loans.find(x=>x.id===lid);if(!l)return;let a=Math.floor(+document.getElementById('p36Pay').value||0);if(a<1)return toast('Enter an amount.','⚠️');a=Math.min(a,Math.ceil(l.balance));
+ if(!spend(a)){toast('Not enough funds.','💸');return}
+ l.balance=R2(Math.max(0,l.balance-a));
+ if(l.balance<=.5){f.loans=f.loans.filter(x=>x!==l);f.credit=cl(f.credit+12,300,850);glog(`Paid off your ${l.name} early.`);toast('Loan paid off! Credit +12','🎉')}
+ else{relife(l);toast('Paid '+fm(a)+' toward the loan.','💸')}
+ try{playSound('cash')}catch(e){}ui();save();assets()}
+
+/* ---------- rent out ---------- */
+function rentPage(id){const a=owned().find(z=>z.a.id===id);if(!a)return assets();const h=a.a,mk=h.marketRent||Math.round(h.value*.0045),cur=(h.rent&&h.rent.ask)||mk;UI.redraw=()=>rentPage(id);
+ view('Rent out '+h.name,`<div class="p26-card"><h3>${esc(h.name)}</h3><div class="p26-muted">${esc(h.location||'')} · Estimated market rent ${fm(mk)}/mo</div></div>
+ <div class="p36-lbl">ASKING RENT PER MONTH</div><input id="p36Rent" class="p26-input" type="number" min="1" value="${cur}" oninput="P36.rentEst(${mk})"><div id="p36RentEst" class="p36-note"></div>
+ <button class="p26-btn green p36-full" onclick="P36.rentSet('${id}')">${h.rent&&h.rent.listed?'Update asking rent':'List for rent'}</button>${h.rent&&h.rent.listed?`<button class="p26-btn red p36-full" onclick="P36.rentStop('${id}')">Stop renting</button>`:''}<button class="p26-btn p36-full" onclick="P36.assets()">Back</button>`);rentEst(mk)}
+function rentEst(mk){const v=+document.getElementById('p36Rent').value||0,e=document.getElementById('p36RentEst');if(!e)return;const ch=cl(.78-(v/Math.max(1,mk)-1)*.7,.05,.9);e.textContent=`Chance of finding a tenant each year ≈ ${Math.round(ch*100)}% · Yearly income if occupied ${fm(v*12)} (paid when you age up).`}
+function rentSet(id){const o=owned().find(z=>z.a.id===id);if(!o)return;const v=Math.round(+document.getElementById('p36Rent').value);if(!(v>0))return toast('Enter a valid rent.','⚠️');o.a.rent={listed:true,ask:v};if(o.a.tenant&&v>(o.a.marketRent||1)*1.5)o.a.tenant=null;toast('Listed for '+fm(v)+'/mo.','🔑');save();assets()}
+function rentStop(id){const o=owned().find(z=>z.a.id===id);if(!o)return;o.a.rent=null;o.a.tenant=null;save();assets()}
+
+/* ---------- lease management ---------- */
+const leaseOf=id=>st().leases.find(l=>l.id===id);
+function endLeasePage(id){const l=leaseOf(id);if(!l)return assets('lease');const pen=l.monthly*(l.kind==='home'?2:3);UI.redraw=()=>endLeasePage(id);
+ view('End lease early',`<div class="p26-card"><h3>${esc(l.name)}</h3><div class="p26-muted">${l.monthsLeft} months remaining · ${fm(l.monthly)}/mo</div></div><div class="p36-box">${rows([['Early termination fee',fm(pen)],['Security deposit','forfeited'],['Credit score','−10']])}</div><div class="p36-note">Cash/savings available: ${fm(fundsAll())}</div>
+ <button class="p26-btn red p36-full" onclick="P36.endLeaseGo('${id}')">Pay ${fm(pen)} &amp; end lease</button><button class="p26-btn p36-full" onclick="P36.assets('lease')">Cancel</button>`)}
+function endLeaseGo(id){const l=leaseOf(id);if(!l)return;const pen=l.monthly*(l.kind==='home'?2:3);if(!spend(pen,true)){toast('You cannot afford the termination fee.','💸');return}
+ const f=fin();f.credit=cl(f.credit-10,300,850);st().leases=st().leases.filter(x=>x!==l);glog(`Ended the ${l.name} lease early (fee ${fm(pen)}).`);toast('Lease ended.','🔑');ui();save();assets('lease')}
+function buyoutPage(id){const l=leaseOf(id);if(!l)return assets('lease');UI.redraw=()=>buyoutPage(id);
+ view('Buy out lease',`<div class="p26-card"><h3>${esc(l.name)}</h3><div class="p26-price">${fm(l.resid)}</div><div class="p26-muted">Residual buyout price</div></div><div class="p36-box">${rows([['Available funds',fm(avail())],['After buyout',fm(avail()-l.resid)]])}</div>
+ <button class="p26-btn green p36-full" ${avail()<l.resid?'disabled':''} onclick="P36.buyoutGo('${id}')">Buy for ${fm(l.resid)}</button><button class="p26-btn p36-full" onclick="P36.assets('lease')">Cancel</button>`)}
+function buyoutGo(id){const l=leaseOf(id);if(!l)return;if(!spend(l.resid)){toast('Not enough funds.','💸');return}
+ const it=Object.assign({},l.item||{},{id:uid(),name:l.name,type:l.type||'Vehicle',price:l.resid});addAsset(l.kind==='home'?'home':'car',it);st().leases=st().leases.filter(x=>x!==l);
+ glog(`Bought out the ${l.name} lease for ${fm(l.resid)}.`);toast('You now own the '+l.name+'.','✅');ui();save();assets('all')}
+function returnLease(id){const l=leaseOf(id);if(!l)return;st().leases=st().leases.filter(x=>x!==l);glog(`Returned the leased ${l.name}.`);toast('Lease returned.','🔑');save();assets('lease')}
+
+/* =====================================================================
+   11. YEARLY ENGINE (leases, upkeep, repossession) — runs after loans
+===================================================================== */
+function yearly(){
+ const s=st(),f=fin();let paid=0,upkeep=0,lateAny=false;
+ /* repossession of assets whose loan defaulted + clean dangling links */
+ owned().forEach(o=>{const a=o.a;if(a.loanId==null)return;const l=f.loans.find(z=>z.id===a.loanId);
+  if(!l||l.balance<=.5){a.loanId=null;return}
+  if(l.defaulted){const sale=Math.round(a.value*.7);removeAsset(a);
+   if(sale>=l.balance){const rest=Math.round(sale-l.balance);f.loans=f.loans.filter(z=>z!==l);game.money=R2(cash()+rest)}
+   else{l.balance=R2(l.balance-sale);l.asset=null;l.name='Deficiency balance · '+a.name;l.late=0;l.defaulted=false;relife(l)}
+   game.reputation=cl((game.reputation||50)-4,0,100);game.happiness=cl((game.happiness||50)-6,0,100);
+   glog(`The bank repossessed your ${a.name} after missed loan payments and sold it for ${fm(sale)}.`);toast(a.name+' was repossessed.','🚨')}});
+ /* leases */
+ s.leases.forEach(l=>{
+  if(l.status==='ended'){if(game.age-(l.endedAge!=null?l.endedAge:game.age)>=1){l.status='returned';glog(`The ${l.name} was returned at the end of the lease.`)}return}
+  if(l.status!=='active')return;
+  for(let m=0;m<12&&l.monthsLeft>0&&l.status==='active';m++){
+   if(fundsAll()>=l.monthly){spend(l.monthly,true);paid+=l.monthly;l.paid=(l.paid||0)+l.monthly;l.monthsLeft--;l.late=0}
+   else{lateAny=true;l.late=(l.late||0)+1;l.everLate=true;f.credit=cl(Math.round(f.credit-(l.late>=2?40:25)),300,850);
+    if(l.late>=3){l.status='repossessed';f.credit=cl(f.credit-60,300,850);game.reputation=cl((game.reputation||50)-6,0,100);game.happiness=cl((game.happiness||50)-8,0,100);glog(`Your ${l.name} lease was terminated after missed payments. The deposit was forfeited.`);toast(l.name+' lease terminated.','🚨')}
+    else glog(`Missed a lease payment on your ${l.name}.`)}}
+  if(l.status==='active'&&l.monthsLeft<=0){l.status='ended';l.endedAge=game.age;
+   if(!l.everLate){game.money=R2(cash()+l.deposit);f.credit=cl(f.credit+8,300,850);glog(`The ${l.name} lease ended. Your ${fm(l.deposit)} deposit was refunded.`)}
+   else glog(`The ${l.name} lease ended.`)}
+  if(l.status==='active'&&l.upkeep){if(fundsAll()>=l.upkeep){spend(l.upkeep,true);upkeep+=l.upkeep}else{game.happiness=cl((game.happiness||50)-2,0,100)}}
+ });
+ s.leases=s.leases.filter(l=>l.status==='active'||l.status==='ended');
+ if(paid>0&&!lateAny)f.credit=cl(f.credit+2,300,850);
+ /* owned asset upkeep, taxes & insurance */
+ owned().forEach(o=>{const a=o.a,up=Math.round(upk(o));if(up<=0)return;
+  if(fundsAll()>=up){spend(up,true);upkeep+=up}
+  else{const part=Math.max(0,Math.floor(fundsAll()));if(part>0){spend(part,true);upkeep+=part}
+   a.neglect=(a.neglect||0)+1;a.value=a.currentValue=Math.round(a.value*.93);game.happiness=cl((game.happiness||50)-2,0,100);
+   glog(`You could not afford upkeep and taxes on your ${a.name}. Its value dropped 7%.`);toast('Could not afford upkeep on '+a.name+'.','⚠️')}});
+ f.credit=cl(Math.round(f.credit),300,850);
+ if(paid>0)toast('Lease payments this year: −'+fm(paid),'🔑');
+ if(upkeep>0)toast('Asset upkeep, taxes & insurance: −'+fm(upkeep),'🧾');
+}
+const _age=window.ageOneYear;
+window.ageOneYear=ageOneYear=function(){
+ try{migrate()}catch(e){}
+ const a=game.age,r=_age.apply(this,arguments);
+ if(game.alive&&game.age>a){try{yearly()}catch(e){console.error('[Patch 36]',e)}ui()}
+ return r};
+const _sn=window.startNewLife;
+window.startNewLife=startNewLife=function(){game.p36=null;CK=null;PEND=null;return _sn.apply(this,arguments)};
+const _bh=window.beginHeir;
+if(typeof _bh==='function')window.beginHeir=function(){const r=_bh.apply(this,arguments);try{st().leases=[];st().inv=null;st().migrated=true;owned().forEach(o=>{o.a.loanId=null})}catch(e){}return r};
+
+/* =====================================================================
+   12. BANK SCREEN: show leases + shop link inside Markets > Bank > Credit & Loans
+===================================================================== */
+function decorateBank(){
+ const root=document.querySelector('#modalContent .p32-body')||document.getElementById('modalContent');if(!root||root.querySelector('#p36BankCard'))return;
+ const btn=[...root.querySelectorAll('button')].find(b=>(b.getAttribute('onclick')||'').indexOf('finPick()')>-1);if(!btn)return;
+ const L=st().leases.filter(l=>l.status==='active'||l.status==='ended'),pay=leaseMonthly();
+ const d=document.createElement('div');d.id='p36BankCard';d.className='bg-slate-900 border border-slate-700 rounded-2xl p-3';d.style.margin='8px 0';
+ d.innerHTML=`<div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Leases &amp; asset financing</div>
+ <div class="flex justify-between text-xs py-1"><span class="text-slate-400">Active leases</span><b>${L.filter(l=>l.status==='active').length}</b></div>
+ <div class="flex justify-between text-xs py-1"><span class="text-slate-400">Lease payments</span><b>${fm(pay)}/mo</b></div>
+ <div class="flex justify-between text-xs py-1"><span class="text-slate-400">Total monthly obligations</span><b>${fm(obligations())}/mo</b></div>
+ ${L.map(l=>`<div class="flex justify-between text-xs py-1"><span>🔑 ${esc(l.name)}</span><span class="text-slate-400">${l.status==='ended'?'ended':l.monthsLeft+' mo left'}</span></div>`).join('')}
+ <button onclick="P36.luxury()" class="w-full mt-2 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs font-bold">🛍️ Luxury shopping &amp; assets</button>`;
+ btn.parentNode.insertBefore(d,btn);
+}
+const _fo=window.finOpen;
+if(typeof _fo==='function')window.finOpen=function(){const r=_fo.apply(this,arguments);try{migrate();decorateBank()}catch(e){}return r};
+
+/* =====================================================================
+   13. ENTRY POINTS (replace every older route into luxury / assets)
+===================================================================== */
+window.openShoppingTab=()=>luxury('car');
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('#p26ManageAssets');if(b){e.preventDefault();e.stopImmediatePropagation();assets('all')}},true);
+
+window.P36={marker:'LIFE SIM PATCH 36: ALERTS ABOVE EVERYTHING + LUXURY BANKING INTEGRATION',
+ luxury,assets,deal,migrate,toast:toastImpl,
+ sort:v=>{UI.sort=v;luxury(UI.kind,true)},reachToggle:()=>{UI.reach=!UI.reach;luxury(UI.kind,true)},
+ bankToggle:v=>{st().useBank=!!v;if(UI.redraw)UI.redraw()},
+ toBank:()=>{try{P26.close()}catch(e){}if(typeof window.finOpen==='function')window.finOpen()},
+ mode:m=>{CK.mode=m;deal(CK.k,CK.id,true)},
+ term:n=>{CK.term=n;deal(CK.k,CK.id,true)},lterm:n=>{CK.lterm=n;deal(CK.k,CK.id,true)},
+ down:v=>{CK.down=Math.max(0,+v||0);const x=findItem(CK.k,CK.id),q=document.getElementById('p36Q');if(x&&q)q.innerHTML=finBlock(x).html},
+ dpct:p=>{const x=findItem(CK.k,CK.id);if(!x)return;CK.down=Math.round(x.price*p/100);const i=document.getElementById('p36Down');if(i)i.value=CK.down;const q=document.getElementById('p36Q');if(q)q.innerHTML=finBlock(x).html},
+ confirm:doConfirm,
+ counterYes:()=>{const P=PEND;PEND=null;if(P)finishFinance(P.x,P.k,P.down,P.loan,true)},
+ counterNo:()=>{const P=PEND;PEND=null;if(!P)return;fin().loans=fin().loans.filter(l=>l!==P.loan);if((game.logs||[]).length>P.n0)game.logs.length=P.n0;if(game.timeline&&game.timeline.length>P.t0)game.timeline.length=P.t0;toast('You walked away from the offer.','🚶');ui();luxury(P.k)},
+ sellPage,sellGo,payPage,payGo,rentPage,rentEst,rentSet,rentStop,endLeasePage,endLeaseGo,buyoutPage,buyoutGo,returnLease};
+
+/* route the older Patch 26 / 21 entry objects to the new system */
+if(window.P26){P26.luxury=luxury;P26.assets=assets;P26.buy=(k,id)=>deal(k,id);P26.sell=(k,id)=>sellPage(id||k);P26.rent=id=>rentPage(id);P26.endLease=id=>endLeasePage(id)}
+if(window.P21){P21.luxury=luxury;P21.shop=luxury}
+try{migrate()}catch(e){}
+console.log('[Patch 36] Alerts above everything; luxury shopping connected to bank, loans and leases.');
+})();
+</script>
+<!-- ===== END LIFE SIM PATCH 36 ===== -->
+
+<!-- ===== MERGED PATCH END ===== -->
+
+
+
+<!-- ===== MERGED PATCH START ===== -->
+<!-- ===== LIFE SIM PATCH 37: UNIVERSITY + COMMUNITY COLLEGE + DETAILED LIFE VLOG ===== -->
+<!--
+ Adds: full education system (high school GPA/SAT/AP, community college, universities, transfers,
+ grad/law/med/PhD, tuition + aid + student loans, campus life, events, transcript, career center)
+ and a rebuilt Life Vlog that replaces the old stacked renderers (Patches 15-24).
+ Additive: wraps ageOneYear / updateUI / renderMoreTab / startNewLife. Saves live inside game.edu37.
+-->
+<style id="ls37-css">
+.ls37{--b:var(--p32-border,#283140);--t:var(--p32-text,#f7f8fb);--m:.66;--c:rgba(148,163,184,.10);--a:#8b5cf6;color:var(--t);font-size:.8rem;line-height:1.45}
+html[data-theme=light] .ls37{--c:rgba(15,23,42,.05)}
+.ls37 *{box-sizing:border-box}
+.ls37 .tabs{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;position:sticky;top:0;z-index:3;background:var(--p32-panel,transparent);scrollbar-width:none}
+.ls37 .tabs::-webkit-scrollbar{display:none}
+.ls37 .tab{flex:none;padding:7px 12px;border-radius:99px;border:1px solid var(--b);background:var(--c);color:inherit;font-weight:800;font-size:.7rem}
+.ls37 .tab.on{background:linear-gradient(135deg,#7c3aed,#db2777);border-color:transparent;color:#fff}
+.ls37 .card{border:1px solid var(--b);background:var(--c);border-radius:16px;padding:12px;margin:0 0 10px}
+.ls37 .hero{background:linear-gradient(135deg,rgba(124,58,237,.35),rgba(219,39,119,.22));border-color:rgba(167,139,250,.4)}
+.ls37 h4{font-size:.86rem;font-weight:900;margin:0 0 6px}
+.ls37 .sub{font-size:.66rem;opacity:var(--m)}
+.ls37 .row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(148,163,184,.14);font-size:.74rem}
+.ls37 .row:last-child{border:0}.ls37 .row span:first-child{opacity:.7}.ls37 .row b{text-align:right}
+.ls37 .btn{display:block;width:100%;margin-top:8px;padding:10px;border:0;border-radius:12px;font-weight:850;font-size:.76rem;background:#7c3aed;color:#fff;text-align:center}
+.ls37 .btn.alt{background:#334155}.ls37 .btn.ok{background:#059669}.ls37 .btn.bad{background:#dc2626}.ls37 .btn.sm{display:inline-block;width:auto;margin:0;padding:7px 11px;font-size:.68rem}
+.ls37 .btn[disabled]{opacity:.45;pointer-events:none}
+.ls37 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ls37 .pill{display:inline-block;padding:2px 8px;border-radius:99px;font-size:.6rem;font-weight:800;background:rgba(139,92,246,.22);margin:2px 3px 0 0}
+.ls37 .pill.g{background:rgba(16,185,129,.22);color:#34d399}.ls37 .pill.r{background:rgba(244,63,94,.22);color:#fb7185}.ls37 .pill.y{background:rgba(245,158,11,.22);color:#fbbf24}
+.ls37 .bar{height:9px;border-radius:9px;background:rgba(148,163,184,.2);overflow:hidden;margin:4px 0 8px}.ls37 .bar i{display:block;height:100%;border-radius:9px;background:linear-gradient(90deg,#7c3aed,#ec4899)}
+.ls37 select,.ls37 .sel{width:100%;padding:8px;border-radius:10px;border:1px solid var(--b);background:rgba(15,23,42,.55);color:inherit;font-size:.74rem;margin-top:6px}
+html[data-theme=light] .ls37 select{background:#fff}
+.ls37 .lab{font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;opacity:.6;margin:10px 0 4px}
+.ls37 .seg{display:flex;gap:5px;flex-wrap:wrap}.ls37 .seg button{flex:1;min-width:64px;padding:7px 4px;border-radius:10px;border:1px solid var(--b);background:var(--c);color:inherit;font-size:.68rem;font-weight:800}
+.ls37 .seg button.on{background:#7c3aed;border-color:#7c3aed;color:#fff}
+.ls37 table{width:100%;border-collapse:collapse;font-size:.68rem}.ls37 td,.ls37 th{padding:5px 4px;border-bottom:1px solid rgba(148,163,184,.14);text-align:left}.ls37 th{opacity:.6;font-size:.58rem;text-transform:uppercase}
+.ls37 .empty{text-align:center;opacity:.6;padding:18px 8px}
+#ls37Pop{position:fixed;inset:0;z-index:100700;background:#020617d0;backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:16px}
+#ls37Pop.on{display:flex}
+#ls37Pop .box{width:min(440px,100%);max-height:88vh;overflow:auto;background:#111827;color:#f8fafc;border:1px solid #334155;border-radius:22px;padding:18px;box-shadow:0 24px 70px #000a}
+html[data-theme=light] #ls37Pop .box{background:#fff;color:#17191e;border-color:#e2e5ea}
+#ls37Pop .ic{font-size:2.4rem;text-align:center}#ls37Pop h3{font-weight:900;font-size:1.02rem;margin:4px 0}#ls37Pop p{font-size:.76rem;opacity:.75;line-height:1.5;margin:0 0 6px}
+#ls37Pop button{display:block;width:100%;margin-top:8px;padding:11px 12px;border:1px solid #334155;border-radius:12px;background:#1b2230;color:inherit;text-align:left;font-weight:800;font-size:.76rem}
+html[data-theme=light] #ls37Pop button{background:#f4f5f8;border-color:#e2e5ea}
+#ls37Pop button.go{background:#7c3aed;color:#fff;text-align:center;border:0}
+#ls37EduEntry{width:100%!important;min-height:58px!important;margin:8px 0!important;padding:9px 12px!important;display:flex!important;align-items:center!important;gap:11px!important;text-align:left!important;border:1px solid var(--p32-border,#283140)!important;border-radius:15px!important;background:linear-gradient(135deg,rgba(124,58,237,.18),rgba(236,72,153,.10))!important;color:var(--p32-text,#f7f8fb)!important}
+#ls37EduEntry .i{width:39px;height:39px;min-width:39px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,#7c3aed,#db2777);font-size:1.15rem}
+#ls37EduEntry .c{min-width:0;flex:1}#ls37EduEntry b{display:block;font-size:.79rem}#ls37EduEntry small{display:block;font-size:.57rem;opacity:.68;margin-top:2px}#ls37EduEntry .a{font-size:1.25rem;opacity:.55}
+/* ---------- Life Vlog 2.0 ---------- */
+#gameplayDashboard .ls37-old,#gameplayDashboard>div.ls37-old:nth-child(n){display:none!important}
+#ls37VlogCard{order:1!important;width:100%;color:var(--t,#f1f5f9);--vb:rgba(148,163,184,.22);--vc:rgba(148,163,184,.10)}
+html[data-theme=light] #ls37VlogCard{--vc:rgba(15,23,42,.05);--vb:rgba(15,23,42,.14)}
+#ls37VlogCard .vh{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+#ls37VlogCard .vh b{font-size:1rem;font-weight:900}#ls37VlogCard .vh small{font-size:.62rem;opacity:.6;display:block}
+#ls37VlogCard .vstrip{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
+#ls37VlogCard .vs{background:var(--vc);border:1px solid var(--vb);border-radius:12px;padding:7px 8px}
+#ls37VlogCard .vs small{display:block;font-size:.55rem;opacity:.6;text-transform:uppercase;font-weight:800}#ls37VlogCard .vs b{font-size:.78rem}
+#ls37VlogCard .vf{display:flex;gap:5px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none}#ls37VlogCard .vf::-webkit-scrollbar{display:none}
+#ls37VlogCard .vf button{flex:none;padding:6px 11px;border-radius:99px;border:1px solid var(--vb);background:var(--vc);color:inherit;font-size:.66rem;font-weight:800}
+#ls37VlogCard .vf button.on{background:linear-gradient(135deg,#7c3aed,#db2777);border-color:transparent;color:#fff}
+#ls37VlogCard details{border:1px solid var(--vb);background:var(--vc);border-radius:16px;margin-bottom:8px;overflow:hidden}
+#ls37VlogCard summary{list-style:none;display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer}#ls37VlogCard summary::-webkit-details-marker{display:none}
+#ls37VlogCard .ab{min-width:44px;height:44px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(135deg,#7c3aed,#db2777);color:#fff;font-weight:900;line-height:1;text-align:center}
+#ls37VlogCard .ab small{display:block;font-size:.45rem;opacity:.85;font-weight:800}#ls37VlogCard .ab span{font-size:1.02rem}
+#ls37VlogCard .sm{min-width:0;flex:1}#ls37VlogCard .sm b{display:block;font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#ls37VlogCard .sm small{font-size:.6rem;opacity:.6}
+#ls37VlogCard .mood{font-size:1.3rem}
+#ls37VlogCard .vb{padding:2px 12px 12px;font-size:.76rem;line-height:1.5}
+#ls37VlogCard .story{margin:6px 0 10px;opacity:.9}
+#ls37VlogCard .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+#ls37VlogCard .tl{border:1px solid var(--vb);border-radius:11px;padding:6px 7px;background:rgba(0,0,0,.08)}
+#ls37VlogCard .tl small{display:block;font-size:.53rem;opacity:.6;font-weight:800;text-transform:uppercase}#ls37VlogCard .tl b{font-size:.74rem}
+#ls37VlogCard .up{color:#34d399}#ls37VlogCard .dn{color:#fb7185}#ls37VlogCard .fl{opacity:.55}
+#ls37VlogCard .sec{font-size:.58rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase;opacity:.6;margin:10px 0 5px}
+#ls37VlogCard .ev{display:flex;gap:8px;padding:6px 0;border-top:1px solid var(--vb)}#ls37VlogCard .ev:first-of-type{border:0}
+#ls37VlogCard .ei{min-width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--vc);font-size:.8rem}
+#ls37VlogCard .ev>div:last-child{min-width:0;flex:1;word-break:break-word}
+#ls37VlogCard .ch{border:1px solid var(--vb);border-radius:12px;padding:8px 9px;margin-bottom:6px;background:rgba(0,0,0,.06)}
+#ls37VlogCard .ch .q{font-weight:800}#ls37VlogCard .ch .q span{display:block;font-weight:500;font-size:.66rem;opacity:.65}
+#ls37VlogCard .ch .p{margin-top:4px;font-weight:700;color:#a78bfa}#ls37VlogCard .ch .o{margin-top:4px;font-size:.7rem;opacity:.9}
+#ls37VlogCard .chip{display:inline-block;padding:2px 7px;border-radius:99px;font-size:.58rem;font-weight:800;margin:2px 3px 0 0;background:rgba(148,163,184,.18)}
+#ls37VlogCard .chip.up{background:rgba(16,185,129,.18)}#ls37VlogCard .chip.dn{background:rgba(244,63,94,.18)}
+#ls37VlogCard .more{display:block;width:100%;padding:10px;border-radius:12px;border:1px solid var(--vb);background:var(--vc);color:inherit;font-weight:800;font-size:.72rem}
+#ls37VlogCard .none{text-align:center;opacity:.55;padding:22px 6px}
+</style>
+<script>
+(function(){
+'use strict';
+if(window.__LS37__)return;window.__LS37__=1;
+const MARK='LIFE SIM PATCH 37: UNIVERSITY + COMMUNITY COLLEGE + DETAILED LIFE VLOG';
+
+/* ============================== helpers ============================== */
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const ri=(a,b)=>Math.floor(rnd(a,b+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fm=n=>{n=Math.round(+n||0);return(n<0?'-':'')+'$'+Math.abs(n).toLocaleString('en-US')};
+const sg=n=>(n>=0?'+':'-')+'$'+Math.abs(Math.round(n)).toLocaleString('en-US');
+const funds=()=>(+game.money||0)+(+game.bankBalance||0);
+function pay(n){n=Math.round(n);if(n<=0)return true;if(funds()<n)return false;const c=Math.min(Math.max(0,+game.money||0),n);game.money-=c;const r=n-c;if(r>0)game.bankBalance=(+game.bankBalance||0)-r;return true}
+const earn=n=>{game.money=(+game.money||0)+Math.round(n)};
+const st=(k,d)=>{game[k]=clamp(Math.round((+game[k]||0)+d),0,100)};
+const MULT={'United States':1,'United Kingdom':.8,'Canada':.55,'Japan':.6,'Germany':.07,'Australia':.7,'Brazil':.2,'France':.09,'Nigeria':.1};
+const cm=()=>MULT[game.country]??.6;
+const wageMult=()=>clamp(Math.sqrt(cm()),.4,1);
+function glog(msg,major){try{L(msg,major)}catch(e){try{game.logs.push(`Age ${game.age}: ${msg}`)}catch(_){}}}
+const GP=[[4,'A'],[3.7,'A-'],[3.3,'B+'],[3,'B'],[2.7,'B-'],[2.3,'C+'],[2,'C'],[1.7,'C-'],[1,'D'],[0,'F']];
+const letter=p=>(GP.find(x=>p>=x[0]-.01)||GP[9])[1];
+const q4=p=>{let b=GP[9][0],d=9;for(const g of GP){if(Math.abs(g[0]-p)<d){d=Math.abs(g[0]-p);b=g[0]}}return b};
+
+/* ============================== data ============================== */
+const DEG={
+ cert:{n:'Certificate',yrs:1,cr:30,d:0},assoc:{n:'Associate Degree',yrs:2,cr:60,d:0},
+ bach:{n:"Bachelor's Degree",yrs:4,cr:120,d:0},master:{n:"Master's Degree",yrs:2,cr:60,d:-2,mult:1},
+ mba:{n:'MBA',yrs:2,cr:60,d:0,mult:1.1},jd:{n:'Law Degree (JD)',yrs:3,cr:90,d:6,mult:1.15},
+ md:{n:'Medical Degree (MD)',yrs:4,cr:120,d:12,mult:1.25},phd:{n:'Doctorate (PhD)',yrs:5,cr:150,d:3,mult:0}
+};
+const RANK={cert:1,assoc:2,bach:3,master:4,mba:4,jd:5,md:5,phd:6};
+/* id,name,field,difficulty,gradPay,jobs,where(c=community college,u=university) */
+const MJ=[
+['cs','Computer Science','STEM',4,98000,['Software Engineer','Data Scientist','Systems Analyst'],'bu'],
+['eng','Mechanical Engineering','STEM',5,90000,['Mechanical Engineer','Design Engineer','Project Engineer'],'u'],
+['ee','Electrical Engineering','STEM',5,95000,['Electrical Engineer','Hardware Engineer','Controls Engineer'],'u'],
+['bio','Biology','STEM',4,52000,['Lab Technician','Research Associate','Biotech Associate'],'bu'],
+['chem','Chemistry','STEM',4,60000,['Chemist','Quality Analyst','Process Chemist'],'u'],
+['math','Mathematics','STEM',5,78000,['Actuarial Analyst','Quantitative Analyst','Data Analyst'],'u'],
+['phys','Physics','STEM',5,76000,['Research Scientist','Optics Engineer','Data Scientist'],'u'],
+['arch','Architecture','STEM',5,70000,['Junior Architect','Urban Designer','CAD Specialist'],'u'],
+['nurs','Nursing','Health',4,82000,['Registered Nurse','Clinical Nurse','Nurse Case Manager'],'bu'],
+['premed','Pre-Medicine','Health',5,48000,['Medical Assistant','Research Assistant','Clinic Coordinator'],'u'],
+['dent','Dental Hygiene','Health',4,80000,['Dental Hygienist','Dental Practice Associate'],'c'],
+['para','Paramedic / EMT','Health',3,46000,['Paramedic','Emergency Technician'],'c'],
+['psych','Psychology','Social',2,45000,['Behavioral Technician','HR Associate','Case Worker'],'bu'],
+['soc','Sociology','Social',2,43000,['Social Researcher','Community Outreach Officer'],'u'],
+['poli','Political Science / Pre-Law','Social',3,52000,['Legislative Aide','Policy Analyst','Paralegal'],'u'],
+['crim','Criminal Justice','Social',2,50000,['Probation Officer','Investigator','Police Officer'],'bu'],
+['econ','Economics','Business',4,72000,['Economic Analyst','Research Analyst','Consultant'],'u'],
+['bus','Business Administration','Business',3,62000,['Operations Associate','Business Analyst','Account Manager'],'bu'],
+['acct','Accounting','Business',3,66000,['Staff Accountant','Auditor','Tax Associate'],'bu'],
+['fin','Finance','Business',4,80000,['Financial Analyst','Investment Associate','Credit Analyst'],'u'],
+['mkt','Marketing','Business',2,56000,['Marketing Coordinator','Brand Assistant','Digital Marketer'],'bu'],
+['comm','Communications','Arts',2,46000,['PR Coordinator','Media Specialist','Content Producer'],'bu'],
+['lit','English Literature','Arts',3,42000,['Editor','Copywriter','Communications Aide'],'u'],
+['hist','History','Arts',3,43000,['Archivist','Museum Associate','Researcher'],'u'],
+['art','Fine Arts','Arts',2,38000,['Illustrator','Gallery Assistant','Art Director (Jr)'],'bu'],
+['music','Music Performance','Arts',3,37000,['Session Musician','Music Teacher','Sound Assistant'],'u'],
+['film','Film & Media','Arts',2,44000,['Production Assistant','Video Editor','Assistant Director'],'bu'],
+['edu','Education','Education',2,46000,['Teacher','Teaching Assistant','Curriculum Aide'],'bu'],
+['agri','Agriculture & Environment','STEM',2,50000,['Agronomist','Environmental Technician'],'bu'],
+['cyber','Cybersecurity','STEM',3,75000,['Security Analyst','IT Support Specialist','Network Technician'],'c'],
+['cul','Culinary Arts','Trade',2,40000,['Line Chef','Pastry Cook','Kitchen Manager'],'c'],
+['auto','Automotive Technology','Trade',2,48000,['Auto Technician','Service Advisor'],'c'],
+['elec','Electrician Training','Trade',3,62000,['Electrician','Maintenance Technician'],'c'],
+['weld','Welding & Fabrication','Trade',3,55000,['Welder','Fabricator'],'c'],
+['gen','General Studies (Transfer Track)','General',2,36000,['Office Assistant','Customer Service Lead'],'c'],
+['law','Law (JD)','Law',5,130000,['Associate Attorney','Public Defender','Corporate Counsel'],'-'],
+['med','Medicine (MD)','Medicine',5,220000,['Resident Physician','Physician','Surgeon (Resident)'],'-']
+].map(a=>({id:a[0],n:a[1],f:a[2],d:a[3],pay:a[4],jobs:a[5],w:a[6]}));
+const MAJ=Object.fromEntries(MJ.map(m=>[m.id,m]));
+const CC=[
+{id:'rcc',name:'Riverside Community College',type:'cc',tuition:3600,pres:2,tag:'Open enrollment · big transfer program'},
+{id:'mcc',name:'Metro City College',type:'cc',tuition:4200,pres:3,tag:'Urban campus · evening classes'},
+{id:'lcc',name:'Lakeview Community College',type:'cc',tuition:3100,pres:2,tag:'Small classes · low cost'},
+{id:'tcc',name:'Tri-County Technical College',type:'cc',tuition:3900,pres:3,tag:'Trades, health & tech labs'},
+{id:'occ',name:'Open Online College',type:'cc',tuition:2900,pres:1,online:true,tag:'100% online · flexible'}
+];
+const UN=[
+{id:'harl',name:'Harlow University',type:'uni',tier:'Elite Private',tuition:62000,room:19000,need:94,pres:10,tag:'Ivy-style research powerhouse'},
+{id:'ashf',name:'Ashford University',type:'uni',tier:'Elite Private',tuition:60000,room:18500,need:93,pres:10,tag:'Old money, huge alumni network'},
+{id:'brig',name:'Brightwater Institute of Technology',type:'uni',tier:'Elite Tech',tuition:58000,room:17500,need:92,pres:10,tag:'Engineering & computing elite'},
+{id:'casc',name:'Cascade State University',type:'uni',tier:'Flagship Public',tuition:15000,room:12000,need:78,pres:7,tag:'Big-name public, big-time sports'},
+{id:'redw',name:'Redwood Polytechnic',type:'uni',tier:'Technical Public',tuition:15500,room:11500,need:76,pres:7,tag:'Hands-on STEM and co-op programs'},
+{id:'summ',name:'Summit Liberal Arts College',type:'uni',tier:'Private Liberal Arts',tuition:46000,room:15500,need:80,pres:7,tag:'Tiny classes, close professors'},
+{id:'meri',name:'Meridian Business University',type:'uni',tier:'Private Business',tuition:38000,room:14000,need:70,pres:6,tag:'Recruiters line the hallways'},
+{id:'coas',name:'Coastal Arts Conservatory',type:'uni',tier:'Arts Conservatory',tuition:44000,room:14500,need:72,pres:6,tag:'Performance, design & film'},
+{id:'staur',name:'St. Aurelius Catholic University',type:'uni',tier:'Private Religious',tuition:41000,room:13500,need:66,pres:5,tag:'Community-focused, generous aid'},
+{id:'pine',name:'Pinecrest State University',type:'uni',tier:'State Public',tuition:11000,room:10500,need:68,pres:6,tag:'Solid all-rounder'},
+{id:'hera',name:'Heritage A&M University',type:'uni',tier:'State Public',tuition:10000,room:9800,need:60,pres:5,tag:'Agriculture, engineering, football'},
+{id:'midl',name:'Midland Regional University',type:'uni',tier:'Regional Public',tuition:9000,room:9000,need:55,pres:4,tag:'Affordable, accessible'},
+{id:'nort',name:'Northgate State College',type:'uni',tier:'Regional Public',tuition:8000,room:8500,need:48,pres:3,tag:'Open-door state college'},
+{id:'glob',name:'Global Online University',type:'uni',tier:'Online',tuition:12000,room:0,need:35,pres:3,online:true,tag:'Fully online degrees'}
+];
+const SC=Object.fromEntries([...CC,...UN].map(s=>[s.id,s]));
+const HOUSE={home:{n:'Live at home / commute',c:0,t:1500,h:-1,net:0,st:0},dorm:{n:'On-campus dorm + meal plan',c:-1,t:0,h:3,net:3,st:2},off:{n:'Off-campus apartment',c:9500,t:900,h:2,net:1,st:4},greek:{n:'Fraternity / sorority house',c:7500,t:300,h:5,net:5,st:4}};
+const CLUBS=[
+{id:'deb',n:'Debate Team',i:'🎤',sm:1.5,hp:1,net:2,st:3,gpa:0,cost:0},{id:'rob',n:'Robotics Club',i:'🤖',sm:2,hp:1,net:2,st:4,gpa:0,cost:150},
+{id:'gov',n:'Student Government',i:'🏛️',sm:.5,hp:1,net:4,st:5,gpa:-.03,cost:0},{id:'news',n:'Campus Newspaper',i:'📰',sm:1,hp:1,net:3,st:3,gpa:0,cost:0},
+{id:'dra',n:'Drama Society',i:'🎭',sm:0,hp:3,net:2,st:2,gpa:0,cost:50},{id:'cho',n:'Choir / Orchestra',i:'🎻',sm:.5,hp:3,net:1,st:1,gpa:0,cost:80},
+{id:'vol',n:'Volunteering Corps',i:'🤲',sm:0,hp:3,net:2,st:1,gpa:0,cost:0},{id:'ent',n:'Entrepreneurs Club',i:'💡',sm:1,hp:1,net:5,st:3,gpa:-.02,cost:100},
+{id:'law',n:'Pre-Law Society',i:'⚖️',sm:1,hp:0,net:4,st:2,gpa:0,cost:60},{id:'intra',n:'Intramural Sports',i:'🏀',sm:0,hp:3,net:2,st:-2,gpa:0,cost:120},
+{id:'gym',n:'Fitness & Climbing Club',i:'🧗',sm:0,hp:2,net:1,st:-3,gpa:0,cost:200},{id:'stud',n:'Honor Society',i:'🏅',sm:2,hp:0,net:2,st:2,gpa:.05,cost:75}
+];
+const FCOURSE={
+STEM:['Calculus II','Intro to Programming','Linear Algebra','Physics I','Organic Chemistry','Data Structures','Probability & Statistics','Lab Methods','Discrete Math','Circuits & Systems'],
+Health:['Anatomy & Physiology','Pathophysiology','Pharmacology','Clinical Practicum','Microbiology','Medical Ethics','Nutrition Science','Patient Care I','Biostatistics','Health Law'],
+Business:['Principles of Accounting','Microeconomics','Business Law','Corporate Finance','Marketing Principles','Operations Management','Business Statistics','Organizational Behavior','Managerial Accounting','Negotiation'],
+Arts:['Art History','Creative Writing','Media Studies','Studio Practice','Critical Theory','Public Speaking','World Literature','Design Fundamentals','Performance Lab','Film Analysis'],
+Social:['Intro to Psychology','Research Methods','Social Theory','Abnormal Psychology','Public Policy','Criminology','Ethics','Statistics for Social Science','Comparative Politics','Human Development'],
+Education:['Child Development','Curriculum Design','Classroom Management','Educational Psychology','Literacy Methods','Student Teaching','Special Education','Assessment Methods','Teaching Mathematics','Technology in the Classroom'],
+Trade:['Shop Safety','Hands-on Lab I','Blueprint Reading','Tools & Materials','Applied Math','Code & Compliance','Practicum','Customer Service','Diagnostics','Business Basics'],
+General:['English Composition','College Algebra','US History','Intro to Sociology','Biology 101','Public Speaking','Intro to Psychology','Economics 101','World Geography','Art Appreciation'],
+Law:['Constitutional Law','Contracts','Torts','Civil Procedure','Criminal Law','Property Law','Legal Writing','Evidence','Moot Court','Professional Ethics'],
+Medicine:['Gross Anatomy','Biochemistry','Physiology','Clinical Skills','Pharmacology','Pathology','Neuroscience','Immunology','Clerkship Rotation','Medical Ethics']
+};
+const GENED=['English Composition','Intro to Philosophy','World History','Public Speaking','Statistics','Ethics & Society'];
+const PAR={low:0,mid:.3,high:.85};
+const FAMN={low:'Lower income',mid:'Middle income',high:'High income'};
+
+/* ============================== state ============================== */
+const lifeId=()=>[game.firstName,game.lastName,game.generation||1,game.country].join('|');
+function fresh(){
+ const bg=String(game.background||'Middle class');
+ const fam=/poor|working/i.test(bg)?'low':/wealth|millionaire|celebrity|royal|upper/i.test(bg)?'high':'mid';
+ return{v:1,id:lifeId(),last:game.age||0,fam,hs:{gpas:[],effort:1,ap:0,apOn:false,sat:null,tries:0,clubs:[],done:false},
+  E:null,degs:[],loans:[],apps:[],bankCr:0,rap:0,net:0,exp:0,research:0,stress:15,payPref:'cash',fafsa:null,notes:{},fin:{},terms:[],pend:[],offers:null,offAge:-1,clubsDone:[]};
+}
+function X(){
+ if(!game||!game.alive)return null;
+ let x=game.edu37;
+ if(!x||x.id!==lifeId()||(game.age<x.last-1)){x=game.edu37=fresh();if(game.age>=15&&!x.hs.gpas.length)backfillHS(x)}
+ return x;
+}
+function backfillHS(x){const n=Math.min(4,Math.max(0,game.age-13));for(let i=0;i<n;i++)x.hs.gpas.push(hsYearGpa(x,false));if(game.age>=18)x.hs.done=true}
+const note=(k,t)=>{const x=X();if(!x)return;const a=game.age;(x.notes[a]||(x.notes[a]=[])).push({k,t});if(x.notes[a].length>40)x.notes[a].shift()};
+const say=(k,t,major)=>{glog(t,major);note(k,t)};
+const hsGpa=x=>x.hs.gpas.length?x.hs.gpas.reduce((a,b)=>a+b,0)/x.hs.gpas.length:(1.4+(game.smarts||50)/100*2);
+const cumGpa=x=>{const t=[...(x.E?x.E.terms:[])];return t.length?t.reduce((a,b)=>a+b.gpa,0)/t.length:0};
+const lastBach=x=>[...x.degs].reverse().find(d=>d.level==='bach');
+const best=x=>x.degs.reduce((m,d)=>Math.max(m,RANK[d.level]||0),0);
+const hasLvl=(x,l)=>x.degs.some(d=>d.level===l);
+const stage=a=>a<5?'Not in school yet':a<11?'Elementary school':a<14?'Middle school':a<18?'High school':'Adult';
+
+/* ============================== finance ============================== */
+function tuitionFor(E){
+ const s=SC[E.sid],d=DEG[E.level];let t=s.tuition*cm();
+ if(E.level==='phd')return 0;
+ t*=d.mult||1;if(E.pt)t*=.55;return Math.round(t);
+}
+function housingCost(E){
+ const s=SC[E.sid],h=HOUSE[E.housing];let c=h.c;if(c===-1)c=(s.room||11000);
+ return Math.round(c*cm()+h.t*cm());
+}
+function billFor(x,E){
+ const s=SC[E.sid],tu=tuitionFor(E);
+ const merit=Math.round(tu*(E.sch||0)),need=Math.round(tu*(E.grant||0)),ath=Math.round(tu*(E.athSch||0));
+ const aid=Math.min(tu,merit+need+ath),net=tu-aid;
+ const fees=Math.round((s.type==='cc'?400:1400)*cm()),books=Math.round(1100*cm()*(E.pt?.6:1));
+ const house=housingCost(E),greek=E.greek?Math.round(1500*cm()):0,club=E.clubs.reduce((a,c)=>a+Math.round((CLUBS.find(z=>z.id===c)||{cost:0}).cost*cm()),0);
+ const summer=E.summer?Math.round(1200*cm()):0,abroad=E.abroad?Math.round(14000*cm()):0;
+ return{tu,merit,need,ath,aid,net,fees,books,house,greek,club,summer,abroad,total:net+fees+books+house+greek+club+summer+abroad};
+}
+function borrow(x,amt,E){
+ if(amt<=0)return 0;const grad=RANK[E.level]>=4;
+ const fedCap=grad?20500:Math.min(7500,5500+(E.yr-1)*1000),fed=Math.min(amt,Math.round(fedCap*Math.max(.3,cm()>.5?1:cm()*2)));
+ let rest=amt-fed;const priv=Math.min(rest,Math.round(60000*Math.max(.3,cm())));rest-=priv;
+ const add=(type,rate,v)=>{if(v<=0)return;let l=x.loans.find(z=>z.type===type);if(!l){l={type,bal:0,rate,pay:0,orig:0};x.loans.push(l)}l.bal+=v;l.orig+=v;l.pay=0};
+ add('Federal Student Loan',.065,fed);add('Private Student Loan',.095,priv);
+ return rest>0?-rest:fed+priv;
+}
+function repay(x,a){
+ if(!x.loans.length)return;
+ if(x.E)return;
+ if(x.leftAge!=null&&a-x.leftAge<1)return; // 1-year grace
+ let paid=0,missed=0;
+ x.loans.forEach(l=>{
+  if(!l.pay)l.pay=Math.round(l.bal*l.rate/(1-Math.pow(1+l.rate,-10)));
+  const intr=Math.round(l.bal*l.rate),due=Math.min(l.pay,l.bal+intr);
+  if(pay(due)){l.bal=Math.max(0,Math.round(l.bal+intr-due));paid+=due}
+  else{l.bal=Math.round(l.bal+intr);missed+=due}
+ });
+ x.loans=x.loans.filter(l=>l.bal>=1);
+ if(paid)say('money',`Paid ${fm(paid)} toward your student loans.`);
+ if(missed){st('happiness',-4);game.reputation=clamp((game.reputation||50)-2,0,100);say('money',`You missed ${fm(missed)} in student loan payments. Interest was added to your balance.`)}
+ if(!x.loans.length&&paid)say('money','You paid off your student loans completely!',1);
+}
+const debt=x=>x.loans.reduce((a,l)=>a+l.bal,0);
+
+/* ============================== high school ============================== */
+function hsYearGpa(x,live=true){
+ const sm=game.smarts||50,e=live?x.hs.effort:1,apB=live&&x.hs.apOn?.12:0;
+ return Math.round(clamp(1.2+sm*.022+(e-1)*.42+apB+rnd(-.4,.4)-((x.stress||0)>75?.25:0),.4,4)*100)/100;
+}
+function hsYear(x,a){
+ const h=x.hs;h.gpas.push(hsYearGpa(x));if(h.gpas.length>4)h.gpas.shift();
+ if(h.apOn){h.ap+=2;st('smarts',.8);x.stress=clamp(x.stress+4,0,100)}
+ h.clubs.forEach(id=>{const c=CLUBS.find(z=>z.id===id);if(c){st('happiness',c.hp);st('smarts',c.sm*.5)}});
+ x.stress=clamp(x.stress+(h.effort-1)*5-3,0,100);
+ const g=h.gpas[h.gpas.length-1];
+ say('school',`Finished a year of high school with a ${g.toFixed(2)} GPA${h.apOn?' and AP classes':''}.`);
+ if(a>=18&&!h.done){h.done=true;const cg=hsGpa(x);say('school',`Graduated high school with a ${cg.toFixed(2)} GPA${cg>=3.8?' (valedictorian contender!)':cg>=3.5?' with honors':''}.`,1);st('happiness',6)}
+}
+function takeSAT(prep){
+ const x=X(),h=x.hs;if(game.age<14){toast37('You must be at least 14.');return}
+ if(h.tries>=3){toast37('Three attempts is the maximum.');return}
+ const cost=Math.round(68*cm())+(prep==='course'?Math.round(450*cm()):0);
+ if(!pay(cost)){toast37(`You need ${fm(cost)} for the exam.`);return}
+ const pb=prep==='course'?90:prep==='self'?40:0;
+ const s=Math.round(clamp(480+(game.smarts||50)*7+pb+(x.hs.effort-1)*25+rnd(-90,90),400,1600)/10)*10;
+ h.tries++;h.sat=Math.max(h.sat||0,s);
+ say('school',`Took the SAT and scored ${s}${h.sat>s?` (your best remains ${h.sat})`:''}.`);
+ open37('hs');
+}
+
+/* ============================== admissions ============================== */
+function appScore(x,level,sc,tr){
+ const sm=game.smarts||50;let s;
+ if(level==='cert'||level==='assoc')return 100;
+ if(level==='bach'&&!tr){
+  s=hsGpa(x)/4*38+(x.hs.sat?(x.hs.sat-400)/1200*34:14)+sm/100*12+Math.min(x.hs.clubs.length,4)*2+Math.min(x.hs.ap,10)*.8;
+ }else if(level==='bach'){
+  const g=x.E&&x.E.terms.length?cumGpa(x):(x.degs.find(d=>d.level==='assoc')||{gpa:2.6}).gpa;
+  s=g/4*50+sm*.2+Math.min(x.bankCr+(x.E?x.E.cr:0),60)/60*10+Math.min(x.clubsDone.length,4)*1.5+x.research*2+10;
+ }else{
+  const b=lastBach(x)||{gpa:2.8,pres:4};
+  s=b.gpa/4*50+sm*.25+x.rap*.1+x.research*3+x.exp*2+b.pres*.6+6;
+ }
+ return s;
+}
+function needFor(sc,level,tr){let n=sc.need;if(level==='bach'&&tr)n*=.93;if(RANK[level]>=4)n=n*.9+DEG[level].d;return n}
+function chanceOf(x,level,sc,tr){return 1/(1+Math.exp(-((appScore(x,level,sc,tr)+3)-needFor(sc,level,tr))/4))}
+function reason(x,path){
+ const a=game.age,E=x.E;
+ if(a<16)return'You must be at least 16 to enroll in college courses.';
+ if(path==='cert'||path==='assoc'){if(E)return'Finish or withdraw from your current program first.';if(hasLvl(x,path))return`You already hold this ${DEG[path].n.toLowerCase()}.`;return''}
+ if(path==='bach'){if(E)return'Finish or withdraw from your current program first.';if(a<17)return'Bachelor programs start at 17+ (finish high school first).';if(hasLvl(x,'bach'))return"You already hold a bachelor's degree.";return''}
+ if(path==='xfer'){if(!(x.bankCr>=12||(E&&(E.level==='assoc'||E.level==='cert'))))return'You need at least 12 community-college credits to transfer.';if(hasLvl(x,'bach'))return"You already hold a bachelor's degree.";return''}
+ if(E)return'Finish or withdraw from your current program first.';
+ if(path==='phd')return best(x)>=3?'':"A bachelor's degree is required.";
+ if(!hasLvl(x,'bach'))return"A bachelor's degree is required.";
+ if(hasLvl(x,path))return'You already hold this degree.';
+ return'';
+}
+function pathLevel(p){return p==='xfer'?'bach':p}
+function apply(sid,path,major){
+ const x=X(),r=reason(x,path);if(r){toast37(r);return}
+ const sc=SC[sid],level=pathLevel(path),tr=path==='xfer';
+ if(!major||!MAJ[major]){toast37('Choose a major first.');return}
+ if(x.apps.some(p=>p.sid===sid&&p.level===level&&p.age===game.age)){toast37('You already applied there this year.');return}
+ if(x.apps.filter(p=>p.age===game.age&&!p.done).length>=6){toast37('Six applications per year is the limit.');return}
+ const fee=sc.type==='cc'?0:Math.round((x.fam==='low'?0:75)*cm());
+ if(fee&&!pay(fee)){toast37(`Application fee is ${fm(fee)}.`);return}
+ if(sc.type==='cc'){x.apps.push({sid,level,major,age:game.age,res:'admit',sch:0,tr:false});open37('apply');return}
+ const sNow=appScore(x,level,sc,tr)+rnd(-3,3),need=needFor(sc,level,tr),p=1/(1+Math.exp(-(sNow-need)/4)),roll=Math.random();
+ const res=roll<p?'admit':roll<p+.12?'waitlist':'reject';
+ let sch=0;
+ if(res==='admit'){
+  if(sc.pres>=9)sch=x.fam==='low'?.8:x.fam==='mid'?.4:0;
+  else sch=Math.round(clamp((sNow-need-3)/30,0,.7)*20)/20;
+  if(RANK[level]>=4&&level!=='phd')sch=Math.round(clamp(sch*.6,0,.5)*20)/20;
+ }
+ x.apps.push({sid,level,major,age:game.age,res,sch,tr});
+ say('school',res==='admit'?`Accepted to ${sc.name} for ${MAJ[major].n}${sch?` with a ${Math.round(sch*100)}% merit scholarship`:''}!`:res==='waitlist'?`Waitlisted at ${sc.name} (${MAJ[major].n}).`:`Rejected by ${sc.name} (${MAJ[major].n}).`);
+ res==='admit'?st('happiness',5):res==='reject'?st('happiness',-4):0;
+ open37('apply');
+}
+function enrollConfirm(i,housing){
+ const x=X(),p=x.apps[i];if(!p||p.res!=='admit'){return}
+ const sc=SC[p.sid];
+ if(x.E&&!(x.E.level==='assoc'||x.E.level==='cert')){toast37('Finish or withdraw first.');return}
+ const carry=x.E?x.E.cr:0;if(x.E){x.bankCr+=carry;x.E=null}
+ const cap=p.level==='bach'?60:DEG[p.level].cr/2;
+ const E={sid:p.sid,level:p.level,major:p.major,cr:p.level==='bach'||p.level==='assoc'?Math.min(x.bankCr,cap):0,need:DEG[p.level].cr,yr:1,start:game.age,terms:[],gpaMod:0,housing:sc.online?'home':housing,effort:1,party:1,work:0,pt:false,summer:false,clubs:[],greek:false,ath:false,athSch:0,research:false,intern:false,abroad:false,sch:p.sch||0,grant:0,prob:0};
+ if(p.level==='bach'||p.level==='assoc')x.bankCr=Math.max(0,x.bankCr-E.cr);
+ x.E=E;x.apps.forEach(a=>{if(a===p)a.done=true});x.leftAge=null;
+ if(p.tr&&E.cr)say('school',`${E.cr} credits transferred from your community college.`);
+ say('school',`Enrolled at ${sc.name} to study ${MAJ[p.major].n} (${DEG[p.level].n}).`,1);
+ st('happiness',6);close37();open37('home');
+}
+function nextAction(){return null}
+
+/* ============================== college year ============================== */
+function fieldOf(E){return E.level==='jd'?'Law':E.level==='md'?'Medicine':E.level==='mba'?'Business':MAJ[E.major].f}
+function makeCourses(E,base){
+ const pool=[...(FCOURSE[fieldOf(E)]||FCOURSE.General)].sort(()=>Math.random()-.5).slice(0,6).concat([...GENED].sort(()=>Math.random()-.5).slice(0,2));
+ return pool.map((n,i)=>({n:i>=6?n+' (gen-ed)':n,p:q4(clamp(base+rnd(-.95,.95),0,4))}));
+}
+function forceWithdraw(x,why){
+ const E=x.E,sc=SC[E.sid];x.leftAge=game.age;x.bankCr+=E.cr;
+ say('school',`${why} You left ${sc.name} with ${E.cr} credits.`,1);st('happiness',-8);x.E=null;
+}
+function graduate(x,E){
+ const sc=SC[E.sid],g=cumGpa(x),d=DEG[E.level],m=MAJ[E.major];
+ const honors=E.level==='bach'?(g>=3.9?'summa cum laude':g>=3.7?'magna cum laude':g>=3.5?'cum laude':''):(g>=3.8?'with distinction':'');
+ x.degs.push({level:E.level,major:E.major,sid:E.sid,gpa:Math.round(g*100)/100,honors,age:game.age,pres:sc.pres});
+ x.leftAge=game.age;
+ if(E.level==='assoc'||E.level==='cert')x.bankCr=Math.min(60,E.cr);
+ st('smarts',4);st('happiness',12);game.reputation=clamp((game.reputation||50)+3,0,100);
+ say('school',`🎓 Graduated from ${sc.name} with a ${d.n} in ${m.n}${honors?' ('+honors+')':''} and a ${g.toFixed(2)} GPA!`,1);
+ if(E.level==='phd'||E.level==='md'||E.level==='jd')game.reputation=clamp((game.reputation||50)+6,0,100);
+ try{game.education=`${d.n} in ${m.n}`}catch(e){}
+ if(game.job&&RANK[E.level]>=3&&Math.random()<.6){const r=1.1+(RANK[E.level]-3)*.04;game.job.salary=Math.round(game.job.salary*r);say('career',`Your employer gave you a raise for earning your degree (now ${fm(game.job.salary)}/yr).`)}
+ x.E=null;x.offers=null;x.pend.push('__grad');
+}
+function collegeYear(x,a){
+ const E=x.E,sc=SC[E.sid],d=DEG[E.level],m=MAJ[E.major];
+ const fin=x.fin[a]={bill:0,aid:0,borrowed:0,paid:0,income:0,parents:0};
+ /* --- aid, bill, payment --- */
+ if(x.fafsa&&a-x.fafsa.age<=1&&RANK[E.level]<=3)E.grant=x.fafsa.pct;else E.grant=0;
+ const b=billFor(x,E);let due=b.total;fin.bill=b.total;fin.aid=b.aid;
+ if(RANK[E.level]<=3&&a<24){const par=Math.round(due*PAR[x.fam]);if(par){due-=par;fin.parents=par;say('money',`Your parents covered ${fm(par)} of this year's bills.`)}}
+ let cash=Math.max(0,funds());
+ if(x.payPref==='loan'){const bw=borrow(x,due,E);if(bw>0){fin.borrowed+=bw;due-=bw}}
+ const use=Math.min(cash,due);if(use>0&&pay(use)){due-=use;fin.paid+=use}
+ if(due>0){const bw=borrow(x,due,E);if(bw>0){fin.borrowed+=bw;due-=bw}else if(bw<0){due=-bw}}
+ if(due>1){forceWithdraw(x,`You could not cover ${fm(due)} of your bill and the school placed a hold on your account.`);return}
+ if(fin.borrowed)say('money',`Borrowed ${fm(fin.borrowed)} in student loans for the year.`);
+ if(E.level==='phd'){const s=Math.round(18000*clamp(cm(),.3,1));earn(s);fin.income+=s;say('money',`Your PhD stipend paid ${fm(s)}.`)}
+ /* loans accrue interest while enrolled */
+ x.loans.forEach(l=>{l.bal=Math.round(l.bal*(1+l.rate*.5))});
+ /* --- work --- */
+ if(E.work>0){const inc=Math.round(E.work*15*wageMult()*40);earn(inc);fin.income+=inc;say('money',`Your part-time job (${E.work} hrs/week) paid ${fm(inc)}.`)}
+ /* --- optional programs --- */
+ if(E.intern){
+  const p=clamp(.25+cumGpa(x)*.08+sc.pres*.02+x.net*.003+x.exp*.03,.1,.9);E.intern=false;
+  if(Math.random()<p){x.exp++;const pay$=Math.random()<.7?Math.round(ri(7000,24000)*wageMult()):0;if(pay$){earn(pay$);fin.income+=pay$}x.net=clamp(x.net+6,0,100);say('career',`Landed a summer internship${pay$?' paying '+fm(pay$):' (unpaid, but valuable)'} in ${m.f}.`)}
+  else say('career','You applied for summer internships but did not get an offer.');
+ }
+ if(E.abroad){E.abroad=false;x.studiedAbroad=true;st('happiness',12);st('smarts',3);x.net=clamp(x.net+5,0,100);say('school','You spent a semester studying abroad. It changed how you see the world.',1)}
+ if(E.summer){E.summer=false;E.cr+=6;say('school','Summer classes earned you 6 extra credits.')}
+ /* --- ath tryout --- */
+ if(E.ath&&!E.athSch&&!E.athDone){E.athDone=true;if(game.health>=65&&Math.random()<.45){E.athSch=.3;say('school','You made the varsity team and earned an athletic scholarship (30% of tuition).',1)}else{E.ath=false;say('school','You did not make the team this year.')}}
+ /* --- study results --- */
+ const sm=game.smarts||50,prof=x.rap*.003,workPen=E.work>=30?.45:E.work>=20?.28:E.work>=10?.12:0;
+ const clubGpa=E.clubs.reduce((t,id)=>t+((CLUBS.find(z=>z.id===id)||{gpa:0}).gpa),0);
+ let base=1.0+sm/100*2.1+(E.effort-1)*.42+prof-(m.d-3)*.24-workPen+[0,-.1,-.34][E.party]+clubGpa+(E.greek?-.05:0)+(E.research?-.04:0)+(E.gpaMod||0)+(x.stress>75?-.3:0)+(E.pt?.05:0)+(E.level==='phd'?.25:0);
+ if(sc.pres>=9)base-=.12;
+ base=clamp(base,.2,4);E.gpaMod=0;
+ const courses=makeCourses(E,base);
+ const gpa=Math.round(courses.reduce((t,c)=>t+c.p,0)/courses.length*100)/100;
+ const yearCr=E.pt?15:30,per=yearCr/courses.length,failed=courses.filter(c=>c.p<1).length;
+ const earned=Math.round(per*(courses.length-failed));
+ E.cr+=earned;
+ E.terms.push({age:a,yr:E.yr,gpa,cr:earned,courses,standing:''});
+ const cg=cumGpa(x);
+ /* --- standing --- */
+ let stand='Good standing';
+ if(cg<2){E.prob=(E.prob||0)+1;stand='Academic probation'}else{E.prob=0}
+ if(gpa>=3.5&&cg>=3.3)stand="Dean's List";
+ E.terms[E.terms.length-1].standing=stand;
+ /* --- life effects --- */
+ const eff=E.effort-1,pty=E.party;
+ st('smarts',Math.max(0,eff*1.2+1.3));st('happiness',[1,3,6][pty]+(HOUSE[E.housing].h)-(eff>=2?4:0)-(x.stress>75?5:0));
+ st('health',-[0,1,4][pty]-(eff>=2?2:0)-(x.stress>80?3:0));
+ E.clubs.forEach(id=>{const c=CLUBS.find(z=>z.id===id);if(c){st('happiness',c.hp);st('smarts',c.sm*.4);x.net=clamp(x.net+c.net,0,100)}});
+ if(E.greek){st('happiness',4);x.net=clamp(x.net+6,0,100)}
+ if(E.research){x.rap=clamp(x.rap+7,0,100);x.research++}
+ else x.rap=clamp(x.rap+(eff>=1?3:1)-(eff<0?1:0),0,100);
+ x.net=clamp(x.net+HOUSE[E.housing].net,0,100);
+ x.stress=clamp(x.stress+eff*6+E.work/10*2+E.clubs.length*2+(E.research?4:0)+(E.ath?6:0)+(E.summer?4:0)+HOUSE[E.housing].st-(pty*2)-9,0,100);
+ const lt=x.stress>75?'Burned out':x.stress>50?'Stressed':x.stress>25?'Balanced':'Relaxed';
+ say('school',`Year ${E.yr} at ${sc.name}: ${gpa.toFixed(2)} GPA this year (${cg.toFixed(2)} cumulative), ${earned} credits earned. ${stand}. You feel ${lt.toLowerCase()}.`);
+ if(failed)say('school',`You failed ${failed} course${failed>1?'s':''} and had to retake ${failed>1?'them':'it'}.`);
+ if(stand==="Dean's List")say('school',"You made the Dean's List!",1);
+ if(stand==='Academic probation')say('school',`Your GPA fell below 2.0. You are on academic probation${E.prob>=2?' for the second year in a row':''}.`);
+ /* --- dismissal --- */
+ if((E.prob||0)>=2){forceWithdraw(x,'Two years of academic probation led to dismissal.');return}
+ /* --- breakdown --- */
+ if(x.stress>85&&Math.random()<.4)x.pend.push('burnout');
+ /* --- graduation --- */
+ if(E.cr>=E.need){graduate(x,E);return}
+ E.yr++;
+ /* --- random events --- */
+ const n=Math.random()<.65?1:Math.random()<.35?2:0;
+ const pool=EVENTS.filter(e=>!e.when||e.when(x,E)).sort(()=>Math.random()-.5).slice(0,n);
+ pool.forEach(e=>x.pend.push(e.id));
+}
+function eduYear(){
+ const x=X();if(!x)return;
+ const a=game.age;
+ if(a<=x.last)return;
+ const gap=a-x.last;x.last=a;
+ if(gap>3)return;
+ if(a>=14&&a<=18&&!x.hs.done&&!(x.E))hsYear(x,a);
+ x.apps.forEach(p=>{if(p.res==='waitlist'&&Math.random()<.3){p.res='admit';say('school',`Good news! You were taken off the waitlist at ${SC[p.sid].name}.`,1)}});
+ x.apps=x.apps.filter(p=>a-p.age<=1&&!p.done);
+ if(x.E)collegeYear(x,a);else repay(x,a);
+ if(!x.E&&x.stress>0)x.stress=clamp(x.stress-8,0,100);
+ x.fafsa&&a-x.fafsa.age>1&&(x.fafsa=null);
+ setTimeout(flush,350);
+}
+
+/* ============================== campus events ============================== */
+const adjn=(o)=>{const x=X(),E=x.E;
+ if(o.m)o.m>0?earn(o.m):pay(-o.m);
+ if(o.sm)st('smarts',o.sm);if(o.hp)st('happiness',o.hp);if(o.hl)st('health',o.hl);if(o.lk)st('looks',o.lk);
+ if(o.rap)x.rap=clamp(x.rap+o.rap,0,100);if(o.str)x.stress=clamp(x.stress+o.str,0,100);if(o.net)x.net=clamp(x.net+o.net,0,100);
+ if(o.gpa&&E)E.gpaMod=(E.gpaMod||0)+o.gpa;if(o.rep)game.reputation=clamp((game.reputation||50)+o.rep,0,100)};
+const EVENTS=[
+{id:'roommate',i:'🛏️',t:'Roommate trouble',d:'Your roommate keeps hosting loud guests until 3 a.m.',when:(x,E)=>E.housing==='dorm'||E.housing==='off',c:[
+ ['Talk it out',()=>{const ok=Math.random()<.6;adjn({hp:ok?4:-3,str:ok?-5:5});return ok?'You agreed on ground rules and it got better.':'They ignored you. The semester stayed tense.'}],
+ ['Request a room change',()=>{adjn({m:-150,str:-8});return 'Housing approved a swap for a $150 fee.'}],
+ ['Ignore it',()=>{adjn({str:10,sm:-1,hl:-3});return 'You barely slept and your focus suffered.'}]]},
+{id:'cheat',i:'📝',t:'Exam temptation',d:'A classmate offers you the answer key for tomorrow’s big exam.',c:[
+ ['Take it and cheat',()=>{if(Math.random()<.65){adjn({gpa:.12,str:-3});return 'You got away with it. This time.'}adjn({gpa:-.5,rep:-8,hp:-12});return 'You were caught. You failed the course and got an academic integrity strike.'}],
+ ['Say no and study',()=>{adjn({sm:1,str:4,gpa:.05});return 'You pulled an all-nighter and did fine honestly.'}],
+ ['Report it',()=>{adjn({rap:5,rep:2,net:-2});return 'The professor appreciated your integrity. Some classmates were upset.'}]]},
+{id:'research',i:'🔬',t:'Research opportunity',d:'A professor noticed your work and offers a spot in their lab.',when:(x,E)=>cumGpa(x)>=3.2&&!E.research,c:[
+ ['Join the lab',()=>{const E=X().E;E.research=true;adjn({rap:10,sm:2});return 'You are now a research assistant. Great for grad school.'}],
+ ['Politely decline',()=>{adjn({hp:1});return 'You kept your schedule lighter.'}]]},
+{id:'party',i:'🎉',t:'Party the night before an exam',d:'Everyone is going to the biggest party of the semester. Your exam is at 9 a.m.',c:[
+ ['Go and have fun',()=>{adjn({hp:7,gpa:-.15,hl:-2,net:2});return 'Epic night. The exam, less so.'}],
+ ['Stay in and study',()=>{adjn({gpa:.08,hp:-2,sm:1});return 'You aced it, but heard about the party for weeks.'}],
+ ['Go for one hour',()=>{adjn({hp:3,net:1});return 'You got the best of both worlds.'}]]},
+{id:'essay',i:'🏆',t:'Scholarship essay contest',d:'The department is running a $5,000 scholarship essay contest.',c:[
+ ['Enter seriously',()=>{const p=clamp(.2+(game.smarts||50)/250,.1,.6);if(Math.random()<p){adjn({m:Math.round(5000*cm()),hp:6,rep:2});return 'You won! The scholarship was paid straight to you.'}adjn({str:3});return 'You did not win, but it was good practice.'}],
+ ['Skip it',()=>{return 'You used the time to rest.'}]]},
+{id:'burnout',i:'🧠',t:'Overwhelmed',d:'The pressure is crushing. You cannot focus and you dread every class.',c:[
+ ['Visit campus counseling',()=>{adjn({str:-30,hp:6,hl:3});return 'Counseling helped you regain balance (free for students).'}],
+ ['Take a gap semester',()=>{const x=X(),E=x.E;adjn({str:-45,hp:10});if(E){E.cr=Math.max(0,E.cr-0);E.yr=Math.max(1,E.yr)}return 'You took time off to recover and came back refreshed. (It cost you a bit of time but not progress.)'}],
+ ['Push through',()=>{adjn({str:8,hl:-5,hp:-8,gpa:-.2});return 'You survived, but at a cost to your health and grades.'}]],when:()=>true},
+{id:'group',i:'👥',t:'The slacker in your group',d:'A teammate is doing nothing on the group project and it is due Friday.',c:[
+ ['Do their part too',()=>{adjn({str:7,gpa:.05,sm:1});return 'You carried the project. Your grade was great, your sleep was not.'}],
+ ['Report them to the professor',()=>{adjn({rap:3,net:-2,hp:-1});return 'The professor adjusted grades fairly.'}],
+ ['Confront them',()=>{const ok=Math.random()<.5;adjn({hp:ok?3:-3,net:ok?2:-1});return ok?'They finally stepped up.':'They got defensive and nothing changed.'}]]},
+{id:'hack',i:'💻',t:'Hackathon / startup pitch night',d:'A 48-hour hackathon with a cash prize and recruiters in the room.',when:(x,E)=>/STEM|Business/.test(MAJ[E.major].f),c:[
+ ['Compete all weekend',()=>{const w=Math.random()<.25+(game.smarts||50)/400;adjn({net:6,sm:2,hp:3,str:5,m:w?Math.round(3000*cm()):0});if(w)X().exp++;return w?'You won the grand prize and caught a recruiter’s eye!':'You did not win, but made great contacts.'}],
+ ['Skip it',()=>{adjn({hp:1});return 'You enjoyed a quiet weekend.'}]]},
+{id:'springbreak',i:'🏖️',t:'Spring break trip',d:'Your friends are planning a beach trip (about $800).',c:[
+ ['Go with friends',()=>{if(funds()<800*cm()){return 'You could not afford it and stayed home.'}adjn({m:-Math.round(800*cm()),hp:9,str:-12,net:3});return 'Unforgettable memories and a tan.'}],
+ ['Stay and work',()=>{adjn({m:Math.round(900*cm()*.8),str:2});return 'You picked up extra shifts.'}],
+ ['Stay home and rest',()=>{adjn({str:-6,hp:2});return 'You recharged.'}]]},
+{id:'books',i:'📚',t:'Textbook sticker shock',d:'Your required textbooks cost far more than expected.',c:[
+ ['Buy new',()=>{adjn({m:-Math.round(500*cm()),gpa:.05});return 'Expensive, but you were prepared.'}],
+ ['Rent or buy used',()=>{adjn({m:-Math.round(180*cm())});return 'You saved a lot of money.'}],
+ ['Find free PDFs',()=>{if(Math.random()<.3){adjn({hp:-2,gpa:-.05});return 'The edition was outdated and cost you points.'}return 'Totally worked out. Free is free.'}]]},
+{id:'love',i:'💘',t:'A spark in class',d:'Someone in your seminar keeps smiling at you and asks to study together.',c:[
+ ['Say yes',()=>{adjn({hp:6,str:-2,net:2});try{if(!game.partner&&Math.random()<.4)glog('You started dating a classmate.',1)}catch(e){}return 'You had a lovely study date.'}],
+ ['Stay focused',()=>{adjn({gpa:.03});return 'You kept your eyes on your goals.'}]]},
+{id:'plag',i:'⚠️',t:'Plagiarism accusation',d:'An automated checker flagged your paper, but you wrote it yourself.',c:[
+ ['Appeal with drafts',()=>{const ok=Math.random()<.8;adjn({hp:ok?2:-8,rap:ok?3:-2,gpa:ok?0:-.2});return ok?'Your draft history cleared you.':'The committee upheld a penalty.'}],
+ ['Hire a campus advisor',()=>{adjn({m:-Math.round(200*cm()),hp:1});return 'The advisor resolved it quickly.'}]]},
+{id:'career',i:'💼',t:'Career fair',d:'Dozens of companies are recruiting on campus today.',c:[
+ ['Network hard',()=>{const p=clamp(.25+cumGpa(X())*.08+X().net*.003,.15,.85);if(Math.random()<p){X().exp++;adjn({net:5,hp:4});return 'A recruiter promised you a summer interview slot!'}adjn({net:3});return 'You collected a lot of business cards.'}],
+ ['Skip it',()=>'You went to the library instead.']]},
+{id:'appeal',i:'📊',t:'Grade dispute',d:'You think your final grade in a core class was unfair.',when:(x,E)=>x.rap>=10,c:[
+ ['Formally appeal',()=>{const ok=Math.random()<.45+X().rap/300;adjn({gpa:ok?.15:0,rap:ok?-1:-4});return ok?'Your grade was raised.':'The appeal was denied and the professor was irritated.'}],
+ ['Let it go',()=>'You moved on.']]},
+{id:'family',i:'🏠',t:'Family emergency',d:'A relative back home needs financial help.',c:[
+ ['Send money',()=>{const a=Math.round(1500*cm());if(funds()<a)return 'You wanted to help but could not afford it.';adjn({m:-a,hp:4,rep:2});return `You sent ${fm(a)}. They were deeply grateful.`}],
+ ['Offer emotional support',()=>{adjn({hp:1,str:3});return 'You called every night.'}],
+ ['Travel home',()=>{adjn({m:-Math.round(400*cm()),gpa:-.08,hp:3,str:5});return 'You went home to help. It cost you some study time.'}]]},
+{id:'care',i:'📦',t:'Care package',d:'Your family sent a care package with snacks and cash.',c:[
+ ['Enjoy it',()=>{adjn({m:Math.round(120*cm()),hp:5});return 'Warm feelings and free snacks.'}]]},
+{id:'mentor',i:'✉️',t:'A professor offers a recommendation letter',d:'You impressed your professor and they offer to write you a strong letter.',when:(x)=>x.rap>=25,c:[
+ ['Accept gratefully',()=>{adjn({rap:6,net:3});X().exp++;return 'A glowing letter will help your next application.'}],
+ ['Decline modestly',()=>'You said you would ask later.']]},
+{id:'injury',i:'🩹',t:'Sports injury',d:'You tweaked something badly at practice.',when:(x,E)=>E.ath||E.clubs.includes('intra'),c:[
+ ['Rest and rehab',()=>{adjn({hl:-3,hp:-2,m:-Math.round(250*cm())});return 'You followed physio and recovered fully.'}],
+ ['Play through it',()=>{adjn({hl:-9,hp:-3});return 'You made it worse and missed weeks of activity.'}]]},
+{id:'protest',i:'📣',t:'Campus protest',d:'A big demonstration is happening on the quad.',c:[
+ ['Join the protest',()=>{adjn({hp:4,net:3,rep:Math.random()<.5?2:-2});return 'You felt part of something bigger.'}],
+ ['Watch from the sidelines',()=>{adjn({hp:1});return 'You took it all in.'}],
+ ['Ignore it',()=>'You went to class.']]},
+{id:'tuition',i:'💸',t:'Surprise fee increase',d:'The university announced a mid-year fee increase.',c:[
+ ['Pay the extra',()=>{const f=Math.round(600*cm());pay(f);return `You paid an extra ${fm(f)}.`}],
+ ['Work extra shifts',()=>{adjn({str:5,gpa:-.06,m:Math.round(300*cm())});return 'You earned some of it back, but studied less.'}]]},
+{id:'dorm',i:'🔥',t:'3 a.m. fire alarm',d:'Someone burned popcorn and the whole dorm evacuated into the cold.',when:(x,E)=>E.housing==='dorm',c:[
+ ['Laugh it off',()=>{adjn({hp:2,net:2});return 'It became a legendary dorm story.'}],
+ ['Complain to the RA',()=>{adjn({hp:-1});return 'The RA shrugged. Same time next month.'}]]},
+{id:'hazing',i:'🍺',t:'Rush week pressure',d:'The house asks you to take part in a risky initiation.',when:(x,E)=>E.greek,c:[
+ ['Go along',()=>{adjn({net:4,hl:-6,hp:-2,rep:-2});return 'You got through it, but not unscathed.'}],
+ ['Refuse',()=>{adjn({hp:-1,rep:2});return 'A few members respected your stand, others mocked you.'}],
+ ['Report it',()=>{adjn({rep:4,net:-4,hp:-2});return 'The university investigated and suspended the chapter.'}]]}
+];
+const EV=Object.fromEntries(EVENTS.map(e=>[e.id,e]));
+EV.__grad={id:'__grad',i:'🎓',t:'Graduation!',d:'',c:[['Celebrate',()=>'Congratulations, graduate!']]};
+let popQ=[],popOn=false;
+function popEl(){let p=document.getElementById('ls37Pop');if(!p){p=document.createElement('div');p.id='ls37Pop';document.body.appendChild(p)}return p}
+function flush(){
+ const x=X();if(!x||popOn)return;
+ const id=x.pend.shift();if(!id)return;
+ const e=EV[id];if(!e){flush();return}
+ popOn=true;const p=popEl();
+ if(id==='__grad'){
+  const dg=x.degs[x.degs.length-1];if(!dg){popOn=false;return}
+  p.innerHTML=`<div class="box"><div class="ic">🎓</div><h3>You graduated!</h3><p>${esc(DEG[dg.level].n)} in ${esc(MAJ[dg.major].n)}<br>${esc(SC[dg.sid].name)} · GPA ${dg.gpa.toFixed(2)}${dg.honors?' · '+esc(dg.honors):''}</p><button class="go" data-ls37-pop="0">Continue</button></div>`;
+  p.classList.add('on');p._cur={id,e,done:false};return;
+ }
+ p.innerHTML=`<div class="box"><div class="ic">${e.i}</div><h3>${esc(e.t)}</h3><p>${esc(e.d)}</p>${e.c.map((c,i)=>`<button data-ls37-pop="${i}">${esc(c[0])}</button>`).join('')}</div>`;
+ p.classList.add('on');p._cur={id,e,done:false};
+}
+document.addEventListener('click',ev=>{
+ const b=ev.target.closest&&ev.target.closest('[data-ls37-pop]');if(!b)return;
+ const p=document.getElementById('ls37Pop');if(!p||!p._cur)return;
+ const cur=p._cur;
+ if(cur.done){p.classList.remove('on');p._cur=null;popOn=false;try{updateUI()}catch(e){}setTimeout(flush,250);return}
+ if(cur.id==='__grad'){cur.done=true;p.classList.remove('on');p._cur=null;popOn=false;setTimeout(flush,250);return}
+ const i=+b.dataset.ls37Pop,ch=cur.e.c[i];if(!ch)return;
+ let res='';try{res=ch[1]()}catch(e){console.error(e);res='Nothing came of it.'}
+ const x=X();
+ note('choice',`${cur.e.t}: you chose "${ch[0]}". ${res}`);
+ recChoice(cur.e,ch[0],res);
+ glog(`${cur.e.t}: ${res}`);
+ cur.done=true;
+ p.innerHTML=`<div class="box"><div class="ic">${cur.e.i}</div><h3>${esc(cur.e.t)}</h3><p><b>You chose:</b> ${esc(ch[0])}</p><p>${esc(res)}</p><button class="go" data-ls37-pop="0">Continue</button></div>`;
+ try{updateUI()}catch(e){}
+},true);
+function recChoice(e,pick,res){
+ try{const v=game.vlog;if(!v)return;const en=v[game.age];if(!en||!Array.isArray(en.ch))return;
+  en.ch.push({t:e.t,d:e.d,p:pick,o:'',l:[res]})}catch(err){}
+}
+
+/* ============================== modal UI ============================== */
+const UI={tab:'home',path:'cert'};
+let lastScroll=0;
+function toast37(m){try{showToast(m,'🎓')}catch(e){}}
+function close37(){try{closeModal()}catch(e){}}
+function bodyEl(){return document.querySelector('#modalContent .p32-body')||document.getElementById('modalContent')}
+function open37(tab){
+ if(tab)UI.tab=tab;
+ const b0=bodyEl();const keep=b0&&b0.querySelector('.ls37')?b0.scrollTop:0;
+ openModal(view());
+ setTimeout(()=>{const t=document.querySelector('#modalContent .p32-head-title'),i=document.querySelector('#modalContent .p32-head-icon'),s=document.querySelector('#modalContent .p32-head-sub');
+  if(t)t.textContent='Education';if(i)i.textContent='🎓';if(s)s.textContent=headSub();
+  const b=bodyEl();if(b&&keep)b.scrollTop=keep},0);
+ const t=document.querySelector('#modalContent .p32-head-title');if(t){t.textContent='Education';const i=document.querySelector('#modalContent .p32-head-icon'),s=document.querySelector('#modalContent .p32-head-sub');if(i)i.textContent='🎓';if(s)s.textContent=headSub()}
+}
+function headSub(){const x=X();if(!x)return'School and qualifications';if(x.E)return`${SC[x.E.sid].name} · Year ${x.E.yr}`;const hb=best(x);return hb?DEG[x.degs.reduce((m,d)=>RANK[d.level]>=RANK[m.level]?d:m).level].n:stage(game.age)}
+const TABS=[['home','🏠 Overview'],['hs','📘 High School'],['apply','📝 Apply'],['campus','🏫 Campus Life'],['money','💰 Money & Aid'],['grades','📄 Transcript'],['career','💼 Careers']];
+function bar(p,c){return`<div class="bar"><i style="width:${clamp(p,0,100)}%${c?`;background:${c}`:''}"></i></div>`}
+function tabsHtml(x){
+ return`<div class="tabs">${TABS.filter(t=>t[0]!=='hs'||(game.age>=13&&game.age<=18&&!x.E)||(game.age<=17)).map(t=>`<button class="tab ${UI.tab===t[0]?'on':''}" data-ls37="tab" data-v="${t[0]}">${t[1]}</button>`).join('')}</div>`;
+}
+function view(){
+ const x=X();
+ if(!x||!game.alive)return'<h3>🎓 Education</h3><div class="ls37"><div class="empty">Start a life first.</div></div>';
+ let tab=UI.tab;if(tab==='hs'&&game.age>18)tab='home';
+ let body='';
+ try{body=({home:vHome,hs:vHS,apply:vApply,campus:vCampus,money:vMoney,grades:vGrades,career:vCareer}[tab]||vHome)(x)}catch(e){console.error(e);body='<div class="empty">Something went wrong rendering this tab.</div>'}
+ return`<h3>🎓 Education</h3><div class="ls37">${tabsHtml(x)}${body}<button class="btn alt" onclick="closeModal()">Close</button></div>`;
+}
+function vHome(x){
+ const E=x.E,a=game.age;let h='';
+ if(E){
+  const s=SC[E.sid],m=MAJ[E.major],cg=cumGpa(x),b=billFor(x,E);
+  const stand=E.terms.length?E.terms[E.terms.length-1].standing:'New student';
+  h+=`<div class="card hero"><div class="sub">${esc(s.type==='cc'?'COMMUNITY COLLEGE':(s.tier||'UNIVERSITY').toUpperCase())}</div><h4 style="font-size:1.05rem;margin:2px 0">${esc(s.name)}</h4><div class="sub">${esc(DEG[E.level].n)} · ${esc(m.n)} · Year ${E.yr} of ${DEG[E.level].yrs}${E.pt?' (part-time)':''}</div>
+  <div style="margin-top:10px" class="sub">Degree progress · ${E.cr}/${E.need} credits</div>${bar(E.cr/E.need*100)}
+  <div class="grid2"><div class="row"><span>Cumulative GPA</span><b>${E.terms.length?cg.toFixed(2):'—'}</b></div><div class="row"><span>Standing</span><b>${esc(stand)}</b></div></div>
+  <div class="sub">Stress · ${Math.round(x.stress)}%</div>${bar(x.stress,x.stress>75?'#ef4444':x.stress>50?'#f59e0b':'#10b981')}</div>`;
+  h+=`<div class="card"><h4>Next bill (estimated)</h4>
+  <div class="row"><span>Tuition after aid</span><b>${fm(b.net)}</b></div><div class="row"><span>Housing & transport</span><b>${fm(b.house)}</b></div><div class="row"><span>Fees, books & extras</span><b>${fm(b.fees+b.books+b.greek+b.club+b.summer+b.abroad)}</b></div>
+  <div class="row"><span>Total</span><b>${fm(b.total)}</b></div></div>`;
+  h+=`<div class="card"><h4>Study habits</h4>
+  <div class="lab">Effort</div><div class="seg">${['Coast','Balanced','Hard','Extreme'].map((n,i)=>`<button class="${E.effort===i?'on':''}" data-ls37="set" data-k="effort" data-v="${i}">${n}</button>`).join('')}</div>
+  <div class="lab">Social life</div><div class="seg">${['Quiet','Some fun','Party hard'].map((n,i)=>`<button class="${E.party===i?'on':''}" data-ls37="set" data-k="party" data-v="${i}">${n}</button>`).join('')}</div>
+  <div class="lab">Part-time job (hours / week)</div><div class="seg">${[0,10,20,30].map(n=>`<button class="${E.work===n?'on':''}" data-ls37="set" data-k="work" data-v="${n}">${n?n+'h':'None'}</button>`).join('')}</div>
+  <div class="lab">Course load</div><div class="seg"><button class="${!E.pt?'on':''}" data-ls37="set" data-k="pt" data-v="0">Full-time</button><button class="${E.pt?'on':''}" data-ls37="set" data-k="pt" data-v="1">Part-time</button></div></div>`;
+  h+=`<div class="card"><h4>Actions</h4>
+  <button class="btn alt" data-ls37="major">Change major</button>
+  ${(E.level==='assoc'||E.level==='cert')?`<button class="btn alt" data-ls37="tab" data-v="apply">Plan a transfer to a university</button>`:''}
+  <button class="btn bad" data-ls37="withdraw">Drop out / withdraw</button></div>`;
+ }else{
+  const hb=best(x),top=x.degs.length?x.degs.reduce((m,d)=>RANK[d.level]>=RANK[m.level]?d:m):null;
+  h+=`<div class="card hero"><div class="sub">STATUS</div><h4 style="font-size:1.05rem;margin:2px 0">${a<14?stage(a):top?`${DEG[top.level].n} · ${esc(MAJ[top.major].n)}`:a<18?'High school student':'Not enrolled'}</h4>
+  <div class="sub">${top?esc(SC[top.sid].name)+' · GPA '+top.gpa.toFixed(2)+(top.honors?' · '+esc(top.honors):''):a<18?'Your education path starts soon.':'Ready to apply? Community college is open to everyone 16+.'}</div></div>`;
+  if(a<16)h+=`<div class="card"><div class="row"><span>Family background</span><b>${FAMN[x.fam]}</b></div><div class="row"><span>Smarts</span><b>${Math.round(game.smarts||0)}%</b></div><div class="sub" style="margin-top:6px">College courses open at 16 (dual enrollment), bachelor programs at 17-18. Use the High School tab to build your GPA, SAT and extracurriculars.</div></div>`;
+  else h+=`<div class="card"><h4>What next?</h4><button class="btn" data-ls37="tab" data-v="apply">Apply to a school</button></div>`;
+ }
+ if(x.degs.length)h+=`<div class="card"><h4>Degrees earned</h4>${x.degs.map(d=>`<div class="row"><span>${esc(DEG[d.level].n)} · ${esc(MAJ[d.major].n)}</span><b>${d.gpa.toFixed(2)}</b></div>`).join('')}</div>`;
+ if(x.loans.length)h+=`<div class="card"><div class="row"><span>Student loan balance</span><b class="dn" style="color:#fb7185">${fm(debt(x))}</b></div></div>`;
+ return h;
+}
+function vHS(x){
+ const h=x.hs,a=game.age;
+ if(a<13)return`<div class="card"><div class="empty">High school tools unlock at 13.<br>You are in ${stage(a).toLowerCase()}.</div></div>`;
+ let o=`<div class="card hero"><div class="sub">HIGH SCHOOL</div><h4 style="font-size:1.05rem;margin:2px 0">${h.done?'Graduated':a<14?'Getting ready':'Year '+Math.min(4,Math.max(1,a-13))}</h4>
+ <div class="grid2"><div class="row"><span>GPA</span><b>${h.gpas.length?hsGpa(x).toFixed(2):'—'}</b></div><div class="row"><span>SAT</span><b>${h.sat||'—'}</b></div><div class="row"><span>AP courses</span><b>${h.ap}</b></div><div class="row"><span>Activities</span><b>${h.clubs.length}</b></div></div></div>`;
+ if(!h.done&&a<=18){
+  o+=`<div class="card"><h4>Study effort</h4><div class="seg">${['Slack off','Normal','Try hard','Grind'].map((n,i)=>`<button class="${h.effort===i?'on':''}" data-ls37="hs" data-k="effort" data-v="${i}">${n}</button>`).join('')}</div>
+  <div class="lab">Advanced Placement</div><div class="seg"><button class="${!h.apOn?'on':''}" data-ls37="hs" data-k="apOn" data-v="0">Regular classes</button><button class="${h.apOn?'on':''}" data-ls37="hs" data-k="apOn" data-v="1">Take AP courses</button></div>
+  <div class="sub" style="margin-top:6px">AP classes raise admission scores but add stress.</div></div>`;
+  o+=`<div class="card"><h4>Extracurricular activities (max 4)</h4>${CLUBS.map(c=>`<div class="row"><span>${c.i} ${c.n}</span><button class="btn sm ${h.clubs.includes(c.id)?'ok':'alt'}" data-ls37="hsclub" data-v="${c.id}">${h.clubs.includes(c.id)?'Joined':'Join'}</button></div>`).join('')}</div>`;
+ }
+ if(a>=14){const sc=Math.round(68*cm()),co=Math.round(450*cm());
+  o+=`<div class="card"><h4>SAT / ACT</h4><div class="sub">${h.tries}/3 attempts used · best score ${h.sat||'none'}</div>
+  <button class="btn" data-ls37="sat" data-v="none" ${h.tries>=3?'disabled':''}>Take the test — ${fm(sc)}</button>
+  <button class="btn alt" data-ls37="sat" data-v="self" ${h.tries>=3?'disabled':''}>Self-study first — ${fm(sc)} (+40 prep boost)</button>
+  <button class="btn alt" data-ls37="sat" data-v="course" ${h.tries>=3?'disabled':''}>Prep course — ${fm(sc+co)} (+90 prep boost)</button></div>`}
+ return o;
+}
+function vApply(x){
+ const PATHS=[['cert','Certificate'],['assoc','Associate'],['bach',"Bachelor's"],['xfer','Transfer'],['master',"Master's"],['mba','MBA'],['jd','Law (JD)'],['md','Medical (MD)'],['phd','PhD']];
+ if(!PATHS.some(p=>p[0]===UI.path))UI.path='cert';
+ const path=UI.path,level=pathLevel(path),tr=path==='xfer',why=reason(x,path);
+ let o=`<div class="card"><h4>Choose a path</h4><div class="seg">${PATHS.map(p=>`<button class="${path===p[0]?'on':''}" data-ls37="path" data-v="${p[0]}">${p[1]}</button>`).join('')}</div>
+ <div class="sub" style="margin-top:8px">${DEG[level].n}: ${DEG[level].yrs} years · ${DEG[level].cr} credits${level==='phd'?' · tuition waived + stipend':''}</div>
+ ${why?`<div class="pill r" style="margin-top:6px">${esc(why)}</div>`:''}</div>`;
+ const list=(level==='cert'||level==='assoc')?CC:UN;
+ const majors=level==='jd'?[MAJ.law]:level==='md'?[MAJ.med]:level==='mba'?[MAJ.bus]:MJ.filter(m=>m.w!=='-'&&(((level==='cert'||level==='assoc')&&m.w.includes('c'))||(!(level==='cert'||level==='assoc')&&m.w.includes('u'))));
+ if(!why){
+  list.forEach(s=>{
+   const p=s.type==='cc'?1:chanceOf(x,level,s,tr),lbl=s.type==='cc'?'Open enrollment':p>.8?'Safety':p>.4?'Target':'Reach';
+   const tu=Math.round(s.tuition*cm()*(DEG[level].mult??1)),room=Math.round((s.room||0)*cm());
+   const col=s.type==='cc'?'g':p>.8?'g':p>.4?'y':'r';
+   o+=`<div class="card"><div style="display:flex;justify-content:space-between;gap:8px"><div><b>${esc(s.name)}</b><div class="sub">${esc(s.tier||'Community College')} · ${esc(s.tag)}</div></div><div style="text-align:right"><span class="pill ${col}">${lbl}${s.type!=='cc'?' · '+Math.round(p*100)+'%':''}</span><div class="sub">${'★'.repeat(Math.max(1,Math.round(s.pres/2)))}</div></div></div>
+   <div class="row" style="margin-top:6px"><span>Tuition / year</span><b>${level==='phd'?'Waived + stipend':fm(tu)}</b></div>${room?`<div class="row"><span>Dorm & meals</span><b>${fm(room)}</b></div>`:''}
+   <select id="ls37m_${s.id}">${majors.map(m=>`<option value="${m.id}">${esc(m.n)}${level==='bach'||level==='cert'||level==='assoc'?` · avg start ${fm(m.pay)}`:''}</option>`).join('')}</select>
+   <button class="btn" data-ls37="apply" data-s="${s.id}">${s.type==='cc'?'Request enrollment':'Apply'+(x.fam==='low'?' (fee waived)':` — ${fm(75*cm())} fee`)}</button></div>`;
+  });
+ }
+ const myApps=x.apps.filter(p=>!p.done);
+ if(myApps.length){
+  o+=`<div class="card"><h4>My applications</h4>${x.apps.map((p,i)=>p.done?'':`<div class="row" style="align-items:flex-start"><span>${esc(SC[p.sid].name)}<br><small class="sub">${esc(DEG[p.level].n)} · ${esc(MAJ[p.major].n)}</small></span><span style="text-align:right">${p.res==='admit'?`<span class="pill g">Admitted${p.sch?' · '+Math.round(p.sch*100)+'% scholarship':''}</span><br><button class="btn sm ok" style="margin-top:4px" data-ls37="accept" data-v="${i}">Accept</button>`:p.res==='waitlist'?'<span class="pill y">Waitlisted</span>':'<span class="pill r">Rejected</span>'}</span></div>`).join('')}</div>`;
+ }
+ return o;
+}
+function vAccept(i){
+ const x=X(),p=x.apps[i];if(!p)return;const sc=SC[p.sid];
+ const opts=Object.entries(HOUSE).filter(([k])=>!(sc.online&&k!=='home')&&!(sc.type==='cc'&&(k==='dorm'||k==='greek'))&&!(k==='greek'&&p.level!=='bach'));
+ openModal(`<h3>🎓 Enrollment</h3><div class="ls37"><div class="card hero"><h4>${esc(sc.name)}</h4><div class="sub">${esc(DEG[p.level].n)} · ${esc(MAJ[p.major].n)}</div></div><div class="card"><h4>Where will you live?</h4>
+ ${opts.map(([k,h])=>`<div class="row"><span>${h.n}<br><small class="sub">~${fm(housingCost({sid:p.sid,housing:k}))} / year</small></span><button class="btn sm" data-ls37="enroll" data-i="${i}" data-h="${k}">Choose</button></div>`).join('')}</div>
+ <button class="btn alt" data-ls37="tab" data-v="apply">Back</button></div>`);
+ setTimeout(()=>{const t=document.querySelector('#modalContent .p32-head-title');if(t)t.textContent='Education'},0);
+}
+function vCampus(x){
+ const E=x.E;if(!E)return`<div class="card"><div class="empty">Enroll in a program to unlock campus life.</div></div>`;
+ const sc=SC[E.sid];const cmax=sc.type==='cc'?2:3;
+ let o=`<div class="card"><h4>Clubs & activities (${E.clubs.length}/${cmax})</h4>${CLUBS.map(c=>`<div class="row"><span>${c.i} ${c.n}<br><small class="sub">${c.cost?fm(c.cost*cm())+'/yr':'Free'} · ${c.net>=3?'great networking':c.hp>=3?'boosts mood':'builds skills'}</small></span><button class="btn sm ${E.clubs.includes(c.id)?'ok':'alt'}" data-ls37="club" data-v="${c.id}">${E.clubs.includes(c.id)?'Joined':'Join'}</button></div>`).join('')}</div>`;
+ o+=`<div class="card"><h4>Opportunities</h4>
+ ${sc.type==='cc'||RANK[E.level]>3?'':`<div class="row"><span>🏛️ Greek life<br><small class="sub">${fm(1500*cm())}/yr · +network, +party</small></span><button class="btn sm ${E.greek?'ok':'alt'}" data-ls37="tog" data-k="greek">${E.greek?'Member':'Rush'}</button></div>`}
+ ${sc.type==='cc'?'':`<div class="row"><span>🏅 Varsity athlete<br><small class="sub">Tryout needs health ≥ 65 · scholarship chance</small></span><button class="btn sm ${E.ath?'ok':'alt'}" data-ls37="tog" data-k="ath">${E.ath?'Trying out':'Tryout'}</button></div>
+ <div class="row"><span>🔬 Research assistant<br><small class="sub">Needs rapport ≥ 20 & GPA ≥ 3.0 · strong for grad school</small></span><button class="btn sm ${E.research?'ok':'alt'}" data-ls37="tog" data-k="research">${E.research?'In lab':'Apply'}</button></div>
+ <div class="row"><span>🌍 Study abroad<br><small class="sub">${fm(14000*cm())} · one semester</small></span><button class="btn sm ${E.abroad?'ok':'alt'}" data-ls37="tog" data-k="abroad" ${x.studiedAbroad?'disabled':''}>${x.studiedAbroad?'Done':E.abroad?'Planned':'Plan'}</button></div>`}
+ <div class="row"><span>💼 Summer internship<br><small class="sub">Chance rises with GPA & network</small></span><button class="btn sm ${E.intern?'ok':'alt'}" data-ls37="tog" data-k="intern">${E.intern?'Applying':'Apply'}</button></div>
+ <div class="row"><span>☀️ Summer classes<br><small class="sub">${fm(1200*cm())} · +6 credits</small></span><button class="btn sm ${E.summer?'ok':'alt'}" data-ls37="tog" data-k="summer">${E.summer?'Planned':'Plan'}</button></div></div>`;
+ o+=`<div class="card"><h4>Relationships on campus</h4><div class="row"><span>Professor rapport</span><b>${Math.round(x.rap)}%</b></div>${bar(x.rap)}<div class="row"><span>Network</span><b>${Math.round(x.net)}%</b></div>${bar(x.net,'#06b6d4')}
+ <div class="row"><span>Internships completed</span><b>${x.exp}</b></div><div class="row"><span>Research years</span><b>${x.research}</b></div></div>`;
+ return o;
+}
+function vMoney(x){
+ const E=x.E,b=E?billFor(x,E):null;let o='';
+ o+=`<div class="card hero"><div class="sub">FINANCES</div><div class="row"><span>Cash + bank</span><b>${fm(funds())}</b></div><div class="row"><span>Student debt</span><b style="color:#fb7185">${fm(debt(x))}</b></div><div class="row"><span>Family income</span><b>${FAMN[x.fam]}</b></div></div>`;
+ if(E)o+=`<div class="card"><h4>This year's bill</h4><div class="row"><span>Tuition (sticker)</span><b>${fm(b.tu)}</b></div>${b.merit?`<div class="row"><span>Merit scholarship</span><b class="up" style="color:#34d399">-${fm(b.merit)}</b></div>`:''}${b.need?`<div class="row"><span>Need-based grant</span><b style="color:#34d399">-${fm(b.need)}</b></div>`:''}${b.ath?`<div class="row"><span>Athletic scholarship</span><b style="color:#34d399">-${fm(b.ath)}</b></div>`:''}
+ <div class="row"><span>Fees & books</span><b>${fm(b.fees+b.books)}</b></div><div class="row"><span>Housing & transport</span><b>${fm(b.house)}</b></div>${b.greek+b.club+b.summer+b.abroad?`<div class="row"><span>Extras</span><b>${fm(b.greek+b.club+b.summer+b.abroad)}</b></div>`:''}
+ <div class="row"><span>Total</span><b>${fm(b.total)}</b></div>${RANK[E.level]<=3&&game.age<24&&PAR[x.fam]?`<div class="sub">Parents typically cover about ${Math.round(PAR[x.fam]*100)}% while you're under 24.</div>`:''}</div>`;
+ if(!E||RANK[E.level]<=3)o+=`<div class="card"><h4>Financial aid (FAFSA)</h4><div class="sub">${x.fafsa&&game.age-x.fafsa.age<=1?`Filed this year · grant covers ${Math.round(x.fafsa.pct*100)}% of tuition.`:'File every year to unlock need-based grants. Free to file.'}</div>
+ <button class="btn" data-ls37="fafsa" ${x.fafsa&&game.age-x.fafsa.age<=1?'disabled':''}>File FAFSA</button></div>`;
+ o+=`<div class="card"><h4>How you pay</h4><div class="seg"><button class="${x.payPref==='cash'?'on':''}" data-ls37="paypref" data-v="cash">Cash first</button><button class="${x.payPref==='loan'?'on':''}" data-ls37="paypref" data-v="loan">Loans first</button></div></div>`;
+ if(x.loans.length){
+  o+=`<div class="card"><h4>Student loans</h4>${x.loans.map((l,i)=>`<div class="row" style="align-items:flex-start"><span>${esc(l.type)}<br><small class="sub">${(l.rate*100).toFixed(1)}% APR${!E?` · ~${fm(l.pay||Math.round(l.bal*l.rate/(1-Math.pow(1+l.rate,-10))))}/yr`:' · in school'}</small></span><span style="text-align:right"><b>${fm(l.bal)}</b><br><button class="btn sm alt" style="margin-top:4px" data-ls37="prepay" data-i="${i}" data-v="1000">Pay ${fm(1000)}</button> <button class="btn sm ok" style="margin-top:4px" data-ls37="prepay" data-i="${i}" data-v="all">Pay off</button></span></div>`).join('')}
+  <div class="sub" style="margin-top:6px">Repayment starts one year after you leave school (10-year plan). Missing payments hurts happiness and reputation.</div></div>`;
+ }
+ return o;
+}
+function vGrades(x){
+ const E=x.E;let o='';
+ const rows=[];if(E)E.terms.forEach(t=>rows.push({s:SC[E.sid].name,l:DEG[E.level].n,...t}));
+ o+=`<div class="card"><h4>${E?'Current program transcript':'Transcript'}</h4>${E&&E.terms.length?`<table><tr><th>Yr</th><th>Age</th><th>GPA</th><th>Credits</th><th>Standing</th></tr>${E.terms.map(t=>`<tr><td>${t.yr}</td><td>${t.age}</td><td>${t.gpa.toFixed(2)}</td><td>${t.cr}</td><td>${esc(t.standing)}</td></tr>`).join('')}</table><div class="row" style="margin-top:6px"><span>Cumulative GPA</span><b>${cumGpa(x).toFixed(2)}</b></div>`:'<div class="empty">No college grades yet.</div>'}</div>`;
+ if(E&&E.terms.length){const t=E.terms[E.terms.length-1];o+=`<div class="card"><h4>Latest courses (year ${t.yr})</h4><table>${t.courses.map(c=>`<tr><td>${esc(c.n)}</td><td style="text-align:right"><b>${letter(c.p)}</b></td></tr>`).join('')}</table></div>`}
+ if(x.degs.length)o+=`<div class="card"><h4>Degrees</h4>${x.degs.map(d=>`<div class="row" style="align-items:flex-start"><span>${esc(DEG[d.level].n)}<br><small class="sub">${esc(MAJ[d.major].n)} · ${esc(SC[d.sid].name)} · age ${d.age}</small></span><b>${d.gpa.toFixed(2)}${d.honors?'<br><small class="sub">'+esc(d.honors)+'</small>':''}</b></div>`).join('')}</div>`;
+ if(x.hs.gpas.length)o+=`<div class="card"><h4>High school record</h4><div class="row"><span>GPA</span><b>${hsGpa(x).toFixed(2)}</b></div><div class="row"><span>SAT</span><b>${x.hs.sat||'—'}</b></div><div class="row"><span>AP courses</span><b>${x.hs.ap}</b></div></div>`;
+ return o;
+}
+function genOffers(x){
+ if(x.offers&&x.offAge===game.age)return x.offers;
+ const ds=x.degs.filter(d=>MAJ[d.major]);const out=[];
+ ds.forEach(d=>{const m=MAJ[d.major];const lv=RANK[d.level];
+  m.jobs.forEach(j=>{
+   let sal=m.pay*(d.level==='bach'?1:d.level==='assoc'?.85:d.level==='cert'?.75:d.level==='master'?1.2:d.level==='mba'?1.35:d.level==='phd'?1.4:1)*(1+d.pres/40)*(1+Math.max(0,d.gpa-3)*.08)*(1+x.exp*.04)*wageMult();
+   if(d.level==='jd'||d.level==='md')sal=m.pay*wageMult()*(1+d.pres/50);
+   out.push({title:j,sal:Math.round(sal/500)*500,from:DEG[d.level].n,p:clamp(.35+d.gpa*.1+x.exp*.06+x.net*.003+d.pres*.015,.2,.95)});
+  });
+ });
+ out.sort(()=>Math.random()-.5);x.offers=out.slice(0,5);x.offAge=game.age;return x.offers;
+}
+function vCareer(x){
+ if(!x.degs.length)return`<div class="card"><div class="empty">Earn a certificate or degree to unlock graduate job offers.<br>Your current job: ${game.job?esc(game.job.title)+' · '+fm(game.job.salary)+'/yr':'none'}.</div></div>`;
+ const of=genOffers(x);
+ return`<div class="card hero"><div class="sub">CAREER CENTER</div><div class="row"><span>Current job</span><b>${game.job?esc(game.job.title)+' · '+fm(game.job.salary):'None'}</b></div><div class="row"><span>Internships</span><b>${x.exp}</b></div><div class="row"><span>Network</span><b>${Math.round(x.net)}%</b></div></div>
+ ${of.map((o,i)=>`<div class="card"><div style="display:flex;justify-content:space-between;gap:8px"><div><b>${esc(o.title)}</b><div class="sub">Requires your ${esc(o.from)}</div></div><div style="text-align:right"><b>${fm(o.sal)}</b><div class="sub">/ year</div></div></div><button class="btn" data-ls37="job" data-i="${i}">Apply (${Math.round(o.p*100)}% chance)</button></div>`).join('')}`;
+}
+
+/* ============================== actions ============================== */
+const ACT={
+ tab:d=>{UI.tab=d.v;open37()},
+ path:d=>{UI.path=d.v;open37('apply')},
+ set:d=>{const E=X().E;if(!E)return;const k=d.k;if(k==='pt')E.pt=d.v==='1';else E[k]=+d.v;open37()},
+ hs:d=>{const h=X().hs;if(d.k==='apOn')h.apOn=d.v==='1';else h[d.k]=+d.v;open37('hs')},
+ hsclub:d=>{const h=X().hs,i=h.clubs.indexOf(d.v);if(i>=0)h.clubs.splice(i,1);else if(h.clubs.length<4)h.clubs.push(d.v);else toast37('Four activities is the maximum.');open37('hs')},
+ sat:d=>takeSAT(d.v),
+ apply:d=>{const sel=document.getElementById('ls37m_'+d.s);apply(d.s,UI.path,sel&&sel.value)},
+ accept:d=>vAccept(+d.v),
+ enroll:d=>enrollConfirm(+d.i,d.h),
+ club:d=>{const E=X().E;if(!E)return;const i=E.clubs.indexOf(d.v),max=SC[E.sid].type==='cc'?2:3;if(i>=0)E.clubs.splice(i,1);else if(E.clubs.length<max){E.clubs.push(d.v);if(!X().clubsDone.includes(d.v))X().clubsDone.push(d.v)}else toast37(`You can only join ${max} at a time.`);open37('campus')},
+ tog:d=>{const x=X(),E=x.E;if(!E)return;const k=d.k;
+  if(k==='research'&&!E.research&&(x.rap<20||cumGpa(x)<3)&&!(E.terms.length===0&&x.rap>=20)){toast37('You need 20% professor rapport and a 3.0 GPA.');return}
+  if(k==='ath'&&!E.ath&&E.athDone){toast37('You already tried out.');return}
+  E[k]=!E[k];open37('campus')},
+ fafsa:()=>{const x=X(),b=funds();const base=x.fam==='low'?.55:x.fam==='mid'?.2:0;const wealthPen=b>150000?1:b>50000?.5:1;x.fafsa={age:game.age,pct:Math.round(base*(b>150000?0:wealthPen)*20)/20};say('money',x.fafsa.pct?`Filed the FAFSA and qualified for a need-based grant covering ${Math.round(x.fafsa.pct*100)}% of tuition.`:'Filed the FAFSA but your family does not qualify for need-based grants.');open37('money')},
+ paypref:d=>{X().payPref=d.v;open37('money')},
+ prepay:d=>{const x=X(),l=x.loans[+d.i];if(!l)return;const amt=d.v==='all'?l.bal:Math.min(+d.v,l.bal);if(!pay(amt)){toast37('Not enough money.');return}l.bal-=amt;l.pay=0;if(l.bal<1)x.loans.splice(+d.i,1);say('money',`Paid ${fm(amt)} toward student loans.`);open37('money')},
+ major:()=>{const x=X(),E=x.E;if(!E)return;const lv=E.level,list=MJ.filter(m=>m.w!=='-'&&((lv==='cert'||lv==='assoc')?m.w.includes('c'):m.w.includes('u')));
+  if(RANK[lv]>=4&&lv!=='phd'&&lv!=='master'){toast37('Your program has a fixed curriculum.');return}
+  openModal(`<h3>🎓 Education</h3><div class="ls37"><div class="card"><h4>Change major</h4><div class="sub">You may lose about 10% of your credits.</div><select id="ls37newmajor">${list.map(m=>`<option value="${m.id}" ${m.id===E.major?'selected':''}>${esc(m.n)}</option>`).join('')}</select><button class="btn" data-ls37="major2">Confirm</button><button class="btn alt" data-ls37="tab" data-v="home">Cancel</button></div></div>`)},
+ major2:()=>{const x=X(),E=x.E,v=document.getElementById('ls37newmajor').value;if(!E||v===E.major){open37('home');return}const loss=Math.round(E.cr*.1);E.cr-=loss;E.major=v;say('school',`Changed your major to ${MAJ[v].n} and lost ${loss} credits.`);open37('home')},
+ withdraw:()=>{const x=X();if(!x.E)return;openModal(`<h3>🎓 Education</h3><div class="ls37"><div class="card"><h4>Withdraw from ${esc(SC[x.E.sid].name)}?</h4><div class="sub">You will keep ${x.E.cr} credits (they can transfer later) and still owe ${fm(debt(x))} in student loans.</div><button class="btn bad" data-ls37="withdraw2">Yes, drop out</button><button class="btn alt" data-ls37="tab" data-v="home">Stay enrolled</button></div></div>`)},
+ withdraw2:()=>{const x=X();if(!x.E)return;forceWithdraw(x,'You decided to leave school.');open37('home')},
+ job:d=>{const x=X(),o=x.offers&&x.offers[+d.i];if(!o)return;
+  if(Math.random()<o.p){game.job={title:o.title,salary:o.sal};say('career',`Hired as ${o.title}, earning ${fm(o.sal)} per year.`,1);st('happiness',8);toast37(`Hired as ${o.title}!`)}
+  else{say('career',`Your application for ${o.title} was unsuccessful.`);toast37('Not selected this time.')}
+  x.offers=null;try{updateUI()}catch(e){}open37('career')}
+};
+document.addEventListener('click',ev=>{
+ const b=ev.target.closest&&ev.target.closest('[data-ls37]');if(!b)return;
+ const fn=ACT[b.dataset.ls37];if(!fn)return;
+ ev.preventDefault();ev.stopPropagation();
+ try{fn(b.dataset,b)}catch(e){console.error('[Patch 37]',e)}
+},true);
+
+/* ============================== More menu entry ============================== */
+function summaryLine(){const x=X();if(!x)return'School and qualifications';if(x.E)return`${SC[x.E.sid].name} · Year ${x.E.yr}`;if(x.degs.length)return 'Degrees, applications, loans & careers';return game.age<16?'High school, SAT and college prep':'Community college, university & more'}
+function injectEdu(){
+ const root=document.querySelector('#modalContent .p32-body')||document.getElementById('modalContent');
+ if(!root||document.getElementById('ls37EduEntry'))return;
+ const txt=root.textContent||'';if(!/Career|Job|Business|More|Everything else/i.test(txt))return;
+ if(root.querySelector('.ls37'))return;
+ const b=document.createElement('button');b.id='ls37EduEntry';b.type='button';
+ b.innerHTML=`<span class="i">🎓</span><span class="c"><b>Education</b><small>${esc(summaryLine())}</small></span><span class="a">›</span>`;
+ b.onclick=()=>open37(game.age<16?'hs':'home');
+ const target=root.querySelector('.p29-content')||root;
+ const close=[...target.querySelectorAll('button')].find(z=>/^\s*close\s*$/i.test(z.textContent||''));
+ close?target.insertBefore(b,close):target.prepend(b);
+}
+const _more=window.renderMoreTab;
+if(typeof _more==='function')window.renderMoreTab=renderMoreTab=function(){const r=_more.apply(this,arguments);try{injectEdu()}catch(e){}return r};
+new MutationObserver(()=>{const m=document.getElementById('gameModal');if(m&&!m.classList.contains('hidden'))try{injectEdu()}catch(e){}}).observe(document.body,{childList:true,subtree:true});
+/* Re-route any old Education tile (Patch 32 titles) */
+document.addEventListener('click',ev=>{
+ const b=ev.target.closest&&ev.target.closest('#modalContent button');if(!b||b.id==='ls37EduEntry')return;
+ const t=(b.querySelector('b,strong,.p33-copy b')||b).textContent.replace(/[^a-z ]/gi,'').trim().toLowerCase();
+ if(t==='education'||t==='school'){ev.preventDefault();ev.stopImmediatePropagation();open37(game.age<16?'hs':'home')}
+},true);
+
+/* ============================== age-up + new life hooks ============================== */
+const _age=window.ageOneYear;
+if(typeof _age==='function')window.ageOneYear=ageOneYear=function(){
+ const a=game.age,alive=game.alive,r=_age.apply(this,arguments);
+ try{if(alive&&game.alive&&game.age>a)eduYear()}catch(e){console.error('[Patch 37]',e)}
+ return r;
+};
+const _sn=window.startNewLife;
+if(typeof _sn==='function')window.startNewLife=startNewLife=function(){game.edu37=null;popQ=[];return _sn.apply(this,arguments)};
+const _bh=window.beginHeir;
+if(typeof _bh==='function')window.beginHeir=function(){const r=_bh.apply(this,arguments);game.edu37=null;return r};
+
+/* ============================== LIFE VLOG 2.0 ============================== */
+const VUI={filter:'all',lim:10,open:{}};
+const KIND=[['school',/school|class|college|universit|teacher|exam|grade|degree|gpa|professor|campus|graduat|scholarship|tuition|sat\b|enrolled|dean/i,'🎓'],
+ ['money',/\$|paid|earned|salary|invest|stock|bank|loan|rent|bought|sold|profit|crypto|coin|cash|debt|lottery|casino|bet/i,'💰'],
+ ['love',/girlfriend|boyfriend|partner|dating|date |married|marri|kiss|crush|relationship|breakup|spouse|baby|child|friend|family|born|met |dad|mom|father|mother/i,'❤️'],
+ ['career',/job|promot|fired|hired|boss|career|company|business|startup|creator|youtube|tiktok|twitch|intern|salary/i,'💼'],
+ ['health',/sick|ill\b|doctor|hospital|injur|surgery|health|disease|gym|therapy|counsel/i,'🩺']];
+function kindOf(t){for(const k of KIND)if(k[1].test(t))return k[0];return'life'}
+function iconOf(k,t){const f=KIND.find(z=>z[0]===k);return f?f[2]:/travel|vacation|trip/i.test(t)?'✈️':'✨'}
+function liveSnap(){return{nw:safe(()=>getTotalNetWorth(),0),cash:game.money||0,h:game.happiness,k:game.health,s:game.smarts,l:game.looks,r:Math.round(game.reputation||0),f:game.fame||0,fr:(game.friends||[]).length}}
+function safe(f,d){try{return f()}catch(e){return d}}
+const rawFor=a=>(game.logs||[]).filter(x=>x.startsWith(`Age ${a}:`)).map(x=>x.replace(/^Age \d+: ?/,'').trim()).filter(Boolean);
+const dot=s=>/[.!?]$/.test(s)?s:s+'.';
+function tile(l,v,fmtf){if(v==null||isNaN(v))return`<div class="tl"><small>${l}</small><b class="fl">—</b></div>`;const r=Math.round(v);const c=r>0?'up':r<0?'dn':'fl';return`<div class="tl"><small>${l}</small><b class="${c}">${r>0?'▲ ':r<0?'▼ ':''}${fmtf?fmtf(r):Math.abs(r)}</b></div>`}
+function mood(d,age){if(!d)return age===0?'👶':'🙂';const s=(d.h||0)+(d.k||0)*.5;return s>=12?'🤩':s>=5?'😄':s>=-4?'🙂':s>=-12?'😟':'😭'}
+function headline(age,e,d,notes,logs){
+ const t=notes.map(n=>n.t).join(' ');const all=t+' '+logs.join(' ');
+ if(/Graduated from/.test(all))return'🎓 Graduation day';
+ if(/Enrolled at/.test(all))return'🏫 A new chapter: college';
+ if(/Accepted to|Rejected by|Waitlisted/.test(all))return'📬 College decisions arrived';
+ if(/Hired as|Got a job|got a job/.test(all))return'💼 You started a new job';
+ if(/married|got married/i.test(all))return'💍 You tied the knot';
+ if(/born|baby|child/i.test(all)&&age>16)return'👶 Family expansion';
+ if(/Year \d+ at/.test(all))return'🏫 Year at university';
+ if(age===0)return'👶 You were born';
+ if(age<5)return'🧸 Growing up';if(age<13)return'🎒 School days';if(age<18)return'📚 High school years';
+ if(d&&d.nw>=50000)return'📈 A big money year';if(d&&d.nw<=-50000)return'📉 A costly year';
+ if(d&&d.h>=10)return'☀️ A wonderful year';if(d&&d.h<=-10)return'🌧️ A rough year';
+ if(game.job&&age===game.age)return`💼 Working as ${game.job.title}`;
+ return age>=65?'🌅 A reflective year':'🧭 Another year of life';
+}
+function story(age,e,d,notes,x){
+ const p=[];
+ if(age===0)p.push(`You were born in ${esc(game.country)}${game.background?' into a '+esc(String(game.background).toLowerCase())+' household':''}.`);
+ else if(age<5)p.push('You spent the year growing, babbling and exploring everything within reach.');
+ else if(age<13)p.push('School, friends and playground drama filled your year.');
+ else if(age<18){p.push('High school kept you busy with classes, friends and growing pains.');if(x&&x.hs.gpas.length&&notes.some(n=>/high school/i.test(n.t)))p.push(`Your GPA stood at ${hsGpa(x).toFixed(2)}.`)}
+ else if(x&&x.E&&x.E.terms.some(t=>t.age===age))p.push(`You were a student at ${esc(SC[x.E.sid].name)}.`);
+ else if(game.company&&age===game.age)p.push(`You spent the year running ${esc(game.company.name)}.`);
+ else if(game.job&&age===game.age)p.push(`You kept working as a ${esc(game.job.title)}.`);
+ else p.push('You spent the year finding your footing in adult life.');
+ if(d){if(d.h>=8)p.push('It was a joyful year.');else if(d.h<=-8)p.push('Emotionally, it was a rough year.');
+  if(d.k<=-5)p.push('Your health took a hit.');else if(d.k>=5)p.push('You felt healthier than before.');
+  if(d.s>=4)p.push('You learned a lot.');if(d.fr>0)p.push(`You made ${d.fr} new friend${d.fr>1?'s':''}.`);
+  if(d.nw>=5000)p.push(`Your net worth grew by ${fm(d.nw)}.`);else if(d.nw<=-5000)p.push(`Your net worth fell by ${fm(-d.nw)}.`)}
+ if(e&&e.ch&&e.ch.length)p.push(`You made ${e.ch.length} decision${e.ch.length>1?'s':''} that shaped the year.`);
+ return p.join(' ');
+}
+function delta(a,e){
+ if(!e||!e.base)return null;const A=a===game.age?liveSnap():(e.end||liveSnap()),B=e.base;
+ return{h:A.h-B.h,k:A.k-B.k,s:A.s-B.s,l:A.l-B.l,r:A.r-B.r,fr:A.fr-B.fr,nw:A.nw-B.nw,cash:A.cash-B.cash};
+}
+function yearCard(a,x){
+ const e=(game.vlog||{})[a]||null,cur=a===game.age,d=delta(a,e);
+ const notes=(x&&x.notes[a])||[],logs=rawFor(a),nset=new Set(notes.map(n=>n.t));
+ const schoolNotes=notes.filter(n=>n.k!=='choice');
+ const chL=new Set(((e&&e.ch)||[]).flatMap(c=>c.l||[]));
+ const choices=[...((e&&e.ch)||[]).map(c=>({t:c.t,d:c.d,p:c.p,o:c.o||'',l:c.l||[]})),
+  ...notes.filter(n=>n.k==='choice').filter(n=>!((e&&e.ch)||[]).some(c=>(c.l||[]).some(z=>n.t.includes(z)))).map(n=>{const m=/^(.*?): you chose "(.*?)"\. (.*)$/.exec(n.t);return m?{t:m[1],d:'',p:m[2],o:'',l:[m[3]]}:null}).filter(Boolean)];
+ const around=((e&&e.ar)||[]);
+ const AR=/passed away|got a big promotion|hit financial trouble|got married| moved to |locally famous|rough patch|found out about|^Met |confided|shared a business tip/;
+ const arL=logs.filter(z=>AR.test(z)&&!nset.has(z));
+ const did=logs.filter(z=>!nset.has(z)&&!AR.test(z)&&!chL.has(z)&&!/You chose "/.test(z)).slice(0,14);
+ const f=VUI.filter;
+ const items=[];
+ around.forEach(t=>items.push({s:'ar',k:kindOf(t),t:t.replace(/^[^\w$]+/,'')}));arL.forEach(t=>items.push({s:'ar',k:kindOf(t),t}));
+ schoolNotes.forEach(n=>items.push({s:'you',k:n.k==='career'?'career':n.k==='money'?'money':'school',t:n.t}));
+ did.forEach(t=>items.push({s:'you',k:kindOf(t),t}));
+ const show=items.filter(z=>f==='all'||f==='choices'?f==='all':z.k===f);
+ const showCh=f==='all'||f==='choices';
+ if(f!=='all'&&!show.length&&!(showCh&&choices.length))return'';
+ const hl=headline(a,e,d,schoolNotes,logs),m=mood(d,a);
+ const chips=d?[['😊','h'],['❤️','k'],['🧠','s'],['✨','l']].filter(z=>Math.round(d[z[1]])).map(z=>`<span class="chip ${d[z[1]]>0?'up':'dn'}">${z[0]} ${d[z[1]]>0?'+':'−'}${Math.abs(Math.round(d[z[1]]))}</span>`).join(''):'';
+ const open=VUI.open[a]!==undefined?VUI.open[a]:cur;
+ const fin=x&&x.fin[a];
+ let b=`<div class="story">${story(a,e,d,schoolNotes,x)}</div>`;
+ if(d)b+=`<div class="tiles">${tile('Happiness',d.h)}${tile('Health',d.k)}${tile('Smarts',d.s)}${tile('Looks',d.l)}${tile('Cash',d.cash,sg)}${tile('Net worth',d.nw,sg)}</div>`;
+ if(fin&&fin.bill)b+=`<div class="sec">School finances</div><div class="ev"><div class="ei">🎓</div><div>Bill ${fm(fin.bill)} · aid ${fm(fin.aid)}${fin.parents?' · parents '+fm(fin.parents):''}${fin.borrowed?' · loans '+fm(fin.borrowed):''}${fin.income?' · earned '+fm(fin.income):''}</div></div>`;
+ const secs={ar:'Around you',you:'What happened to you'};
+ ['ar','you'].forEach(s=>{const arr=show.filter(z=>z.s===s);if(arr.length)b+=`<div class="sec">${secs[s]}</div>`+arr.map(z=>`<div class="ev"><div class="ei">${iconOf(z.k,z.t)}</div><div>${esc(dot(z.t))}</div></div>`).join('')});
+ if(showCh&&choices.length)b+=`<div class="sec">Your choices &amp; outcomes</div>`+choices.map(c=>`<div class="ch"><div class="q">${esc(c.t)}${c.d?`<span>${esc(c.d)}</span>`:''}</div><div class="p">➡️ ${esc(c.p)}</div><div class="o">${c.o||''}${(c.l||[]).map(l=>`<div>• ${esc(dot(l))}</div>`).join('')}</div></div>`).join('');
+ if(!items.length&&!choices.length)b+=`<div class="none">Nothing notable was recorded this year.</div>`;
+ return`<details data-a="${a}" ${open?'open':''}><summary><div class="ab"><small>AGE</small><span>${a===0?'NEW':a}</span></div><div class="sm"><b>${esc(hl)}</b><small>${items.length+choices.length} moment${items.length+choices.length===1?'':'s'}${cur?' · this year':''}</small><div>${chips}</div></div><div class="mood">${m}</div></summary><div class="vb">${b}</div></details>`;
+}
+function vlogHtml(){
+ const x=X();if(!x||!game.alive)return'';
+ const ages=new Set(Object.keys(game.vlog||{}).map(Number));ages.add(game.age);
+ (game.logs||[]).forEach(l=>{const m=/^Age (\d+):/.exec(l);if(m)ages.add(+m[1])});
+ const list=[...ages].sort((a,b)=>b-a);
+ const shown=list.slice(0,VUI.lim);
+ const nw=safe(()=>getTotalNetWorth(),0);
+ const F=[['all','All'],['choices','Choices'],['school','School'],['money','Money'],['love','Love'],['career','Career'],['health','Health'],['life','Life']];
+ let h=`<div class="vh"><div><b>🎬 Life Vlog</b><small>${esc(game.firstName||'')} ${esc(game.lastName||'')} · ${list.length} year${list.length===1?'':'s'} recorded</small></div></div>
+ <div class="vstrip"><div class="vs"><small>Age</small><b>${game.age}</b></div><div class="vs"><small>Net worth</small><b>${fm(nw)}</b></div><div class="vs"><small>Education</small><b>${x.E?'Studying':x.degs.length?DEG[x.degs.reduce((m,d)=>RANK[d.level]>=RANK[m.level]?d:m).level].n.split(' ')[0]:stage(game.age).split(' ')[0]}</b></div></div>
+ <div class="vf">${F.map(f=>`<button class="${VUI.filter===f[0]?'on':''}" data-v37="f" data-v="${f[0]}">${f[1]}</button>`).join('')}</div>`;
+ const cards=shown.map(a=>yearCard(a,x)).join('');
+ h+=cards||'<div class="none">Nothing matches this filter yet.</div>';
+ if(list.length>VUI.lim)h+=`<button class="more" data-v37="more">Show ${Math.min(10,list.length-VUI.lim)} older years</button>`;
+ return h;
+}
+let lastVlog='';
+function syncVlog(){
+ const c=document.getElementById('lifeLogContainer');if(!c)return;
+ const old=c.parentElement;if(!old)return;
+ const dash=document.getElementById('gameplayDashboard');if(!dash||dash.classList.contains('hidden'))return;
+ if(!game.alive||!game.firstName)return;
+ let card=document.getElementById('ls37VlogCard');
+ if(!card){card=document.createElement('div');card.id='ls37VlogCard';card.className='bg-slate-800/60 border border-slate-700 rounded-2xl p-4';card.style.cssText='border-radius:20px;padding:14px';old.before(card)}
+ else if(card.nextElementSibling!==old&&old.parentElement===card.parentElement){old.before(card)}
+ old.classList.add('ls37-old');
+ let html='';try{html=vlogHtml()}catch(e){console.error('[Patch 37 vlog]',e);html='<div class="none">Life Vlog could not be rendered.</div>'}
+ if(html!==lastVlog||!card.firstChild){
+  const keep=card.querySelector('.vf')?card.querySelector('.vf').scrollLeft:0;
+  card.innerHTML=html;lastVlog=html;
+  const vf=card.querySelector('.vf');if(vf)vf.scrollLeft=keep;
+ }
+}
+document.addEventListener('click',ev=>{
+ const b=ev.target.closest&&ev.target.closest('[data-v37]');
+ if(b){ev.preventDefault();if(b.dataset.v37==='f')VUI.filter=b.dataset.v;else if(b.dataset.v37==='more')VUI.lim+=10;lastVlog='';syncVlog();return}
+ const s=ev.target.closest&&ev.target.closest('#ls37VlogCard summary');
+ if(s){const d=s.parentElement;setTimeout(()=>{VUI.open[d.dataset.a]=d.open},0)}
+},true);
+const _ui=window.updateUI||updateUI;
+window.updateUI=updateUI=function(){const r=_ui.apply(this,arguments);try{syncVlog()}catch(e){console.error(e)}return r};
+/* Let every older renderer (Patches 15-24 observers) keep writing into the hidden old card, but never into ours */
+window.__ls37Render=()=>{lastVlog='';syncVlog()};
+window.renderLogs=window.__v19Render=window.p18RenderLifeVlog=function(){try{syncVlog()}catch(e){}};
+setInterval(()=>{try{syncVlog()}catch(e){}},1200);
+addEventListener('load',()=>{setTimeout(syncVlog,150);setTimeout(syncVlog,800)});
+
+window.P37={marker:MARK,open:open37,state:X,flush,debug:{eduYear,apply,SC,MAJ,DEG}};
+window.openEducation=()=>open37(game&&game.age<16?'hs':'home');
+console.log('[Patch 37] University + Community College + Life Vlog 2.0 active.');
+})();
+</script>
+<!-- ===== END LIFE SIM PATCH 37 ===== -->
+
+<!-- ===== MERGED PATCH END ===== -->
+
 </body>
 
 <!-- ===== LIFE SIM PATCH 18: FINAL LIFE VLOG VISIBILITY + RENDERER LOCK ===== -->
