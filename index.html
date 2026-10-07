@@ -6194,339 +6194,7 @@ console.log(`[Patch 28] Fame Life Status active with ${EVENTS.length} celebrity 
 
 
 
-<!-- ===== MERGED PATCH START ===== -->
-<!-- LIFE SIM PATCH 29: PREMIUM GAME MORE MENU OVERHAUL -->
-<style>
-/* =========================================================
-   DESTINY PATCH 29 — PREMIUM MOBILE-GAME MORE MENU
-   Presentation only. Existing actions are preserved.
-========================================================= */
-#modalContent.p29-more{
-  padding:0!important;
-  overflow:hidden!important;
-  background:#0d1118!important;
-  color:#f8fafc!important;
-}
-html[data-theme="light"] #modalContent.p29-more{
-  background:#f3f4f7!important;
-  color:#16181d!important;
-}
-.p29-more-shell{
-  min-height:100%;
-  max-height:min(82vh,760px);
-  overflow-y:auto;
-  overscroll-behavior:contain;
-  padding:0 0 22px;
-  scrollbar-width:none;
-}
-.p29-more-shell::-webkit-scrollbar{display:none}
-.p29-hero{
-  position:relative;
-  overflow:hidden;
-  padding:20px 17px 16px;
-  background:
-    radial-gradient(circle at 90% -15%,rgba(255,255,255,.20),transparent 35%),
-    linear-gradient(135deg,#7c3aed,#5b21b6 55%,#3b167e);
-  color:#fff;
-}
-.p29-hero:after{
-  content:"";
-  position:absolute;
-  width:145px;height:145px;border-radius:50%;
-  right:-65px;bottom:-90px;
-  border:24px solid rgba(255,255,255,.055);
-}
-.p29-topline{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.p29-title{font-size:1.34rem;font-weight:950;letter-spacing:-.03em;line-height:1}
-.p29-sub{font-size:.67rem;opacity:.72;margin-top:5px;font-weight:650}
-.p29-close{
-  width:35px;height:35px;border:0!important;border-radius:50%!important;
-  display:grid!important;place-items:center!important;
-  background:rgba(255,255,255,.14)!important;color:#fff!important;
-  font-size:19px!important;padding:0!important;margin:0!important;
-}
-.p29-profile{
-  display:flex;align-items:center;gap:11px;
-  margin-top:17px;padding:11px 12px;
-  background:rgba(255,255,255,.11);
-  border:1px solid rgba(255,255,255,.13);
-  border-radius:16px;
-  backdrop-filter:blur(10px);
-}
-.p29-avatar{
-  width:45px;height:45px;min-width:45px;border-radius:50%;
-  display:grid;place-items:center;
-  background:rgba(255,255,255,.16);
-  border:2px solid rgba(255,255,255,.32);
-  font-size:1.45rem;
-}
-.p29-profile-main{min-width:0;flex:1}
-.p29-profile-name{font-size:.86rem;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.p29-profile-meta{font-size:.62rem;opacity:.72;margin-top:2px}
-.p29-mini-stats{display:flex;gap:5px}
-.p29-mini{
-  min-width:47px;padding:5px 6px;border-radius:9px;
-  background:rgba(0,0,0,.12);text-align:center
-}
-.p29-mini b{display:block;font-size:.68rem}
-.p29-mini span{display:block;font-size:.48rem;opacity:.65;margin-top:1px}
 
-.p29-content{padding:12px 12px 2px}
-.p29-section{margin:0 0 14px}
-.p29-section-title{
-  padding:0 5px 6px;
-  color:#7f8a9b;
-  font-size:.58rem;
-  font-weight:950;
-  letter-spacing:.12em;
-  text-transform:uppercase;
-}
-.p29-group{
-  overflow:hidden;
-  border:1px solid #252b35;
-  border-radius:17px;
-  background:#151a22;
-  box-shadow:0 5px 18px rgba(0,0,0,.12);
-}
-html[data-theme="light"] .p29-group{
-  background:#fff;border-color:#e4e6eb;
-  box-shadow:0 5px 18px rgba(31,41,55,.055);
-}
-.p29-row{
-  position:relative;
-  width:100%!important;
-  min-height:58px!important;
-  display:flex!important;
-  align-items:center!important;
-  gap:11px!important;
-  padding:9px 42px 9px 11px!important;
-  margin:0!important;
-  border:0!important;
-  border-radius:0!important;
-  border-bottom:1px solid #252b35!important;
-  background:transparent!important;
-  color:#f7f8fb!important;
-  text-align:left!important;
-  box-shadow:none!important;
-  font:inherit!important;
-  cursor:pointer;
-}
-.p29-row:last-child{border-bottom:0!important}
-html[data-theme="light"] .p29-row{
-  color:#16181d!important;border-bottom-color:#eceef2!important;
-}
-.p29-row:active{background:rgba(139,92,246,.10)!important}
-.p29-icon{
-  width:38px;height:38px;min-width:38px;
-  border-radius:12px;
-  display:grid;place-items:center;
-  font-size:1.12rem;
-  background:#242b38;
-}
-html[data-theme="light"] .p29-icon{background:#f0f1f5}
-.p29-copy{min-width:0;flex:1}
-.p29-label{font-size:.79rem;font-weight:900;line-height:1.15}
-.p29-desc{font-size:.59rem;color:#8993a3;margin-top:3px;line-height:1.2}
-.p29-chevron{
-  position:absolute;right:14px;top:50%;transform:translateY(-50%);
-  font-size:1.25rem;font-weight:400;color:#687386
-}
-.p29-badge{
-  display:inline-flex;align-items:center;
-  margin-left:6px;padding:2px 5px;
-  border-radius:99px;background:#7c3aed22;color:#a78bfa;
-  font-size:.47rem;font-weight:950;vertical-align:2px;
-}
-.p29-footer{
-  text-align:center;color:#657083;
-  font-size:.54rem;font-weight:700;
-  padding:3px 15px 0;
-}
-.p29-more .p29-source{display:none!important}
-
-@media(max-width:390px){
-  .p29-hero{padding:17px 13px 14px}
-  .p29-content{padding:10px 9px 2px}
-  .p29-profile{padding:9px 10px}
-  .p29-mini{min-width:42px}
-  .p29-row{min-height:55px!important}
-}
-</style>
-
-<script>
-/* LIFE SIM PATCH 29: PREMIUM GAME MORE MENU OVERHAUL */
-(function(){
-'use strict';
-if(window.__DESTINY29__)return;
-window.__DESTINY29__=1;
-
-const MARK='LIFE SIM PATCH 29: PREMIUM GAME MORE MENU OVERHAUL';
-
-const META=[
- {match:/stats/i, icon:'📊', title:'Stats', desc:'View your complete life statistics', group:'Life'},
- {match:/activities/i, icon:'🎯', title:'Activities', desc:'Things to do, play and explore', group:'Life'},
- {match:/goals|achievements/i, icon:'🏆', title:'Achievements', desc:'Goals, milestones and accomplishments', group:'Life'},
- {match:/asset management|assets/i, icon:'🏠', title:'Asset Management', desc:'Manage property, vehicles and valuables', group:'Life'},
- {match:/fame/i, icon:'⭐', title:'Fame', desc:'Celebrity status and public life', group:'Life'},
- {match:/legacy/i, icon:'🌳', title:'Legacy', desc:'Family history and generations', group:'Life'},
- {match:/lottery/i, icon:'🎟️', title:'Lottery', desc:'Try your luck with lottery draws', group:'Activities'},
- {match:/casino/i, icon:'🎰', title:'Casino', desc:'Games and sports betting for adults', group:'Activities'},
- {match:/vacation|travel/i, icon:'✈️', title:'Travel', desc:'Vacations and destinations', group:'Activities'},
- {match:/saved|save life|lives/i, icon:'💾', title:'Saved Lives', desc:'Manage your saved characters', group:'Game'},
- {match:/settings/i, icon:'⚙️', title:'Settings', desc:'Theme, audio and game preferences', group:'Game'},
- {match:/help|about/i, icon:'❔', title:'Help & About', desc:'Information about Destiny', group:'Game'},
- {match:/premium store|marketplace|store/i, icon:'💎', title:'Premium Store', desc:'Gems and premium game content', group:'Game'}
-];
-
-function cleanText(btn){
- const c=btn.cloneNode(true);
- c.querySelectorAll('span.text-xs,.text-xs,.badge').forEach(x=>x.remove());
- return (c.textContent||'').replace(/[›❯>]/g,'').replace(/\s+/g,' ').trim();
-}
-function info(btn){
- const raw=cleanText(btn);
- const m=META.find(x=>x.match.test(raw));
- if(m)return {...m};
- const noEmoji=raw.replace(/^[^\p{L}\p{N}]+/u,'').trim()||'More';
- const emoji=(raw.match(/^\s*(\p{Extended_Pictographic}(?:\uFE0F)?)/u)||[])[1]||'◆';
- return {icon:emoji,title:noEmoji,desc:'Open '+noEmoji,group:'More'};
-}
-function avatar(){
- try{
-   if(game.age<3)return'👶';
-   if(game.age<13)return'🧒';
-   if(game.age<20)return'🧑';
-   if(game.age<60)return game.gender==='Female'?'👩':'👨';
-   return game.gender==='Female'?'👵':'👴';
- }catch(e){return'🙂'}
-}
-function fameRank(){
- let f=Number(game.fame||0);
- return f>=90?'Global Icon':f>=75?'A-List':f>=60?'Major Star':f>=45?'Rising Star':f>=25?'Public Figure':'Private Citizen';
-}
-function build(){
- const modal=document.getElementById('modalContent');
- if(!modal||modal.dataset.p29Building==='1')return;
-
- /* Only touch the actual More modal. */
- const heading=[...modal.querySelectorAll('h1,h2,h3,h4')].find(h=>/^\s*(☰\s*)?more\s*$/i.test(h.textContent||''));
- const likely=heading || [...modal.querySelectorAll('button')].some(b=>/stats|activities|achievements/i.test(b.textContent||''));
- if(!likely)return;
-
- const buttons=[...modal.querySelectorAll('button')].filter(b=>{
-   const t=(b.textContent||'').trim();
-   if(!t)return false;
-   if(/^(close|back)$/i.test(t))return false;
-   if(b.classList.contains('p29-close'))return false;
-   return !!(b.getAttribute('onclick')||b.onclick);
- });
-
- if(!buttons.length)return;
- modal.dataset.p29Building='1';
-
- /* Preserve the live button nodes, including all existing onclick handlers. */
- const items=buttons.map(btn=>({btn,meta:info(btn)}));
-
- const closeExisting=[...modal.querySelectorAll('button')].find(b=>/^\s*(close|×|✕)\s*$/i.test(b.textContent||''));
- const groups=['Life','Activities','Game','More'];
-
- const shell=document.createElement('div');
- shell.className='p29-more-shell';
-
- let name='Current Life', age='—', country='', gems=0, fame=0;
- try{
-   name=((game.firstName||'')+' '+(game.lastName||'')).trim()||'Current Life';
-   age=game.age??'—';country=game.country||'';gems=game.gems||0;fame=game.fame||0;
- }catch(e){}
-
- const hero=document.createElement('div');
- hero.className='p29-hero';
- hero.innerHTML=`
-   <div class="p29-topline">
-     <div><div class="p29-title">More</div><div class="p29-sub">Your life, activities and game options</div></div>
-     <button class="p29-close" type="button" aria-label="Close">×</button>
-   </div>
-   <div class="p29-profile">
-     <div class="p29-avatar">${avatar()}</div>
-     <div class="p29-profile-main">
-       <div class="p29-profile-name">${escapeHtml(name)}</div>
-       <div class="p29-profile-meta">Age ${age}${country?' · '+escapeHtml(country):''} · ${fameRank()}</div>
-     </div>
-     <div class="p29-mini-stats">
-       <div class="p29-mini"><b>${fame}%</b><span>FAME</span></div>
-       <div class="p29-mini"><b>💎 ${Number(gems).toLocaleString()}</b><span>GEMS</span></div>
-     </div>
-   </div>`;
- hero.querySelector('.p29-close').onclick=()=>{
-   if(closeExisting)closeExisting.click();
-   else if(typeof closeModal==='function')closeModal();
- };
- shell.appendChild(hero);
-
- const content=document.createElement('div');
- content.className='p29-content';
-
- groups.forEach(group=>{
-   const set=items.filter(x=>x.meta.group===group);
-   if(!set.length)return;
-   const sec=document.createElement('section');
-   sec.className='p29-section';
-   sec.innerHTML=`<div class="p29-section-title">${group}</div>`;
-   const box=document.createElement('div');
-   box.className='p29-group';
-
-   set.forEach(({btn,meta})=>{
-     /* Strip old web-app visual classes but keep the same DOM node/action. */
-     btn.className='p29-row';
-     btn.removeAttribute('style');
-     const badge=/casino|lottery/i.test(meta.title)?'<span class="p29-badge">18+</span>':'';
-     btn.innerHTML=`<span class="p29-icon">${meta.icon}</span><span class="p29-copy"><span class="p29-label">${escapeHtml(meta.title)}${badge}</span><span class="p29-desc">${escapeHtml(meta.desc)}</span></span><span class="p29-chevron">›</span>`;
-     box.appendChild(btn);
-   });
-   sec.appendChild(box);
-   content.appendChild(sec);
- });
-
- const footer=document.createElement('div');
- footer.className='p29-footer';
- footer.textContent='DESTINY · LIVE YOUR STORY';
- content.appendChild(footer);
- shell.appendChild(content);
-
- modal.innerHTML='';
- modal.appendChild(shell);
- modal.classList.add('p29-more');
- modal.dataset.p29Building='0';
-}
-function escapeHtml(v){
- return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
-/* Run after every older renderMoreTab wrapper has finished injecting its items. */
-const previous=window.renderMoreTab;
-if(typeof previous==='function'){
- window.renderMoreTab=function(){
-   const r=previous.apply(this,arguments);
-   setTimeout(build,0);
-   return r;
- };
-}
-
-/* Extra safety for late patch injections. */
-const obs=new MutationObserver(()=>{
- const m=document.getElementById('modalContent');
- if(m&&!m.classList.contains('p29-more')){
-   const h=[...m.querySelectorAll('h1,h2,h3,h4')].find(x=>/^\s*(☰\s*)?more\s*$/i.test(x.textContent||''));
-   if(h)setTimeout(build,0);
- }
-});
-obs.observe(document.body,{childList:true,subtree:true});
-
-window.P29={refresh:build,marker:MARK};
-console.log('[Patch 29] Premium game-style More menu active.');
-})();
-</script>
-<!-- ===== MERGED PATCH END ===== -->
 
 
 
@@ -7173,6 +6841,10 @@ function unwrapLegacy(root){
 function build(){
  const m=modal(),root=content();if(!m||!root)return;
  if(m.classList.contains('hidden'))return;
+ if(root.querySelector('[data-destiny-more-v1="1"]') || root.querySelector('.dm1')){
+   m.classList.remove('p32-modal','p32-opening');
+   return;
+ }
  /* Already ours and no external patch replaced the shell. */
  if(root.querySelector(':scope > .p32-shell')){m.classList.remove('p32-opening');return}
  unwrapLegacy(root);
@@ -7240,246 +6912,11 @@ console.log('[Patch 32] Stable universal menu shell active.');
 
 
 
-<!-- ===== MERGED PATCH START ===== -->
-<!-- LIFE SIM PATCH 33: RESTORE FAME MENU ACCESS -->
-<style>
-#p33FameEntry{
- width:100%!important;min-height:58px!important;margin:8px 0!important;padding:9px 12px!important;
- display:flex!important;align-items:center!important;gap:11px!important;text-align:left!important;
- border:1px solid var(--p32-border,#283140)!important;border-radius:15px!important;
- background:linear-gradient(135deg,rgba(124,58,237,.18),rgba(236,72,153,.10))!important;
- color:var(--p32-text,#f7f8fb)!important;box-shadow:none!important
-}
-#p33FameEntry .p33-icon{width:39px;height:39px;min-width:39px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,#7c3aed,#db2777);font-size:1.15rem}
-#p33FameEntry .p33-copy{min-width:0;flex:1}#p33FameEntry b{display:block;font-size:.79rem}#p33FameEntry small{display:block;font-size:.57rem;opacity:.68;margin-top:2px}
-#p33FameEntry .p33-arrow{font-size:1.25rem;opacity:.55}
-</style>
-<script>
-/* LIFE SIM PATCH 33: RESTORE FAME MENU ACCESS */
-(function(){
-'use strict';if(window.__DESTINY33__)return;window.__DESTINY33__=1;
-const MARK='LIFE SIM PATCH 33: RESTORE FAME MENU ACCESS';
-
-function openFame(){
- /* Patch 27 kept the actual fameCareer function private, but its Career
-    injection button still owns the correct closure callback. Reuse it. */
- let old=document.getElementById('p27FameBtn');
- if(old&&typeof old.onclick==='function'){old.onclick();return}
- /* Render Career once so Patch 27 can recreate its Fame button. */
- try{renderCareerTab()}catch(e){}
- setTimeout(()=>{
-   let b=document.getElementById('p27FameBtn');
-   if(b){b.click();return}
-   /* Fame status/events remain available even if the old career opener is missing. */
-   if(window.P28?.status){
-     let z=P28.status();
-     openModal(`<h3>⭐ Fame</h3>
-       <div class="bg-slate-900 p-4 rounded-xl border border-slate-700">
-        <div class="font-black text-lg">${z.rank||'Not Famous'}</div>
-        <div class="text-sm text-slate-400 mt-1">Fame ${z.f||0}% · Fans ${(z.fans||0).toLocaleString()} · Public Interest ${z.interest||0}%</div>
-        <div class="text-xs text-slate-400 mt-2">${z.source||'Public Figure'} · Media heat ${z.heat||0}% · Security attention ${z.risk||0}%</div>
-       </div>
-       <button onclick="P28.randomEvent()" class="w-full py-3 bg-purple-600 rounded-xl font-bold mt-3">⭐ Celebrity Interaction</button>
-       <button onclick="renderCareerTab()" class="w-full py-3 bg-slate-700 rounded-xl font-bold mt-2">Fame & Entertainment Careers</button>`);
-   }else showToast('Fame system is unavailable. Make sure Patch 27 and Patch 28 are merged.','⚠️');
- },0);
-}
-function makeEntry(){
- let b=document.createElement('button');b.id='p33FameEntry';b.type='button';
- let fame=Math.max(0,Math.min(100,game?.fame||0));
- let rank='Not Famous';try{rank=window.P28?.status?.().rank||rank}catch(e){}
- b.innerHTML=`<span class="p33-icon">⭐</span><span class="p33-copy"><b>Fame & Celebrity Life</b><small>${rank} · ${fame}% fame · careers, fans, media & celebrity events</small></span><span class="p33-arrow">›</span>`;
- b.onclick=openFame;return b;
-}
-function inject(){
- let root=document.querySelector('#modalContent .p32-body')||document.getElementById('modalContent');
- if(!root||document.getElementById('p33FameEntry'))return;
- let txt=(root.textContent||'');
- /* Career and More are both permanent access points. */
- if(!/Career|Job|Business|More|Everything else/i.test(txt))return;
- let b=makeEntry();
- let target=root.querySelector('.p29-content')||root;
- let close=[...target.querySelectorAll('button')].find(x=>/^\s*close\s*$/i.test(x.textContent||''));
- close?target.insertBefore(b,close):target.prepend(b);
-}
-const oldCareer=renderCareerTab;
-renderCareerTab=function(){let r=oldCareer.apply(this,arguments);inject();return r};
-const oldMore=window.renderMoreTab||renderMoreTab;
-window.renderMoreTab=renderMoreTab=function(){let r=oldMore.apply(this,arguments);inject();return r};
-new MutationObserver(()=>{let m=document.getElementById('gameModal');if(m&&!m.classList.contains('hidden'))inject()}).observe(document.body,{childList:true,subtree:true});
-window.P33={openFame,refresh:inject,marker:MARK};
-console.log('[Patch 33] Fame menu access restored.');
-})();
-</script>
-<!-- ===== MERGED PATCH END ===== -->
 
 
 
-<!-- ===== MERGED PATCH START ===== -->
-<!-- LIFE SIM PATCH 34: MORE MENU TITLE DESCRIPTION STACK FIX -->
-<style>
-/* LIFE SIM PATCH 34: MORE MENU TITLE DESCRIPTION STACK FIX */
 
-/* Patch 29 More rows */
-#modalContent .p29-row{
-  display:flex!important;
-  flex-direction:row!important;
-  align-items:center!important;
-  gap:11px!important;
-}
-#modalContent .p29-row .p29-icon{
-  flex:0 0 38px!important;
-}
-#modalContent .p29-row .p29-copy{
-  flex:1 1 auto!important;
-  min-width:0!important;
-  display:flex!important;
-  flex-direction:column!important;
-  align-items:flex-start!important;
-  justify-content:center!important;
-  gap:3px!important;
-  text-align:left!important;
-  line-height:1.2!important;
-}
-#modalContent .p29-row .p29-label{
-  display:block!important;
-  width:100%!important;
-  margin:0!important;
-  padding:0!important;
-  font-size:.79rem!important;
-  font-weight:900!important;
-  line-height:1.15!important;
-  white-space:normal!important;
-  color:var(--p32-text,var(--p30-text,#f7f8fb))!important;
-}
-#modalContent .p29-row .p29-desc{
-  display:block!important;
-  width:100%!important;
-  margin:0!important;
-  padding:0!important;
-  font-size:.57rem!important;
-  font-weight:600!important;
-  line-height:1.3!important;
-  white-space:normal!important;
-  color:var(--p32-muted,var(--p30-muted,#8993a3))!important;
-}
-#modalContent .p29-row .p29-chevron{
-  flex:0 0 auto!important;
-  margin-left:auto!important;
-}
 
-/* Patch 30 generated rows */
-#modalContent .p30-menu-row{
-  display:flex!important;
-  flex-direction:row!important;
-  align-items:center!important;
-}
-#modalContent .p30-menu-row .p30-auto-copy{
-  flex:1 1 auto!important;
-  min-width:0!important;
-  display:flex!important;
-  flex-direction:column!important;
-  align-items:flex-start!important;
-  justify-content:center!important;
-  gap:3px!important;
-  text-align:left!important;
-}
-#modalContent .p30-menu-row .p30-auto-copy > b,
-#modalContent .p30-menu-row .p30-auto-copy > small{
-  display:block!important;
-  width:100%!important;
-  margin:0!important;
-  padding:0!important;
-  white-space:normal!important;
-}
-
-/* Patch 33 Fame row uses the exact same vertical text layout */
-#modalContent #p33FameEntry .p33-copy{
-  flex:1 1 auto!important;
-  min-width:0!important;
-  display:flex!important;
-  flex-direction:column!important;
-  align-items:flex-start!important;
-  justify-content:center!important;
-  gap:3px!important;
-  text-align:left!important;
-}
-#modalContent #p33FameEntry .p33-copy > b,
-#modalContent #p33FameEntry .p33-copy > small{
-  display:block!important;
-  width:100%!important;
-  margin:0!important;
-  padding:0!important;
-  white-space:normal!important;
-}
-
-/* Generic protection for menu rows whose description is a P element. */
-#modalContent .p29-row .p29-copy p,
-#modalContent .p30-menu-row .p30-auto-copy p,
-#modalContent #p33FameEntry .p33-copy p{
-  display:block!important;
-  width:100%!important;
-  flex-basis:100%!important;
-  margin:3px 0 0!important;
-  padding:0!important;
-  font-size:.57rem!important;
-  line-height:1.3!important;
-  color:var(--p32-muted,var(--p30-muted,#8993a3))!important;
-}
-</style>
-
-<script>
-/* LIFE SIM PATCH 34: MORE MENU TITLE DESCRIPTION STACK FIX */
-(function(){
-'use strict';
-if(window.__DESTINY34__) return;
-window.__DESTINY34__=1;
-
-function fixMoreRows(){
-  const root=document.querySelector('#modalContent .p32-body')||
-             document.querySelector('#modalContent .p29-content')||
-             document.getElementById('modalContent');
-  if(!root) return;
-
-  root.querySelectorAll('.p29-copy,.p30-auto-copy,.p33-copy').forEach(copy=>{
-    copy.style.setProperty('display','flex','important');
-    copy.style.setProperty('flex-direction','column','important');
-    copy.style.setProperty('align-items','flex-start','important');
-    copy.style.setProperty('justify-content','center','important');
-    copy.style.setProperty('gap','3px','important');
-    copy.style.setProperty('text-align','left','important');
-
-    [...copy.children].forEach(child=>{
-      child.style.setProperty('display','block','important');
-      child.style.setProperty('width','100%','important');
-      child.style.setProperty('margin-left','0','important');
-      child.style.setProperty('margin-right','0','important');
-    });
-  });
-}
-
-/* Fix immediately and after legacy menu injectors add rows. */
-fixMoreRows();
-const obs=new MutationObserver(fixMoreRows);
-obs.observe(document.body,{childList:true,subtree:true});
-
-const oldMore=window.renderMoreTab;
-if(typeof oldMore==='function'){
-  window.renderMoreTab=function(){
-    const r=oldMore.apply(this,arguments);
-    fixMoreRows();
-    requestAnimationFrame(fixMoreRows);
-    return r;
-  };
-}
-
-window.P34={
-  refresh:fixMoreRows,
-  marker:'LIFE SIM PATCH 34: MORE MENU TITLE DESCRIPTION STACK FIX'
-};
-})();
-</script>
-<!-- ===== MERGED PATCH END ===== -->
 
 
 
@@ -10134,6 +9571,1907 @@ window.P41={marker:MARK};
 </body></html>
 <!-- ===== MERGED PATCH END ===== -->
 
+
+
+<!-- ===== MERGED PATCH START ===== -->
+<!DOCTYPE html><html><body>
+<!-- ===== LIFE SIM PATCH 42: MAJOR STABILITY + RELATIONSHIPS + AGE REWIND + VLOG REPAIR =====
+Merge after Patch 41.
+=============================================================== -->
+<style id="p42-css">
+html,body{overscroll-behavior:none}
+body.p42-playing{height:100dvh!important;max-height:100dvh!important;overflow:hidden!important}
+body.p42-playing #mainContainer{height:calc(100dvh - var(--p40-hdr,64px))!important;min-height:0!important;overflow:hidden!important}
+body.p42-playing #gameplayDashboard:not(.hidden){height:calc(100dvh - var(--p40-hdr,64px) - var(--p40-dock,100px) - 10px)!important;min-height:0!important;overflow:hidden!important}
+body.p42-playing #p40Feed{overflow-y:auto!important;min-height:0!important;overscroll-behavior:contain!important}
+#p40Feed .p40-line{font-size:13px!important;line-height:1.34!important;padding:4px 12px!important}
+#p40Feed .p40-age{font-size:12px!important;padding:6px 12px!important}
+#p40Feed .p40-choice{margin:4px 9px 7px!important;padding:7px 9px!important}
+#p40Feed .p40-ct{font-size:13px!important}#p40Feed .p40-cd,#p40Feed .p40-cl{font-size:11.5px!important;line-height:1.3!important}
+#p40Feed .p40-cp,#p40Feed .p40-co{font-size:12px!important}
+#gameModal,#gameModal *{pointer-events:auto}
+#gameModal{touch-action:manipulation}
+#modalContent button{position:relative;z-index:2;touch-action:manipulation}
+#gameModal.p42-more{padding:0!important;align-items:stretch!important}
+#gameModal.p42-more #modalContent{width:100%!important;max-width:640px!important;height:100dvh!important;max-height:100dvh!important;margin:0 auto!important;border-radius:0!important;overflow-y:auto!important}
+.p42-rel{display:grid;gap:9px}.p42-card{background:var(--d-s2,#171923);border:1px solid var(--d-line,#30323d);border-radius:15px;padding:11px}
+.p42-person{display:grid;grid-template-columns:44px 1fr auto;gap:9px;align-items:center}.p42-face{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:rgba(124,58,237,.14);font-size:25px}
+.p42-name{font-weight:900;font-size:13px}.p42-meta{font-size:10px;opacity:.7;margin-top:2px}.p42-meter{height:5px;background:rgba(148,163,184,.2);border-radius:9px;overflow:hidden;margin-top:5px}.p42-meter i{display:block;height:100%;background:#8b5cf6}
+.p42-actions{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:8px}.p42-actions button,.p42-btn{min-height:39px;border-radius:11px;padding:8px;background:var(--d-s3,#272936);font-size:11px;font-weight:800}
+.p42-primary{background:#7c3aed!important;color:#fff}.p42-green{background:#059669!important;color:#fff}.p42-red{background:#be123c!important;color:#fff}
+.p42-section{font-size:10px;font-weight:950;letter-spacing:.1em;text-transform:uppercase;opacity:.65;margin:5px 2px 0}
+.p42-event button{width:100%;margin-top:8px;padding:12px;border-radius:12px;background:var(--d-s2,#20222c);font-weight:800;text-align:left}
+</style>
+<script>
+/* LIFE SIM PATCH 42: MAJOR STABILITY + RELATIONSHIPS + AGE REWIND + VLOG REPAIR */
+(function(){
+'use strict';if(window.__DESTINY42__)return;window.__DESTINY42__=1;
+const MARK='LIFE SIM PATCH 42: MAJOR STABILITY + RELATIONSHIPS + AGE REWIND + VLOG REPAIR';
+const cl=n=>Math.max(0,Math.min(100,Number(n)||0)), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fm=n=>'$'+Math.round(Number(n)||0).toLocaleString();
+const log=s=>{game.logs=game.logs||[];game.logs.push(`Age ${game.age}: ${s}`);try{P40.refresh()}catch(e){}};
+const save=()=>{try{if(typeof saveGame==='function')saveGame();else if(typeof save==='function')save()}catch(e){}};
+const ui=()=>{try{updateUI()}catch(e){}};
+const toast=(s,i)=>{try{showToast(s,i)}catch(e){}};
+const flag={Nigeria:'🇳🇬','United States':'🇺🇸','United Kingdom':'🇬🇧',Canada:'🇨🇦',Japan:'🇯🇵',Germany:'🇩🇪',Australia:'🇦🇺',Brazil:'🇧🇷',France:'🇫🇷',India:'🇮🇳','South Africa':'🇿🇦',Ghana:'🇬🇭',Kenya:'🇰🇪'}; 
+const NP={
+ Nigeria:{m:['Chinedu','Tobi','Emeka','Kelechi','David','Ifeanyi','Daniel','Ayomide'],f:['Ada','Amara','Chioma','Zainab','Ngozi','Temilade','Grace','Ifeoma'],l:['Okafor','Adeyemi','Odozi','Eze','Balogun','Okeke','Adebayo','Nwosu']},
+ 'United States':{m:['Liam','Noah','James','Ethan','Daniel','Michael','Mason'],f:['Olivia','Emma','Sophia','Mia','Ava','Chloe','Grace'],l:['Smith','Johnson','Brown','Davis','Miller','Wilson']},
+ 'United Kingdom':{m:['Oliver','George','Harry','Jack','Noah','Arthur'],f:['Olivia','Amelia','Isla','Emily','Sophie','Grace'],l:['Smith','Jones','Taylor','Brown','Wilson','Davies']},
+ Canada:{m:['Liam','Noah','Lucas','Ethan','Benjamin'],f:['Olivia','Emma','Charlotte','Amelia','Sophie'],l:['Smith','Brown','Tremblay','Martin','Wilson']},
+ Japan:{m:['Haruto','Ren','Yuto','Sota','Kaito'],f:['Yui','Aoi','Hina','Sakura','Rin'],l:['Sato','Suzuki','Takahashi','Tanaka','Watanabe']},
+ Germany:{m:['Leon','Paul','Finn','Jonas','Lukas'],f:['Emma','Mia','Hannah','Emilia','Lina'],l:['Müller','Schmidt','Schneider','Fischer','Weber']},
+ Australia:{m:['Oliver','Noah','Jack','Henry','William'],f:['Charlotte','Olivia','Amelia','Isla','Mia'],l:['Smith','Jones','Williams','Brown','Wilson']},
+ Brazil:{m:['Miguel','Arthur','Heitor','Davi','Gabriel'],f:['Helena','Alice','Laura','Valentina','Sophia'],l:['Silva','Santos','Oliveira','Souza','Costa']},
+ France:{m:['Gabriel','Louis','Raphaël','Jules','Arthur'],f:['Louise','Jade','Emma','Alice','Chloé'],l:['Martin','Bernard','Dubois','Thomas','Robert']}
+};
+function pool(){return NP[game.country]||NP['United States']} function pick(a){return a[Math.floor(Math.random()*a.length)]}
+function fullName(g){let p=pool();return pick(/^f/i.test(g||'')?p.f:p.m)+' '+pick(p.l)}
+function firstName(g){let p=pool();return pick(/^f/i.test(g||'')?p.f:p.m)}
+function face(p,type){let a=Number(p?.age??game.age),g=String(p?.gender||'').toLowerCase();if(type==='parent'&&a>60)return g==='female'?'👵':'👴';if(a<3)return'👶';if(a<13)return'🧒';if(a<20)return'🧑';if(a>64)return g==='female'?'👵':'👴';return g==='female'?'👩':'👨'}
+function bond(p){return cl(p?.relationship??p?.bond??50)} function setBond(p,n){if(!p)return;p.relationship=cl(n);if('bond'in p)p.bond=cl(n)}
+function allPeople(){let a=[],seen=new Set(),add=(p,t)=>{if(!p)return;let k=(p.name||'')+'|'+t;if(seen.has(k))return;seen.add(k);a.push({p,t})};(game.family||[]).forEach(p=>add(p,/mother|father|parent/i.test(p.relation||'')?'parent':'family'));(game.friends||[]).forEach(p=>add(p,'friend'));if(game.partner)add(game.partner,'partner');(game.children||[]).forEach(p=>add(p,'child'));(game.p31?.friends||[]).forEach(p=>add(p,'friend'));return a}
+
+/* country flags */
+function flags(){
+ const sel=document.getElementById('createCountry');if(sel)[...sel.options].forEach(o=>{let raw=o.value;o.textContent=(flag[raw]||'🌐')+' '+raw});
+ const h=document.getElementById('headerAgeCountry');if(h&&game.alive)h.textContent=`Age ${game.age} • ${flag[game.country]||'🌐'} ${game.country}`;
+}
+const oldUI=window.updateUI||updateUI;window.updateUI=updateUI=function(){let r=oldUI.apply(this,arguments);document.body.classList.toggle('p42-playing',!!game.alive);flags();return r};
+
+/* strip UI/navigation noise from vlog */
+function cleanLogs(){
+ if(!Array.isArray(game.logs))return;
+ game.logs=game.logs.filter(x=>!/(\bopened\b|\bclosed\b|\bopen(ed)?\s+(the\s+)?(career|relationships?|more|activities|markets?|assets|menu|tab)\b|\bclosed\s+(the\s+)?(menu|tab)\b)/i.test(String(x)));
+}
+setInterval(cleanLogs,1200);
+
+/* Disable under-18 relationship money requests. Internal P31 EVENTS uses the same exposed array reference. */
+if(window.P31&&Array.isArray(P31.events)){for(let i=P31.events.length-1;i>=0;i--){let e=P31.events[i];if(/Money Request/i.test(e.title||''))P31.events.splice(i,1)}}
+
+/* Stable relationship-event choices + detailed vlog */
+if(window.P31&&Array.isArray(P31.events)){
+ const origChoose=P31.choose;
+ P31.choose=function(id,eid,ci){
+   const ev=P31.events.find(e=>String(e.id)===String(eid)), c=ev&&ev.choices[ci], before={money:game.money,happiness:game.happiness};
+   let person=allPeople().find(x=>String((x.p.__p31id||x.p.name||'')).includes(String(id)))?.p;
+   const b0=person?bond(person):null;
+   let r=origChoose.apply(this,arguments);
+   setTimeout(()=>{let changes=[];if(person&&b0!==bond(person))changes.push(`relationship ${b0}% → ${bond(person)}%`);if(game.money!==before.money)changes.push(`cash ${game.money>before.money?'+':''}${fm(game.money-before.money)}`);if(game.happiness!==before.happiness)changes.push(`happiness ${before.happiness}% → ${game.happiness}%`);if(ev&&c)log(`${ev.title}: ${ev.text.replace('{name}',person?.name||'Someone')} You chose "${c.label}". Outcome: ${changes.join(', ')||'the relationship moment was resolved'}.`)},0);
+   return r;
+ };
+}
+
+/* AGE DOWN now restores the exact pre-age snapshot, so aging up again rerolls that year. */
+let preAge=null;
+const ageFn=window.ageOneYear||ageOneYear;
+window.ageOneYear=ageOneYear=function(){
+ if(game.alive){try{preAge=structuredClone(game)}catch(e){preAge=JSON.parse(JSON.stringify(game))}}
+ return ageFn.apply(this,arguments)
+};
+function rewind(){
+ if(!preAge||game.age<=0)return toast('No previous-year snapshot is available yet.','⚠️');
+ if((game.gems||0)<25)return toast('Age Down costs 25 Gems.','💎');
+ let unlocked=game.p27?.ageDown, gems=(game.gems||0)-25, target=preAge;
+ Object.keys(game).forEach(k=>delete game[k]);Object.assign(game,target);game.gems=gems;game.p27=game.p27||{};game.p27.ageDown=unlocked!==false;
+ preAge=null;cleanLogs();ui();save();toast(`Reverted to age ${game.age}. Age up again to generate that year again.`,'⏪')
+}
+document.addEventListener('click',e=>{let b=e.target.closest?.('#p27AgeDown');if(!b)return;e.preventDefault();e.stopImmediatePropagation();rewind()},true);
+
+/* Child naming after birth. */
+let knownKids=(game.children||[]).length;
+async function checkBirth(){
+ let kids=game.children||[];if(kids.length<=knownKids){knownKids=kids.length;return}
+ for(let i=knownKids;i<kids.length;i++){let c=kids[i],def=firstName(c.gender);try{let n=await customPrompt(`Name your ${String(c.gender||'baby').toLowerCase()}:`,def);c.name=(n&&String(n).trim())||def}catch(e){c.name=def}log(`You named your child ${c.name}.`)}
+ knownKids=kids.length;ui();save()
+}
+const ageBirth=window.ageOneYear;window.ageOneYear=ageOneYear=function(){let r=ageBirth.apply(this,arguments);setTimeout(checkBirth,300);return r};
+
+/* Rename newly generated friends/partners to country-appropriate names. */
+function localizePerson(p){if(!p||p.__p42named)return;p.__p42named=true;p.name=fullName(p.gender||((Math.random()<.5)?'Male':'Female'))}
+if(window.P31?.makeFriend){let f=P31.makeFriend;P31.makeFriend=function(){let before=(game.p31?.friends||[]).length,r=f.apply(this,arguments),arr=game.p31?.friends||[];if(arr.length>before)localizePerson(arr[arr.length-1]);return r}}
+if(window.P35?.ask){let f=P35.ask;P35.ask=function(){let old=game.partner,r=f.apply(this,arguments);if(game.partner&&game.partner!==old)localizePerson(game.partner);return r}}
+
+/* Relationships: faces, all-family time, Ask Money only here, child actions, will. */
+function personCard(x,i){
+ let p=x.p, b=bond(p), child=x.t==='child';
+ return `<div class="p42-card"><div class="p42-person"><div class="p42-face">${face(p,x.t)}</div><div><div class="p42-name">${esc(p.name||x.t)}</div><div class="p42-meta">${esc(p.relation||x.t)} · Age ${p.age??'—'} · Bond ${b}%</div><div class="p42-meter"><i style="width:${b}%"></i></div></div><b>${b}%</b></div><div class="p42-actions"><button onclick="P42.time(${i})">❤️ Spend Time</button>${child?`<button onclick="P42.childGive(${i})">🎁 ${Number(p.age||0)<13?'Give Gift':Number(p.age||0)<18?'Gift / Allowance':'Give Money'}</button>`:''}</div></div>`
+}
+function relationships(){
+ let ps=allPeople();
+ openModal(`<h3 class="text-xl font-black">❤️ Relationships</h3><div class="p42-rel"><button class="p42-btn p42-primary" onclick="P42.allTime()">👨‍👩‍👧‍👦 Spend Time With Everyone</button>${game.age>=18?`<button class="p42-btn p42-green" onclick="P39.relationshipHub()">💵 Ask for Money</button>`:''}<div class="p42-section">People in your life</div>${ps.map(personCard).join('')||'<div class="p42-card">Nobody is listed yet.</div>'}${game.partner&&window.P35?'<button class="p42-btn" onclick="P35.love?P35.love():P31.partnerActions()">💞 Romance & Family</button>':''}<button class="p42-btn" onclick="P42.will()">📜 Will & Estate</button><button class="p42-btn p42-red" onclick="closeModal()">Close</button></div>`)
+}
+window.renderRelationshipsTab=renderRelationshipsTab=relationships;
+function spendOne(i){let x=allPeople()[i];if(!x)return;setBond(x.p,bond(x.p)+4);game.happiness=cl(game.happiness+2);log(`Spent quality time with ${x.p.name}. Your bond improved to ${bond(x.p)}%.`);relationships();ui();save()}
+function allTime(){let a=allPeople();a.forEach(x=>setBond(x.p,bond(x.p)+3));game.happiness=cl(game.happiness+4);log(`Spent time with everyone close to you. ${a.length} relationships improved.`);relationships();ui();save()}
+async function childGive(i){let x=allPeople()[i];if(!x||x.t!=='child')return;let c=x.p,a=Number(c.age||0),suggest=a<6?25:a<13?50:a<18?100:250,n=Number(await customPrompt(`${a<13?'Gift budget':a<18?'Gift / allowance':'Amount to give'} for ${c.name}:`,String(suggest)));if(!n||n<1)return;if(n>game.money)return toast('You do not have enough cash.','⚠️');game.money-=n;let gain=Math.min(10,2+Math.floor(n/100));setBond(c,bond(c)+gain);log(`Gave ${c.name} ${fm(n)}${a<13?' worth of age-appropriate gifts':a<18?' as a gift/allowance':''}. Your bond improved by ${gain}.`);relationships();ui();save()}
+function willUI(){
+ game.will=game.will||{beneficiary:'Family',charityPercent:0};
+ let opts=['Family','Spouse / Partner','Children','Oldest Child','Charity'];
+ openModal(`<h3 class="text-xl font-black">📜 Will & Estate</h3><div class="p42-rel"><div class="p42-card"><div class="p42-meta">Choose who should inherit your estate and how much goes to charity.</div><label class="p42-meta">Primary beneficiary</label><select id="p42WillBen" class="w-full p-3 rounded-xl bg-slate-900">${opts.map(x=>`<option ${game.will.beneficiary===x?'selected':''}>${x}</option>`).join('')}</select><label class="p42-meta">Charity percentage</label><input id="p42WillChar" type="number" min="0" max="100" value="${Number(game.will.charityPercent||0)}" class="w-full p-3 rounded-xl bg-slate-900"></div><button class="p42-btn p42-primary" onclick="P42.saveWill()">Save Will</button><button class="p42-btn" onclick="P42.relationships()">Back</button></div>`)
+}
+function saveWill(){let b=document.getElementById('p42WillBen').value,c=cl(document.getElementById('p42WillChar').value);game.will={beneficiary:b,charityPercent:c};log(`Updated your will: ${b} is the primary beneficiary; ${c}% is designated to charity.`);save();toast('Will updated.','📜');relationships()}
+
+/* Freelance ONLY in Career. Never inject through observers/popups. */
+const careerBase=window.renderCareerTab||renderCareerTab;
+window.renderCareerTab=renderCareerTab=function(){
+ let r=careerBase.apply(this,arguments);
+ setTimeout(()=>{let m=document.getElementById('modalContent');if(!m||document.getElementById('p42Gig'))return;let b=document.createElement('button');b.id='p42Gig';b.className='w-full py-3 rounded-xl font-black mt-3';b.style.background='#d97706';b.style.color='white';b.textContent='🧰 Freelance & Odd Jobs';b.onclick=()=>P39.freelanceHub();let close=[...m.querySelectorAll('button')].find(x=>x.textContent.trim()==='Close');close?m.insertBefore(b,close):m.appendChild(b)},0);
+ return r
+};
+
+/* Full-height More and reliable close/menu clicks. */
+const moreBase=window.renderMoreTab||renderMoreTab;
+window.renderMoreTab=renderMoreTab=function(){let r=moreBase.apply(this,arguments);let gm=document.getElementById('gameModal');gm?.classList.add('p42-more');return r};
+const closeBase=window.closeModal||closeModal;
+window.closeModal=closeModal=function(){document.getElementById('gameModal')?.classList.remove('p42-more');return closeBase.apply(this,arguments)};
+
+/* Event popup detail logger for Patch38 director events. */
+let eventMeta=null;
+const om=window.openModal||openModal;
+window.openModal=openModal=function(h){
+ if(typeof h==='string'&&/RELATIONSHIP EVENT|^<h3[^>]*>⚡|>⚡ /.test(h)){let tmp=document.createElement('div');tmp.innerHTML=h;eventMeta={title:(tmp.querySelector('h3')?.textContent||'Life Event').replace(/^⚡\s*/,''),desc:tmp.querySelector('p')?.textContent||''}}
+ return om.apply(this,arguments)
+};
+document.addEventListener('click',e=>{let b=e.target.closest?.('#modalContent button');if(!b||!eventMeta)return;let t=(b.textContent||'').trim();if(!t||/close|back|cancel/i.test(t))return;let meta=eventMeta;eventMeta=null;setTimeout(()=>log(`${meta.title}: ${meta.desc} You chose "${t}". The outcome of that choice was applied to your life.`),120)},true);
+
+/* Remove any leaked old Patch39 entries outside their legitimate screens. */
+new MutationObserver(()=>{let m=document.getElementById('modalContent');if(!m)return;let txt=(m.querySelector('h3')?.textContent||'').toLowerCase();let a=document.getElementById('p39AskMoneyEntry'),g=document.getElementById('p39FreelanceEntry');if(a&&!/relationship/.test(txt))a.remove();if(g&&!/career/.test(txt))g.remove()}).observe(document.body,{childList:true,subtree:true});
+
+/* Public */
+window.P42={marker:MARK,relationships,time:spendOne,allTime,childGive,will:willUI,saveWill,rewind,fullName,flags};
+setTimeout(()=>{flags();document.body.classList.toggle('p42-playing',!!game.alive);cleanLogs()},100);
+console.log('[Patch 42] Stability, relationships, age rewind, home scroll and vlog repair active.');
+})();
+</script>
+<!-- ===== END LIFE SIM PATCH 42 ===== -->
+</body></html>
+<!-- ===== MERGED PATCH END ===== -->
+
+
+
+<!-- ===== MERGED PATCH START ===== -->
+<!-- ===== LIFE SIM PATCH 43: MENU FIXES + ACTIVITIES OVERHAUL + FAMILY TIME LOGS =====
+Merge after the last patch (paste directly before the final </body>).
+ 1. Stops the junk 'Life - You chose "x"' lines from ever entering the Life Vlog (and cleans old ones).
+ 2. More menu no longer flashes a different menu before the real one.
+ 3. Back button (‹) on every menu and sub-menu (including casino / luxury sheets).
+ 4. Freelance & Odd Jobs restored inside the Career tab.
+ 5. "Spend time with everyone" now logs what you did with each person.
+ 6. Activities rebuilt: every activity is always listed (locked ones show the age they unlock),
+    gambling, lottery, cosmetic surgery, gym, library, etc. are back, plus 50+ new detailed activities.
+=============================================================== -->
+<style id="p43-css">
+#gameModal.p43-hold #modalContent{opacity:0!important;visibility:hidden!important}
+.p43-back{width:40px;height:40px;min-width:40px;border:0;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;font-size:28px;line-height:1;display:grid;place-items:center;padding:0;margin:0 2px 0 0;cursor:pointer;touch-action:manipulation;flex:none}
+.p43-back:active{transform:scale(.92)}
+.p26-head .p43-back{background:rgba(148,163,184,.2);color:inherit}
+.p43-lock{opacity:.5}
+.p43-slots{letter-spacing:3px}
+</style>
+<script>
+(function(){
+'use strict';
+if(window.__DESTINY43__)return;window.__DESTINY43__=1;
+const MARK='LIFE SIM PATCH 43: MENU FIXES + ACTIVITIES OVERHAUL + FAMILY TIME LOGS';
+const $=s=>document.querySelector(s);
+const cl=n=>Math.max(0,Math.min(100,Number(n)||0));
+const rnd=(a,b)=>Math.floor(a+Math.random()*(b-a+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fm=n=>formatMoney(Math.round(Number(n)||0));
+const ui=()=>{try{updateUI()}catch(e){}};
+const toast=(t,i)=>{try{showToast(t,i||'✨')}catch(e){}};
+const save=()=>{try{P26.autosave(false)}catch(e){}};
+const log=t=>{try{L(t)}catch(e){(game.logs=game.logs||[]).push('Age '+game.age+': '+t)}};
+const gm=()=>document.getElementById('gameModal');
+
+/* =========================================================
+   1. JUNK LOG FILTER  (Life — You chose "×")
+========================================================= */
+const JUNK=/^Age \d+:\s*(?:[^—]{0,80}—\s*)?You chose "[^"]{0,200}"\.?\s*$/;
+function guardLogs(){
+ try{
+  if(typeof game==='undefined'||!game||!Array.isArray(game.logs))return;
+  const a=game.logs;
+  for(let i=a.length-1;i>=0;i--)if(JUNK.test(String(a[i])))a.splice(i,1);
+  if(!a.__p43){
+   const o=a.push;
+   Object.defineProperty(a,'push',{value:function(){const k=[].filter.call(arguments,x=>!JUNK.test(String(x)));return k.length?o.apply(this,k):this.length},enumerable:false,configurable:true,writable:true});
+   Object.defineProperty(a,'__p43',{value:1,enumerable:false,configurable:true});
+  }
+ }catch(e){}
+}
+setInterval(guardLogs,400);
+const _ui0=window.updateUI||updateUI;
+window.updateUI=updateUI=function(){guardLogs();return _ui0.apply(this,arguments)};
+
+/* =========================================================
+   4. FREELANCE & ODD JOBS BACK IN CAREER
+========================================================= */
+function gigBtn(){
+ const b=document.createElement('button');b.id='p43Gig';b.type='button';
+ b.className='w-full p-3.5 rounded-2xl bg-slate-900/70 border border-slate-700 flex items-center gap-3 text-left';b.style.margin='8px 0';
+ b.innerHTML='<span class="text-2xl">🧰</span><span class="flex-1"><b>Freelance &amp; Odd Jobs</b><small class="block text-slate-400 mt-0.5">Do small jobs for immediate cash.</small></span><span class="text-xl">›</span>';
+ b.addEventListener('click',()=>{try{P39.freelanceHub()}catch(e){toast('Freelance jobs unavailable','⚠️')}});
+ return b;
+}
+function mountGig(){
+ const body=document.querySelector('#modalContent .p32-body')||document.getElementById('modalContent');
+ if(!body||body.querySelector('#p43Gig'))return;
+ const t=($('#modalContent .p32-head-title')||{}).textContent||'';
+ if(!/career/i.test(t+' '+(body.textContent||'').slice(0,80)))return;
+ body.insertBefore(gigBtn(),body.firstChild);
+}
+const _career=window.renderCareerTab||renderCareerTab;
+window.renderCareerTab=renderCareerTab=function(){
+ const r=_career.apply(this,arguments);
+ try{mountGig()}catch(e){}setTimeout(()=>{try{mountGig()}catch(e){}},80);
+ return r;
+};
+
+/* =========================================================
+   5. SPEND TIME WITH PEOPLE: DETAILED LOGS
+========================================================= */
+const bond=p=>cl(p&&(p.relationship!=null?p.relationship:p.bond!=null?p.bond:50));
+const setBond=(p,n)=>{if(!p)return;p.relationship=cl(n);if('bond'in p)p.bond=cl(n)};
+function peopleList(){
+ const a=[],seen=new Set(),add=(p,t)=>{if(!p)return;const k=(p.name||'')+'|'+t;if(seen.has(k))return;seen.add(k);a.push({p,t})};
+ (game.family||[]).forEach(p=>add(p,/mother|father|parent/i.test(p.relation||'')?'parent':'family'));
+ (game.friends||[]).forEach(p=>add(p,'friend'));
+ if(game.partner)add(game.partner,'partner');
+ (game.children||[]).forEach(p=>add(p,'child'));
+ (game.p31&&game.p31.friends||[]).forEach(p=>add(p,'friend'));
+ return a;
+}
+function labelOf(p){
+ const r=String(p.relation||'');
+ if(/mother/i.test(r))return'Mom';if(/father/i.test(r))return'Dad';
+ if(/grandmother/i.test(r))return'Grandma';if(/grandfather/i.test(r))return'Grandpa';
+ return String(p.name||r||'them').split(' ')[0];
+}
+const P={
+ parentA:[['Went fishing with','You spent the morning at the lake swapping stories and caught enough for dinner.'],['Cooked a family meal with','You made it from scratch together and argued happily over the seasoning.'],['Watched a football match with','You cheered, groaned and ate far too many snacks.'],['Went for a long drive with','You talked about the old days with the windows down.'],['Went to the market with','You carried the bags and haggled for the best prices.'],['Fixed something around the house with','You handed over the tools and picked up a handy trick.'],['Played board games with','It got competitive and nobody would admit defeat.'],['Looked through old photos with','You heard stories you had never heard before.'],['Took a slow walk in the park with','It was an easy, honest conversation.']],
+ parentK:[['Went to the park with','You were pushed on the swings until you laughed out loud.'],['Baked cookies with','You licked the spoon and made a delicious mess.'],['Read a bedtime story with','You fell asleep halfway through the second page.'],['Went fishing with','You held the rod all by yourself and felt like a pro.'],['Played hide and seek with','You hid in the same spot three times and they still pretended not to know.'],['Visited the zoo with','You fed the goats and begged for ice cream.']],
+ sibA:[['Played video games with','You traded wins and trash talk until midnight.'],['Shot hoops with','You played two-on-two in the yard and argued over every foul.'],['Had a movie night with','You split a huge bowl of popcorn and quoted the best lines.'],['Went to the mall with','You tried on silly outfits and shared a pizza.'],['Raided the kitchen with','You made a midnight snack that was part sandwich, part disaster.'],['Had a long phone call with','You laughed about childhood memories for an hour.']],
+ sibK:[['Built a blanket fort with','It had two rooms and a strict no-parents policy.'],['Played tag with','You ran around the yard until you were out of breath.'],['Watched cartoons with','You argued over the remote and then watched together.'],['Drew pictures with','You made a comic about a flying dog.']],
+ friendA:[['Went to the beach with','You swam, played volleyball and watched the sunset.'],['Hung out at a cafe with','You split dessert and talked about everything.'],['Played pick-up basketball with','You sweated through three games and bought drinks after.'],['Went to a concert with','You sang every word and lost your voice.'],['Went bowling with','Someone bowled a turkey and everyone lost their minds.'],['Had a barbecue with','You grilled, laughed and stayed late.'],['Explored the city with','You found a hidden spot none of you had seen before.'],['Studied together with','You quizzed each other and finished two chapters.']],
+ friendK:[['Played tag with','You ran around the playground until the bell rang.'],['Rode bikes with','You raced to the corner and back, twice.'],['Played video games with','You teamed up and beat a tough level.'],['Traded stickers with','You swapped your rarest one for two good ones.']],
+ partner:[['Went on a romantic dinner with','You shared dessert and talked about the future.'],['Went on a picnic with','You laid a blanket in the park and watched the clouds.'],['Took a sunset walk with','You held hands and talked about nothing and everything.'],['Danced in the living room with','You put on your song and spun around the floor.'],['Took a spontaneous road trip with','You picked a direction and found a tiny town with great food.'],['Cooked dinner with','You made a mess and a meal you were proud of.'],['Had a movie night with','You fell asleep halfway through the second film.']],
+ childY:[['Played in the park with','You pushed them on the swing and chased them around the slide.'],['Read a bedtime story to','They asked for one more chapter, then one more.'],['Built a sandcastle with','It had a moat, a tower and a flag made from a stick.'],['Baked cupcakes with','The icing ended up everywhere, especially on their nose.']],
+ childT:[['Helped with homework for','You worked through a hard problem together and they finally got it.'],['Watched a movie with','You let them choose and pretended to love it.'],['Got ice cream with','They told you about school and their friends.'],['Went to a football game with','You shared nachos and shouted at the referee.']],
+ elder:[['Had tea and a long chat with','They told you stories from when they were young.'],['Cooked a traditional meal with','They taught you a recipe that was never written down.'],['Listened to old stories from','You laughed until your sides hurt.'],['Went for a gentle walk with','You went at their pace and talked the whole way.']],
+ fam:[['Had a family meal with','Everyone talked at once and nobody minded.'],['Went for a walk with','You caught up on each other\'s lives.'],['Watched a game with','You argued over the score and shared snacks.']]
+};
+function poolFor(x){
+ const p=x.p,young=game.age<13,r=String(p.relation||'');
+ if(x.t==='parent')return young?P.parentK:P.parentA;
+ if(x.t==='partner')return P.partner;
+ if(x.t==='friend')return young?P.friendK:P.friendA;
+ if(x.t==='child')return Number(p.age||0)<13?P.childY:P.childT;
+ if(/brother|sister|sibling/i.test(r))return young?P.sibK:P.sibA;
+ if(/grand/i.test(r))return P.elder;
+ return P.fam;
+}
+function spendWith(x){
+ const p=x.p,lab=labelOf(p),pr=pick(poolFor(x)),b0=bond(p);
+ setBond(p,b0+rnd(3,6));game.happiness=cl((game.happiness||0)+rnd(1,2));
+ log(`${pr[0]} ${lab}. ${pr[1]} Bond +${bond(p)-b0}% (now ${bond(p)}%).`);
+}
+function refreshRel(){try{P42.relationships()}catch(e){}ui();save()}
+if(window.P42){
+ P42.time=function(i){const x=peopleList()[i];if(!x)return;spendWith(x);toast('Spent time with '+labelOf(x.p),'❤️');refreshRel()};
+ P42.allTime=function(){const a=peopleList();if(!a.length)return toast('Nobody to spend time with.','⚠️');a.forEach(spendWith);toast(`Spent time with ${a.length} people. See your Life Vlog.`,'👨‍👩‍👧‍👦');refreshRel()};
+}
+
+/* =========================================================
+   6. ACTIVITIES OVERHAUL
+========================================================= */
+const NAMES={h:['happiness','😊'],k:['health','❤️'],s:['smarts','🧠'],l:['looks','✨'],r:['reputation','🤝'],f:['fame','⭐']};
+const CATS=['Body','Mind','Social','Wellness','Adventure','Creative','Money','Games'];
+const CI={Body:'💪',Mind:'🧠',Social:'🎉',Wellness:'🧘',Adventure:'🧭',Creative:'🎨',Money:'💰',Games:'🎰'};
+/* id|cat|icon|name|desc|minAge|maxAge|cost|effects|outcomes(~)|risk(p:effects:text) */
+const RAW=`play|Body|🛝|Playground time|Swings, slides and climbing frames.|3|11|0|k2,h4|You raced your friends down the slide until you were out of breath.~You finally crossed the monkey bars without stopping.~You played tag until the streetlights came on.|
+bike|Body|🚲|Ride your bike|Cruise around the neighborhood.|5|17|0|k3,h3|You rode to the end of the road and back with no help.~You raced a neighbor down the hill and won by a wheel.~You found a new shortcut through the park.|.06:k-4,h-1:You skidded on gravel and scraped your knee, but you got back on.
+kidsports|Body|⚽|Youth sports team|Practice and matches with teammates.|5|15|15|k4,h3,r1|Your team won 3-2 and you set up the winning goal.~You lost the match but your coach praised your effort.~You learned a new passing drill at practice.|
+swimlessons|Body|🏊|Swimming lessons|Learn to float and swim.|4|14|20|k4,h2|You learned to float on your back and kick like a frog.~You swam a full length of the pool with a float.~You jumped in from the side and came up laughing.|
+draw|Creative|🖍️|Draw and color|Crayons, markers and a big sheet of paper.|3|12|0|s2,h3|You drew your family as superheroes and stuck it on the fridge.~You colored a whole page without leaving the lines.~You invented a funny animal and gave it a name.|
+lego|Creative|🧱|Build with blocks|Towers, castles and spaceships.|3|13|0|s3,h3|You built a castle with a drawbridge almost as tall as you.~You followed the instructions for a whole spaceship set by yourself.~Your tower fell twice, but the third one stood.|
+storytime|Mind|📖|Story time|A picture book before bed.|3|9|0|s3,h2|You read about dinosaurs and remembered every name.~You asked for the same story three nights in a row.~You learned new words from a story about a rabbit.|
+sciencefair|Mind|🔬|Science fair project|A volcano, plants or a tiny robot.|7|17|10|s5,h2|Your baking-soda volcano erupted perfectly in front of the judges.~You grew beans under different lights and charted the results.~You built a tiny motor and won an honorable mention.|
+scouts|Social|⛺|Scouts and youth club|Knots, campfires and good deeds.|7|17|10|s2,h3,r2|You earned a badge for tying three different knots.~You learned to build a safe campfire with your troop leader.~Your troop cleaned a stream bank and got a thank-you from the town.|
+lemon|Money|🍋|Lemonade stand|Earn some pocket money.|6|13|5|h3,m10:35|You sold out by noon thanks to the heat.~A kind neighbor tipped you double.~You learned that sugar costs money after counting your coins.|
+schoolplay|Creative|🎭|School play|Costumes and stage lights.|6|17|0|h4,r1,s1|You played a tree and delivered your one line perfectly.~You remembered every line and got a standing ovation.~You forgot a line, improvised, and the audience laughed.|
+zoo|Adventure|🦁|Visit the zoo|Animals, ice cream and a big day out.|3|0|15|h6,s1|You fed a giraffe and giggled at its long tongue.~You watched the monkeys for an hour and copied them.~You learned that elephants really do have great memories.|
+beach|Adventure|🏖️|Beach day|Sand, sun and waves.|3|0|20|h6,k1,l1|You built a sandcastle and swam until your fingers wrinkled.~You played beach volleyball and got a nice tan.~You collected seashells and watched the sunset.|
+themepark|Adventure|🎢|Theme park|Rides, snacks and chaos.|4|0|100|h8|You rode the biggest coaster three times in a row.~You won a giant stuffed animal at a game stall.~You got soaked on the log flume and loved it.|
+cinema|Social|🎬|Go to the movies|Popcorn and a big screen.|5|0|15|h4|You watched an action movie and shared a huge popcorn.~A comedy had the whole theatre laughing.~You cried a little at a very sad ending.|
+arcade|Social|🕹️|Arcade with friends|Tokens, games and trash talk.|8|0|20|h5,s1|You beat your friend's high score by one point.~You spent every token on the claw machine and won a plush toy.~You mastered a racing game after ten tries.|
+fishing|Adventure|🎣|Go fishing|A quiet day by the water.|6|0|10|h5,k1|You caught three fish and let the smallest one go.~You sat by the lake for hours and only caught a boot, but it was peaceful.~You landed a big one and took a photo to prove it.|
+camp|Adventure|🏕️|Go camping|Stars and campfires.|8|0|60|h5,k2|You roasted marshmallows and counted shooting stars.~You pitched the tent in the rain and survived.~You woke up to a misty sunrise over the lake.|
+hike|Adventure|🥾|Hike a trail|Fresh air and big views.|10|0|0|k3,h4|You climbed to a lookout with a view over the valley.~You followed a river trail and spotted a deer.~You finished a long hike and felt proud.|.06:k-6,h-1:You slipped on loose rocks and twisted your ankle.
+roadtrip|Adventure|🚗|Road trip|Open road, loud playlist.|16|0|250|h7,s1|You drove through the countryside singing along to old songs.~You found a tiny diner with incredible food.~You took a wrong turn and discovered a gorgeous waterfall.|
+scuba|Adventure|🤿|Scuba diving|Explore the reef.|16|0|400|h8,s1|You swam beside a sea turtle and a school of bright fish.~You explored a shipwreck with your instructor.~You saw a manta ray glide right over you.|.05:k-10,h2:You surfaced too quickly and felt dizzy for days.
+skydive|Adventure|🪂|Skydiving|Jump out of a plane.|18|0|300|h10|You screamed all the way down and landed laughing.~You floated gently over the fields after the chute opened.~The view from 4,000 meters was unforgettable.|.04:k-30,h-5:A hard landing caused a serious injury.
+gym|Body|🏋️|Go to the gym|Strength and conditioning.|14|0|25|k5,l3,h1|You did a full leg day and finished with 20 minutes of cardio.~You hit a new personal best on the bench press.~You tried a new HIIT class and could barely walk afterward.|
+run|Body|🏃|Go for a run|Clear your head.|10|0|0|k4,h2|You ran 5 km around the park at sunrise.~You trained for a 10 km race and cut a minute off your time.~You ran in light rain and loved every minute.|.07:k-4:You rolled your ankle halfway through.
+yoga|Wellness|🧘|Yoga class|Stretch, breathe, reset.|12|0|15|k3,h4|You held a tricky balance pose for a full minute.~You left class feeling calm and flexible.~The instructor praised your breathing.|
+martial|Body|🥋|Martial arts class|Discipline and self-defense.|8|0|60|k3,h2,s1|You learned a new kata and sparred with a partner.~You earned a stripe on your belt.~You practiced blocks until they became automatic.|
+basketball|Body|🏀|Pick-up basketball|Games at the local court.|8|0|0|k3,h3,r1|You hit a buzzer-beater and the court erupted.~You played three games and your team won two.~You learned a new crossover from an older player.|
+dance|Body|💃|Dance class|Rhythm and style.|10|0|30|k3,h5,l1|You nailed a full routine in front of the mirror.~You learned salsa steps and laughed at every mistake.~Your instructor invited you to a showcase.|
+study|Mind|📚|Study at the library|Quiet hours, sharper mind.|8|0|0|s6|You finished a whole chapter and made flashcards.~You researched a topic that fascinated you for hours.~You solved a problem that had been stuck for days.|
+read|Mind|📘|Read a good book|Escape and learn.|6|0|10|s2,h2|You read a mystery in one sitting.~You finished a biography that changed how you think.~You lost track of time in a fantasy epic.|
+lang|Mind|🗣️|Learn a language|App, tutor and practice.|10|0|30|s3,h1|You held a short conversation in your new language.~You memorized 50 new words.~A tutor corrected your accent and you improved.|
+music|Mind|🎸|Practice an instrument|Scales and songs.|6|0|40|s2,h3|You finally played a full song without mistakes.~You practiced a tricky passage until it clicked.~You composed a short melody of your own.|
+chess|Mind|♟️|Play chess|Sharpen your strategy.|7|0|0|s4|You won a game with a clever sacrifice.~You lost but studied what went wrong.~You solved five puzzles in a row.|
+code|Mind|💻|Coding bootcamp|Intensive skill-building.|16|0|500|s6|You built a working app from scratch.~You debugged a stubborn problem at 2 a.m.~You pushed your first project to the internet.|
+course|Mind|🎓|Online course|Learn something new.|16|0|120|s4,r1|You finished a full certification module.~You aced the final quiz.~You picked up a skill that employers value.|
+meditate|Wellness|🕯️|Meditate|Ten quiet minutes, a calmer life.|10|0|0|h8|You sat in silence and felt your worries fade.~You followed a guided session and slept deeply that night.~You noticed your breathing slow for the first time in weeks.|
+therapy|Wellness|🛋️|Therapy session|Talk it through with a professional.|14|0|120|h5,k1|You unpacked a stressful month with a patient listener.~You learned a new technique for handling anxiety.~You left feeling lighter.|
+spa|Wellness|💆|Spa day|Pamper yourself.|16|0|200|h6,l3,k2|You got a massage and a facial and nearly fell asleep.~You soaked in the hot tub and sipped herbal tea.~You left glowing.|
+haircut|Wellness|💇|New haircut and style|A fresh look.|12|0|40|l3,h3|Your stylist nailed the cut and you got compliments all week.~You tried a bold new color and loved it.~You walked out feeling like a new person.|
+skincare|Wellness|🧴|Skincare routine|Glow up.|13|0|30|l3,h2|You started a simple routine and your skin looked clearer.~You tried a new mask and felt refreshed.~A dermatologist gave you great tips.|
+checkup|Wellness|🩺|Health checkup|Catch problems early.|18|0|150|k6|The doctor said your numbers look great.~You caught a small issue early and fixed it.~You got a full panel and a clean bill of health.|
+surgery|Wellness|✨|Cosmetic surgery|Choose a procedure. Recovery matters.|18|0|0||Opens the procedure list.|
+nightout|Social|🌃|Night out|Dinner, music, laughter.|18|0|80|h6|You danced all night and made new friends.~You tried a new restaurant and a live band.~You stayed out until sunrise.|.12:h2,k-3,m-100:It was fun, but the hangover and the bill hurt.
+party|Social|🎉|Host a party|Your place, your playlist.|16|0|250|h7,r2,f1|Your party was the talk of the neighborhood.~Everyone stayed late and nobody wanted to leave.~You discovered your friends could cook.|
+concert|Social|🎤|Go to a concert|Front row energy.|12|0|120|h7|You sang every word and lost your voice.~The band played your favorite song as an encore.~You pushed to the front and got a guitar pick.|
+volunteer|Social|🤲|Volunteer|Give back to your community.|12|0|0|r5,h4|You served meals at a shelter and met kind people.~You helped clean a beach and filled twenty bags.~You tutored kids at a community center.|
+bbq|Social|🍖|Cookout with friends|Grill, laugh, repeat.|14|0|40|h5,r1|You grilled for ten people and nobody went hungry.~You tried a new spicy sauce and everyone cried laughing.~The party moved to the porch and lasted until midnight.|
+sportsmatch|Social|🏟️|Watch a live game|Stadium atmosphere.|8|0|60|h6|Your team scored in the last minute and the crowd exploded.~You shared chips with the strangers beside you.~You lost, but the atmosphere was incredible.|
+paint|Creative|🎨|Paint|Colors on canvas.|6|0|20|h3,s1|You painted a landscape and framed it.~You tried abstract art and surprised yourself.~You finished a portrait of a friend.|
+write|Creative|✍️|Write a story|Put your thoughts on paper.|10|0|0|s2,h3|You wrote three pages of a story you cannot stop thinking about.~You started a journal and filled it fast.~You finished a short story and read it aloud.|
+pottery|Creative|🏺|Pottery class|Get your hands dirty.|12|0|35|h4|You shaped a bowl on the wheel after three failed tries.~You glazed a mug that you will actually use.~Your vase collapsed, but you laughed and started over.|
+cook|Creative|🍳|Cooking class|Learn new recipes.|8|0|45|s1,h3|You learned to make fresh pasta from scratch.~You mastered a rich stew everyone asked about.~You burned the first batch and nailed the second.|
+photo|Creative|📷|Photography walk|Capture the city.|10|0|30|h3,s1|You caught golden hour on the old bridge.~You photographed street life and got one stunning portrait.~You learned a new editing trick.|
+garden|Creative|🌱|Garden|Plant something and watch it grow.|10|0|15|h4,k2|You planted tomatoes and herbs.~You pruned the roses and saw the first blooms.~You built a raised bed from scrap wood.|
+gig|Money|🛵|Side gig|Deliveries, errands, small jobs.|16|0|0|h-2,m300:1200|You spent the day on deliveries and earned decent tips.~You ran errands for a busy family.~You picked up weekend shifts.|
+garage|Money|🏷️|Garage sale|Turn clutter into cash.|18|0|0|h1,m150:600|You sold old books, a bike and a stack of games.~A collector bought your vintage radio.~You cleared out the attic and made a nice profit.|
+freelance|Money|🧑‍💻|Freelance & odd jobs|Opens the odd jobs board.|12|0|0||Opens the odd jobs board.|
+casino|Games|🎰|Casino & sportsbook|Blackjack, roulette, slots, sports, horses.|18|0|0||Opens the casino.|
+lottery|Games|🎟️|Lottery|Tiny odds, huge jackpot.|18|0|0||Opens the lottery.|`;
+function parseFx(s){return(s||'').split(',').filter(Boolean).map(t=>{const m=/^([a-z])(-?\d+)(?::(\d+))?$/.exec(t.trim());return m?[m[1],+m[2],m[3]!=null?+m[3]:null]:null}).filter(Boolean)}
+function parseRisk(s){if(!s)return null;const q=s.split(':');if(q.length<3)return null;return{p:parseFloat(q[0]),fx:parseFx(q[1]),t:q.slice(2).join(':')}}
+const ACTS=RAW.trim().split('\n').map(l=>{const x=l.split('|');return{id:x[0],c:x[1],i:x[2],n:x[3],d:x[4],min:+x[5],max:+x[6]||0,cost:+x[7]||0,fx:parseFx(x[8]),out:(x[9]||'').split('~').filter(Boolean),risk:parseRisk(x[10])}});
+const SPECIAL=['casino','lottery','freelance','surgery'];
+function st(){
+ const s=game.p43=game.p43||{n:{},last:null};
+ if(s.age!==game.age){s.age=game.age;s.ap=game.age<13?4:6;s.acts={}}
+ return s;
+}
+function applyFx(fx){
+ const parts=[];let money=0;
+ fx.forEach(f=>{
+  if(f[0]==='m'){const v=f[2]!=null?rnd(f[1],f[2]):f[1];game.money=(Number(game.money)||0)+v;money+=v;return}
+  const nm=NAMES[f[0]];if(!nm)return;const b=Number(game[nm[0]])||0;game[nm[0]]=cl(Math.round(b+f[1]));const d=game[nm[0]]-b;
+  if(d)parts.push(nm[1]+(d>0?'+':'−')+Math.abs(d));
+ });
+ return{parts,money};
+}
+const chips=a=>{let o='';a.fx.forEach(f=>{if(f[0]==='m')o+=`<span class="p38-chip g">💰 ${fm(f[1])}–${fm(f[2])}</span>`;else if(NAMES[f[0]])o+=`<span class="p38-chip g">${NAMES[f[0]][1]}${f[1]>0?'+':'−'}${Math.abs(f[1])}</span>`});if(a.cost)o+=`<span class="p38-chip r">${fm(a.cost)}</span>`;return o};
+let CAT='Body';
+function actsPage(keep){
+ const s=st(),age=game.age,b0=$('#modalContent .p32-body'),sc=keep&&b0?b0.scrollTop:0;
+ const vis=a=>!a.max||age<=a.max;
+ const tabs=CATS.map(c=>{const n=ACTS.filter(a=>a.c===c&&vis(a)&&age>=a.min).length;return`<button class="${CAT===c?'on':''}" data-p43="cat" data-c="${c}">${CI[c]} ${c}${n?' · '+n:''}</button>`}).join('');
+ const list=ACTS.filter(a=>a.c===CAT&&vis(a)).sort((x,y)=>((age<x.min)-(age<y.min))||x.min-y.min);
+ const maxAp=age<13?4:6,dots='●'.repeat(Math.max(0,s.ap))+'○'.repeat(Math.max(0,maxAp-s.ap));
+ const last=s.last?`<div class="p38-note ok"><b>${esc(s.last.n)}</b><br>${esc(s.last.t)}${s.last.stats?'<br><small>'+esc(s.last.stats)+'</small>':''}</div>`:'';
+ const cards=list.map(a=>{
+  const lock=age<a.min,sp=SPECIAL.includes(a.id),n=s.acts[a.id]||0,off=lock||(!sp&&(s.ap<1||n>=2));
+  return`<div class="p38-card p38-act ${lock?'p43-lock':''}"><div class="ai">${a.i}</div><div class="am"><b>${esc(a.n)}</b><p>${esc(a.d)}</p><div>${sp?'<span class="p38-chip">No time slot</span>':chips(a)}${n?`<span class="p38-chip">${n}/2 this year</span>`:''}</div></div><button class="p38-btn sm ${off?'':'pri'}" data-p43="do" data-id="${a.id}" ${off?'disabled':''}>${lock?'🔒 Age '+a.min:'Do it'}</button></div>`;
+ }).join('')||'<div class="p38-card"><p>Nothing in this category yet.</p></div>';
+ openModal(`<h3>🎯 Activities</h3><div class="p38-hero"><small>FREE TIME</small><h2 class="p43-slots">${dots}</h2><div>Each activity uses one slot. Slots refresh when you age up. Max 2× per activity each year. Locked activities show the age they unlock.</div></div>${last}<div class="p38-tabs">${tabs}</div>${cards}`);
+ setHead('Activities','🎯',s.ap+' time slots left');
+ const b=$('#modalContent .p32-body');if(sc&&b)b.scrollTop=sc;
+}
+const SURG=[['nose','Nose reshaping',6000,12,.04],['face','Facelift',12000,20,.05],['hair','Hair transplant',7000,10,.03],['lipo','Liposuction',8000,14,.05],['teeth','Teeth veneers',5000,9,.02],['chin','Chin and jaw contouring',9000,13,.04]];
+function surgPage(){
+ const s=st();
+ openModal(`<h3>✨ Cosmetic Surgery</h3><div class="p38-note">Surgery uses a time slot (${s.ap} left). Every operation carries some risk of complications. Cash: ${fm(game.money)}.</div>${SURG.map(p=>`<div class="p38-card p38-act"><div class="ai">✨</div><div class="am"><b>${p.n||p[1]}</b><p>Looks +${p[3]} · risk ${Math.round(p[4]*100)}%</p><div><span class="p38-chip r">${fm(p[2])}</span></div></div><button class="p38-btn sm pri" data-p43="proc" data-id="${p[0]}">Book</button></div>`).join('')}`);
+ setHead('Cosmetic Surgery','✨','Choose a procedure');
+}
+const A={};
+A.cat=d=>{CAT=d.c;actsPage()};
+A.do=d=>{
+ const a=ACTS.find(x=>x.id===d.id);if(!a)return;
+ if(game.age<a.min)return toast(`Unlocks at age ${a.min}.`,'🔒');
+ if(a.id==='casino'){try{P26.casino()}catch(e){toast('Casino unavailable','⚠️')}return}
+ if(a.id==='lottery'){try{P27.lottery()}catch(e){toast('Lottery unavailable','⚠️')}return}
+ if(a.id==='freelance'){try{P39.freelanceHub()}catch(e){toast('Freelance board unavailable','⚠️')}return}
+ const s=st();
+ if(s.ap<1)return toast('No free time left this year. Age up to refresh.','⏳');
+ if(a.id==='surgery')return surgPage();
+ if((s.acts[a.id]||0)>=2)return toast('You already did this twice this year.','🔁');
+ if(a.cost&&(Number(game.money)||0)<a.cost)return toast('You need '+fm(a.cost)+'.','💸');
+ if(a.cost)game.money-=a.cost;
+ s.ap--;s.acts[a.id]=(s.acts[a.id]||0)+1;
+ let fx=a.fx,out=pick(a.out),risky=false;
+ if(a.risk&&Math.random()<a.risk.p){fx=a.risk.fx;out=a.risk.t;risky=true}
+ const r=applyFx(fx),n=s.n[a.id]=(s.n[a.id]||0)+1;
+ if(!risky&&n>=5&&Math.random()<.4)out+=' You are becoming a regular at this.';
+ const stats=[...r.parts,a.cost?'spent '+fm(a.cost):'',r.money?(r.money>0?'earned ':'lost ')+fm(Math.abs(r.money)):''].filter(Boolean).join(' · ');
+ log(`${a.n}: ${out}${stats?' ('+stats+')':''}`);
+ s.last={n:a.i+' '+a.n,t:out,stats};
+ try{playSound(a.cost||r.money?'cash':'click')}catch(e){}
+ toast(a.n+' done','🎯');ui();save();actsPage(true);
+};
+A.proc=d=>{
+ const p=SURG.find(x=>x[0]===d.id),s=st();if(!p)return;
+ if(s.ap<1)return toast('No free time left this year.','⏳');
+ if((Number(game.money)||0)<p[2])return toast('You need '+fm(p[2])+'.','💸');
+ game.money-=p[2];s.ap--;
+ let fx,out;
+ if(Math.random()<p[4]){fx=[['k',-15],['l',-5],['h',-6]];out=`Complications during the ${p[1].toLowerCase()} made recovery rough and the results disappointed you.`}
+ else{fx=[['l',p[3]],['k',-3],['h',4]];out=`The ${p[1].toLowerCase()} went smoothly. After weeks of swelling and bandages you loved the result.`}
+ const r=applyFx(fx),stats=[...r.parts,'spent '+fm(p[2])].join(' · ');
+ log(`Cosmetic surgery (${p[1]}): ${out} (${stats})`);
+ s.last={n:'✨ '+p[1],t:out,stats};toast(p[1]+' complete','✨');ui();save();actsPage();
+};
+document.addEventListener('click',e=>{
+ const b=e.target.closest&&e.target.closest('[data-p43]');if(!b)return;
+ const f=A[b.dataset.p43];if(!f)return;e.preventDefault();e.stopPropagation();
+ try{f(b.dataset)}catch(x){console.error('[Patch 43]',x)}
+},true);
+window.renderActivitiesTab=renderActivitiesTab=function(){actsPage()};
+if(window.P38)window.P38.activities=actsPage;
+
+window.P43={marker:MARK,activities:actsPage,back:goBack,acts:ACTS};
+setTimeout(guardLogs,0);
+console.log('[Patch 43] Menu fixes, back buttons, activities overhaul and family time logs active.');
+})();
+</script>
+<!-- ===== END LIFE SIM PATCH 43 ===== -->
+
+<!-- ===== MERGED PATCH END ===== -->
+
+
+
+<!-- ===== MERGED PATCH START ===== -->
+<!-- ===== MERGED PATCH START ===== -->
+<!-- ===== LIFE SIM PATCH 44: MENU STABILITY + ALERT FIX + ADVANCED RELATIONSHIPS + EVENT SOFTLOCK FIX =====
+Merge after the last patch (paste directly before the final closing body tag).
+ 1. Modal watchdog: menus can no longer be stuck as an empty overlay.
+ 2. Event softlock fix: events always have an affordable option, bank savings cover shortfalls, skip button as a safety net.
+ 3. Alerts / toasts always disappear (clock-based sweep, tap to dismiss).
+ 4. Advanced relationship hub restored (traits, respect, closeness, conflict, memories) with ~50 age-gated interactions.
+=============================================================== -->
+<style id="p44-css">
+.p36-toast{pointer-events:auto!important;cursor:pointer}
+#p44Skip{margin-top:8px}
+.p44-note{font-size:.62rem;opacity:.65;margin:6px 2px 0;line-height:1.4}
+.p44-sub{font-size:.58rem;opacity:.6;margin:8px 0 4px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.p44-cand{padding:12px;border-radius:15px;margin-bottom:8px;background:var(--d-s2,#171923);border:1px solid var(--d-line,#30323d)}
+.p44-cand b{font-size:.85rem}.p44-cand small{display:block;font-size:.62rem;opacity:.7;margin:2px 0 6px}
+</style>
+<script>
+(function(){
+'use strict';
+if(window.__DESTINY44__)return;window.__DESTINY44__=1;
+const MARK='LIFE SIM PATCH 44: MENU STABILITY + ALERT FIX + ADVANCED RELATIONSHIPS + EVENT SOFTLOCK FIX';
+const $=s=>document.querySelector(s);
+const R=Math.random,pick=a=>a[Math.floor(R()*a.length)],rnd=(a,b)=>Math.floor(a+R()*(b-a+1));
+const cl=n=>Math.max(0,Math.min(100,Number(n)||0));
+const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fm=n=>{try{return formatMoney(Math.round(Number(n)||0))}catch(e){return'$'+Math.round(n||0).toLocaleString()}};
+const toast=(t,i)=>{try{showToast(t,i||'✨')}catch(e){}};
+const ui=()=>{try{updateUI()}catch(e){}};
+const save=()=>{try{P26.autosave(false)}catch(e){}};
+const logL=t=>{(game.logs=game.logs||[]).push('Age '+game.age+': '+t)};
+const funds=()=>(+game.money||0)+(+game.bankBalance||0);
+function spendM(n){n=Math.round(n);const c=Math.min(Math.max(0,+game.money||0),n);game.money=(+game.money||0)-c;if(n>c)game.bankBalance=(+game.bankBalance||0)-(n-c)}
+
+/* =====================================================================
+   1. MODAL WATCHDOG
+===================================================================== */
+const seen={};
+function dur(k,on){if(!on){seen[k]=0;return 0}if(!seen[k])seen[k]=Date.now();return Date.now()-seen[k]}
+function watchdog(){
+ const g=$('#gameModal'),mc=$('#modalContent');if(!g||!mc)return;
+ if(g.classList.contains('hidden')){
+  ['p32-opening','p43-hold','p42-more','p38-more','p32-modal'].forEach(c=>g.classList.remove(c));
+  document.documentElement.classList.remove('p32-modal-open');document.body.classList.remove('p32-modal-open');
+  mc.style.visibility='';mc.style.opacity='';
+  Object.keys(seen).forEach(k=>seen[k]=0);
+  ['p27Pop','p35Pop','p38Pop'].forEach(id=>{const e=document.getElementById(id);if(e&&e.classList.contains('on')&&!(e.textContent||'').trim())e.classList.remove('on')});
+  return;
+ }
+ if(dur('op',g.classList.contains('p32-opening')||g.classList.contains('p43-hold'))>500)g.classList.remove('p32-opening','p43-hold');
+ const cs=getComputedStyle(mc);
+ if(dur('vis',cs.visibility==='hidden'||cs.opacity==='0')>800){g.classList.remove('p32-opening','p43-hold');mc.style.visibility='visible';mc.style.opacity='1'}
+ const empty=!mc.children.length||!(mc.textContent||'').trim();
+ if(dur('em',empty)>700){try{closeModal()}catch(e){g.classList.add('hidden')}}
+ if(dur('ns',!empty&&!mc.querySelector('.p32-shell'))>900){try{window.P32&&P32.refresh()}catch(e){}}
+ eventEscape();
+}
+setInterval(watchdog,250);
+
+/* =====================================================================
+   2. EVENT SOFTLOCK FIX
+===================================================================== */
+function fixEvents(){
+ try{EVENTS.forEach(e=>{
+  if(!Array.isArray(e.o)||!e.o.length||e.o.some(o=>!o.c||o.__p44))return;
+  const rent=e.t==='Rent hike';
+  e.o.push({__p44:1,t:rent?'Accept the increase':'Let it go for now',c:0,r:()=>{
+   game.happiness=cl((game.happiness||0)-2);
+   logL(rent?'You could not afford to fight it or move, so you accepted the rent increase.':e.t+': you let it pass.');
+  }});
+ })}catch(x){}
+}
+fixEvents();setInterval(fixEvents,4000);
+
+const _exec=window.executeEventOption;
+if(typeof _exec==='function')window.executeEventOption=function(i){
+ try{
+  const o=curEv&&curEv.o&&curEv.o[i];
+  if(o&&o.c&&(+game.money||0)<o.c&&funds()>=o.c){
+   const need=o.c-(+game.money||0);game.bankBalance-=need;game.money+=need;
+   toast('Covered the shortfall from your bank savings.','🏦');
+  }
+ }catch(e){}
+ return _exec.apply(this,arguments);
+};
+function skipEvent(title){
+ try{curEv=null}catch(e){}
+ game.happiness=cl((game.happiness||0)-2);
+ logL((title||'An event')+': you let it pass.');
+ try{closeModal()}catch(e){$('#gameModal').classList.add('hidden')}
+ ui();save();
+}
+let evT=0,evKey='';
+function eventEscape(){
+ const mc=$('#modalContent');if(!mc)return;
+ const btns=mc.querySelectorAll('button[onclick^="executeEventOption"],button[onclick*="P31.choose"],button[onclick*="P28.choose"],button[onclick^="p15EventChoice"],button[onclick^="p1Scene"],button[onclick^="sc7ResolveEvent"]');
+ if(!btns.length){evT=0;return}
+ const key=((mc.querySelector('h3')||{}).textContent||'').trim();
+ if(key!==evKey){evKey=key;evT=Date.now()}
+ if(mc.querySelector('#p44Skip'))return;
+ let stuck=false;
+ try{if(/executeEventOption/.test(btns[0].getAttribute('onclick'))&&curEv&&curEv.o.every(o=>o.c>0))stuck=true}catch(e){}
+ if(!stuck&&Date.now()-evT<9000)return;
+ const b=document.createElement('button');b.id='p44Skip';b.type='button';
+ b.className='w-full py-3 bg-slate-600 rounded-xl font-semibold text-left px-4';b.textContent='⏭️ Skip for now';
+ b.onclick=()=>skipEvent(key.replace(/^[^\w]+/,''));
+ btns[btns.length-1].parentNode.appendChild(b);
+}
+if(window.P27&&P27.popCancel){const o=P27.popCancel;P27.popCancel=function(){const a=$('#p27Pop .p27-actions');if(a)a.style.display='flex';return o.apply(this,arguments)}}
+
+/* =====================================================================
+   3. ALERT SWEEP
+===================================================================== */
+setInterval(()=>{
+ const now=Date.now();
+ document.querySelectorAll('.p36-toast').forEach(t=>{
+  if(!t.dataset.p44){t.dataset.p44=now;return}
+  const age=now-Number(t.dataset.p44);
+  if(age>4200&&!t.classList.contains('out')){t.classList.add('out');setTimeout(()=>t.remove(),300)}
+  if(age>5400)t.remove();
+ });
+ document.querySelectorAll('#p1Float .p1fl').forEach(t=>{if(!t.dataset.p44)t.dataset.p44=now;else if(now-Number(t.dataset.p44)>3200)t.remove()});
+ document.querySelectorAll('.p1conf').forEach(t=>{if(!t.dataset.p44)t.dataset.p44=now;else if(now-Number(t.dataset.p44)>4500)t.remove()});
+},600);
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('.p36-toast');if(t)t.remove()},true);
+
+/* =====================================================================
+   4. ADVANCED RELATIONSHIPS
+===================================================================== */
+const TR=['Warm','Funny','Generous','Ambitious','Sensitive','Loyal','Independent','Stubborn','Protective','Outgoing','Quiet','Practical','Adventurous','Competitive','Patient'];
+const bond=p=>cl(p&&(p.relationship!=null?p.relationship:p.bond!=null?p.bond:50));
+const setBond=(p,n)=>{p.relationship=cl(n);if('bond'in p)p.bond=cl(n)};
+const ageOf=p=>Number.isFinite(+p.age)?+p.age:game.age;
+function S(){const s=game.p31=game.p31||{people:{},friends:[],lastAge:-1,eventHistory:[]};if(!s.people)s.people={};if(!s.friends)s.friends=[];return s}
+function typeOf(p,src){
+ const r=String(p.relation||'').toLowerCase();
+ if(src==='partner'||/spouse|partner|wife|husband|fianc|girlfriend|boyfriend/.test(r))return'L';
+ if(src==='child'||/^(son|daughter|child)$/.test(r))return'C';
+ if(/mother|father|parent|^dad$|^mom$/.test(r))return'P';
+ if(/brother|sister|sibling/.test(r))return'S';
+ if(/grand|uncle|aunt|cousin|niece|nephew|in-law/.test(r))return'E';
+ if(src==='friend'||/friend|acquaint/.test(r))return'F';
+ return'E';
+}
+const pid=p=>p._p31id||(p._p31id='p44_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6));
+function roster(){
+ const out=[],seen2=new Set();
+ const add=(p,src)=>{if(!p||typeof p!=='object'||seen2.has(p)||p.alive===false)return;seen2.add(p);out.push({p,t:typeOf(p,src),id:pid(p)})};
+ (game.family||[]).forEach(p=>add(p,'family'));add(game.partner,'partner');
+ (game.children||[]).forEach(p=>add(p,'child'));(game.friends||[]).forEach(p=>add(p,'friend'));(S().friends||[]).forEach(p=>add(p,'friend'));
+ return out;
+}
+function prof(o){
+ const s=S();let x=s.people[o.id];
+ if(!x){const base=(o.p.traits&&o.p.traits.length)?o.p.traits.slice(0,3):[pick(TR),pick(TR)].filter((v,i,a)=>a.indexOf(v)===i);
+  x=s.people[o.id]={respect:65,closeness:55,conflict:5,lastContact:game.age,interactions:0,gifts:0,memories:[],traits:base}}
+ if(!x.memories)x.memories=[];if(!x.traits||!x.traits.length)x.traits=[pick(TR)];if(!x.done)x.done={};
+ if(o.p.relationship==null)o.p.relationship=60;
+ return x;
+}
+function labelOf(p){
+ const r=String(p.relation||'');
+ if(/^mother$|^mom$/i.test(r))return'Mom';if(/^father$|^dad$/i.test(r))return'Dad';
+ if(/grandmother/i.test(r))return'Grandma';if(/grandfather/i.test(r))return'Grandpa';
+ return String(p.name||r||'them').split(' ')[0];
+}
+function face(p){
+ const a=ageOf(p),f=/^f/i.test(p.gender||'')||/mother|sister|daughter|wife|grandmother|aunt|niece|girlfriend/i.test(p.relation||'');
+ return a<3?'👶':a<13?(f?'👧':'👦'):a<20?(f?'👩':'🧑'):a<60?(f?'👩':'👨'):(f?'👵':'👴');
+}
+const tierName=b=>b>=85?'Inseparable':b>=65?'Close':b>=45?'Friendly':b>=25?'Distant':'Estranged';
+
+/* ----- interaction library -----
+ ty: P parent, S sibling, C child, L partner, F friend, E extended family
+ who: 'm' = gate on your age, 't' = gate on their age */
+const A=[];
+const a=(id,ic,lb,ty,mn,mx,o)=>A.push(Object.assign({id,ic,lb,ty,mn,mx,cost:0,b:3,r:1,c:2,x:-1,h:2,who:'m',tx:''},o||{}));
+a('hug','🤗','Ask for a hug','PSE',0,9,{b:4,c:3,tx:'{n} scooped you up for a big warm hug.~{n} squeezed you tight and kissed your forehead.'});
+a('story','📖','Ask for a story','PE',2,9,{b:4,tx:'You curled up while {n} read your favorite book twice.~{n} made up a silly story with funny voices.'});
+a('toys','🧸','Play with toys','PSFE',2,10,{b:3,h:4,tx:'You built a toy city with {n} and knocked it down laughing.~You and {n} played pretend until dinner.'});
+a('park','🛝','Go to the park','PSFE',3,12,{b:4,h:4,st:{health:1},tx:'You raced {n} to the swings and giggled until you were out of breath.~{n} pushed you on the swing higher than ever.'});
+a('hide','🙈','Play hide and seek','PSFE',4,12,{b:3,h:4,tx:'You hid behind the couch and {n} pretended not to see you.~{n} took forever to find you and you could not stop giggling.'});
+a('draw','🖍️','Draw a picture','PSE',3,12,{b:3,st:{smarts:1},tx:'You drew {n} as a superhero and it went straight on the fridge.~{n} hung your drawing on the wall like a masterpiece.'});
+a('chores','🧹','Help with chores','PSE',6,17,{b:2,r:3,h:0,tx:'You helped {n} tidy up and got a proud nod.~You did the dishes with {n} and earned a thank-you.'});
+a('homework','📚','Do homework together','PSF',6,17,{b:3,r:2,st:{smarts:2},tx:'You and {n} worked through the hard questions together.~{n} explained the tricky part until it clicked.'});
+a('report','📝','Show your report card','P',6,17,{sp:'report'});
+a('pocket','💵','Ask for pocket money','PE',5,17,{sp:'pocket'});
+a('sleepover','🛌','Have a sleepover','F',6,17,{b:4,c:4,h:4,tx:'You stayed up past midnight telling stories with {n}.~You and {n} built a pillow fort and ate too much candy.'});
+a('secret','🤫','Share a secret','SF',7,99,{b:4,r:2,c:5,tx:'You whispered something you had never told anyone to {n}.~{n} promised to keep your secret forever.'});
+a('birthday','🎂','Birthday party','F',5,17,{cost:40,b:5,h:5,tx:'{n} came to your party and stayed for cake.~You and {n} played party games until everyone went home.'});
+a('dance','💃','Go to a school dance','FL',13,18,{cost:25,b:5,c:4,h:5,tx:'You and {n} danced until the lights came on.~You and {n} laughed about the awkward slow song.'});
+a('text','📱','Text for hours','FL',12,40,{b:2,c:3,h:2,tx:'You and {n} traded memes and stories until midnight.~{n} kept replying faster than you could type.'});
+a('mall','🛍️','Hang out at the mall','FS',12,30,{cost:30,b:3,h:3,tx:'You and {n} tried on silly outfits and shared a pretzel.~{n} dragged you through every store.'});
+a('study','🧠','Study together','FS',12,30,{b:3,r:2,st:{smarts:2},tx:'You and {n} quizzed each other and finished two chapters.~{n} made flashcards and you both aced the test.'});
+a('curfew','⏰','Ask for a later curfew','P',13,17,{sp:'curfew'});
+a('argue','😠','Argue about the rules','P',12,17,{b:-5,r:-2,c:-2,x:9,h:-2,tx:'You slammed your door and {n} did not back down.~You and {n} argued until you were both red in the face.'});
+a('skip','🏃','Skip class together','F',14,17,{b:3,h:4,risk:[.35,{reputation:-4,smarts:-1,b:-1},'A teacher caught you and you got detention.'],tx:'You and {n} escaped to the park and laughed all afternoon.~You and {n} spent the free period at the arcade.'});
+a('coffee','☕','Grab coffee','FSE',16,99,{cost:8,b:3,tx:'You caught up with {n} over two overpriced coffees.~{n} told you everything going on in their life.'});
+a('dinner','🍽️','Dinner out','PSFLE',18,99,{cost:60,b:4,c:3,h:3,tx:'You and {n} tried a new restaurant and talked for hours.~{n} insisted on dessert and you shared it.'});
+a('trip','✈️','Weekend trip','PSFLE',18,99,{cost:450,b:8,c:6,h:6,tx:'You and {n} explored a new town and came back exhausted and happy.~{n} planned the whole trip and it went perfectly.'});
+a('movehelp','📦','Help them move','FSE',18,99,{b:4,r:4,st:{health:-1},tx:'You hauled boxes with {n} all day and ate pizza on the floor.~{n} promised to owe you a favor.'});
+a('call','📞','Call to check in','PSFLE',14,99,{b:2,c:2,h:1,tx:'You called {n} and talked for an hour.~{n} was thrilled you reached out.'});
+a('host','🍲','Host a dinner','PSFLE',20,99,{cost:120,b:4,c:4,h:3,tx:'You cooked for {n} and the house smelled amazing.~{n} helped in the kitchen and stayed late.'});
+a('fix','🔧','Fix something at their home','PE',20,99,{b:3,r:4,tx:'You fixed the leaky tap for {n} and got a big thank-you.~You helped {n} repaint a room and it looks great.'});
+a('lend','💸','Lend money','FSP',18,99,{cost:300,b:5,r:2,risk:[.3,{b:-3,x:4},'They never quite paid it back.'],tx:'{n} was relieved and promised to repay you.~{n} hugged you and said you saved the month.'});
+a('elder','🩺','Help with their care','PE',60,99,{who:'t',cost:150,b:6,r:4,c:4,tx:'You arranged appointments and groceries for {n}.~{n} said you were a blessing.'});
+a('companion','🏡','Keep them company','PE',60,99,{who:'t',b:4,c:5,h:3,tx:'You sat with {n} for hours and heard old stories.~You and {n} watched the old shows together.'});
+a('celebrate','🥂','Celebrate a milestone','FSEL',18,99,{cost:80,b:4,c:3,h:4,tx:'You raised a glass with {n} to a great year.~You and {n} celebrated far longer than planned.'});
+a('games','🎳','Game or bowling night','FSL',14,99,{cost:25,b:3,h:4,tx:'You and {n} played until someone won on the last frame.~{n} trash talked all night and still lost.'});
+a('workout','🏋️','Work out together','FSL',16,99,{b:3,st:{health:2},tx:'You and {n} pushed each other through a tough session.~{n} spotted you and you set a new record.'});
+a('walk','🚶','Take a long walk','PSFLE',8,99,{b:2,c:3,h:2,st:{health:1},tx:'You and {n} walked for an hour and solved everything.~You and {n} wandered down a street you had never seen.'});
+a('cook','🍳','Cook a meal together','PSLE',10,99,{cost:20,b:3,c:3,tx:'You and {n} made a mess and a delicious meal.~{n} taught you a family recipe.'});
+a('photos','📷','Look through old photos','PSE',15,99,{b:3,c:4,tx:'You and {n} laughed at old photos for an hour.~{n} told you stories behind every picture.'});
+a('adviceask','🧭','Ask for advice','PSFE',12,99,{b:2,r:3,st:{smarts:2},tx:'{n} listened and gave you advice that actually helped.~{n} shared a lesson from their own life.'});
+a('advicegive','🗣️','Give advice','FS',16,99,{b:2,r:3,tx:'{n} listened carefully and thanked you.~You helped {n} see the problem differently.'});
+a('apologize','🙏','Apologize','PSFLCE',8,99,{need:'conf',b:4,r:3,x:-14,tx:'You apologized to {n} and the air finally cleared.~{n} accepted your apology and gave you a small smile.'});
+a('datenight','🌹','Date night','L',16,99,{cost:80,b:6,c:5,h:5,tx:'You and {n} had a candlelit dinner and talked for hours.~{n} planned a perfect evening.'});
+a('weekend','🏝️','Romantic getaway','L',18,99,{cost:900,b:10,c:8,h:9,tx:'You and {n} escaped to a beach resort and forgot your phones.~You and {n} spent a magical weekend in the mountains.'});
+a('surprise','🎁','Plan a surprise','L',16,99,{cost:60,b:6,h:6,tx:'You surprised {n} and they teared up with joy.~{n} could not stop smiling all evening.'});
+a('future','💬','Talk about the future','L',18,99,{b:3,r:4,c:6,tx:'You and {n} talked about where you want to be in five years.~You and {n} shared dreams you had never said out loud.'});
+a('therapy','🛋️','Couples counseling','L',20,99,{cost:150,b:2,r:3,c:3,x:-15,tx:'You and {n} learned to listen better.~The counselor gave you both useful tools.'});
+a('family','👪','Meet their family','L',18,99,{b:5,r:3,c:4,tx:'You met the family of {n} and survived the questions.~The family of {n} welcomed you warmly.'});
+a('movein','🏠','Move in together','L',20,99,{need:'move',sp:'movein'});
+a('feed','🍼','Feed and cuddle','C',0,2,{who:'t',b:5,c:4,tx:'You fed {n} and rocked them against your chest.~{n} fell asleep in your arms.'});
+a('rock','🌙','Rock to sleep','C',0,2,{who:'t',b:5,h:1,tx:'You hummed until {n} finally drifted off.~{n} grabbed your finger and slept.'});
+a('steps','👣','Help with first steps','C',1,4,{who:'t',b:5,h:4,tx:'{n} took wobbly steps toward you and you cheered.~{n} said a new word and you celebrated.'});
+a('kidplay','🛝','Play at the park','C',3,12,{who:'t',b:5,h:4,tx:'You pushed {n} on the swings and chased them around the slide.~You and {n} built a sandcastle together.'});
+a('bedtime','📖','Read a bedtime story','C',2,9,{who:'t',b:4,c:4,tx:'{n} asked for one more chapter and then another.~{n} snuggled up and fell asleep before the ending.'});
+a('hw2','✏️','Help with homework','C',6,17,{who:'t',b:4,r:3,tx:'You worked through a hard problem with {n} and they finally got it.~{n} proudly showed you the finished page.'});
+a('event','🎒','Attend a school event','C',5,17,{who:'t',b:5,r:3,tx:'You cheered loudest in the audience for {n}.~{n} spotted you in the crowd and beamed.'});
+a('coach','🏀','Coach their team','C',6,16,{who:'t',b:5,r:3,tx:'You ran drills with {n} and the team improved.~{n} loved having you on the sideline.'});
+a('growup','💬','Talk about growing up','C',12,17,{who:'t',b:3,r:4,c:4,tx:'You and {n} had an honest talk about friends and growing up.~{n} opened up about something on their mind.'});
+a('drive','🚗','Teach them to drive','C',15,17,{who:'t',b:5,r:4,risk:[.15,{health:-1,b:-1},'A near miss in the parking lot made you both jump.'],tx:'You sat in the passenger seat while {n} learned to merge.~{n} parked perfectly on the third try.'});
+a('discipline','⚖️','Set a rule','C',3,17,{who:'t',b:-1,r:3,x:4,h:-1,tx:'You set a firm rule and {n} grumbled but understood.~{n} protested, then accepted the limit.'});
+a('allowance','💰','Give allowance','C',6,17,{who:'t',cost:40,b:4,r:1,tx:'{n} was thrilled with the allowance.~{n} promised to save some.'});
+a('outing','🍦','Family outing','C',3,17,{who:'t',cost:30,b:5,h:4,tx:'You took {n} for ice cream and a movie.~{n} chose the ride and you rode it twice.'});
+a('college','🎓','Help with college costs','C',17,24,{who:'t',cost:2000,b:7,r:4,tx:'You helped {n} with tuition and they promised to make it count.~{n} hugged you at the dorm door.'});
+a('lunch','🤝','Catch up over lunch','C',19,99,{who:'t',cost:25,b:4,c:4,tx:'You and {n} caught up over a long lunch.~{n} told you all about their life.'});
+
+const SP={
+ report:()=>{const s=game.smarts||50;if(s>=65)return{b:5,r:3,t:'{n} beamed with pride at your grades.'};if(s>=40)return{b:2,r:1,t:'{n} said good effort and told you to keep it up.'};return{b:-2,r:-1,x:3,t:'{n} frowned and told you to study harder.'}},
+ pocket:o=>{const amt=game.age<13?rnd(5,25):rnd(20,100);if(R()<.35+bond(o.p)/180)return{b:-1,r:0,gain:amt,t:'{n} handed you '+fm(amt)+' and told you to spend it wisely.'};return{b:-2,x:2,t:'{n} said no this time.'}},
+ curfew:(o,pf)=>{if(R()<.25+bond(o.p)/200+pf.respect/300)return{b:2,r:2,t:'{n} agreed to a later curfew because you have been responsible.'};return{b:-3,r:-1,x:5,t:'{n} said no and told you to be home on time.'}},
+ movein:o=>{o.p._moved=true;return{b:10,c:10,h:6,t:'You and {n} moved in together and made the place your own.'}}
+};
+const BAD=['{n} was distracted and the time together felt flat.','You two ended up bickering over something small.','{n} had a bad day and it spilled over.'];
+
+function elig(act,o,pf){
+ if(!act.ty.includes(o.t))return false;
+ const ag=act.who==='t'?ageOf(o.p):game.age;
+ if(ag<act.mn||ag>act.mx)return false;
+ if(act.need==='conf'&&pf.conflict<15)return false;
+ if(act.need==='move'&&(o.p._moved||bond(o.p)<70))return false;
+ return true;
+}
+function run(o,act,quiet){
+ const p=o.p,pf=prof(o),nm=labelOf(p);
+ if(pf.yr!==game.age){pf.yr=game.age;pf.yn=0;pf.done={}}
+ if(pf.yn>=4){if(!quiet)toast('You have already spent plenty of time with '+nm+' this year.','⏳');return null}
+ if((pf.done[act.id]||0)>=2){if(!quiet)toast('You already did that with '+nm+' twice this year.','🔁');return null}
+ if(act.cost&&funds()<act.cost){if(!quiet)toast('You need '+fm(act.cost)+'.','💸');return null}
+ if(act.cost)spendM(act.cost);
+ pf.yn++;pf.done[act.id]=(pf.done[act.id]||0)+1;
+ let b=act.b,r=act.r,c=act.c,xc=act.x,h=act.h,gain=0,text='',st=act.st,tag='ok';
+ const sp=act.sp?SP[act.sp](o,pf):null;
+ if(sp){b=sp.b!=null?sp.b:b;r=sp.r!=null?sp.r:r;c=sp.c!=null?sp.c:c;xc=sp.x!=null?sp.x:xc;h=sp.h!=null?sp.h:h;gain=sp.gain||0;text=sp.t}
+ else{
+  const q=R()+(bond(p)-50)/300-(pf.conflict>40?.12:0);
+  if(q>.82)tag='great';else if(q<.12+pf.conflict/500)tag='bad';
+  if(tag==='great'){b=Math.round(b*1.6);c=Math.round(c*1.5);h+=1}
+  else if(tag==='bad'&&b>0){b=-rnd(1,3);c=0;xc=4;r=0;h=-1}
+  if(b>0){const tr=pf.traits;if(tr.includes('Loyal'))b=Math.round(b*1.15);if(tr.includes('Warm'))b=Math.round(b*1.1);if(tr.includes('Stubborn')&&act.id==='apologize')b=Math.max(1,Math.round(b*.6))}
+  text=tag==='bad'?pick(BAD):pick(act.tx.split('~'));
+ }
+ text=text.replace(/\{n\}/g,nm);
+ if(tag==='great'&&!sp)text+=' It turned into one of those days you will remember.';
+ if(act.risk&&R()<act.risk[0]){const k=act.risk[1];b+=k.b||0;xc+=k.x||0;st=Object.assign({},st||{});for(const s in k)if(s!=='b'&&s!=='x')st[s]=(st[s]||0)+k[s];text+=' '+act.risk[2]}
+ const b0=bond(p);setBond(p,b0+b);
+ pf.respect=cl(pf.respect+r);pf.closeness=cl(pf.closeness+c);pf.conflict=cl(pf.conflict+xc);pf.lastContact=game.age;pf.interactions++;
+ game.happiness=cl((game.happiness||0)+h);
+ if(st)for(const k in st)game[k]=cl((+game[k]||0)+st[k]);
+ if(gain)game.money=(+game.money||0)+gain;
+ if(tag==='great'||sp){pf.memories.unshift('Age '+game.age+': '+act.lb+' with '+nm);pf.memories=pf.memories.slice(0,6)}
+ const d=bond(p)-b0;
+ logL(act.ic+' '+act.lb+' — '+nm+': '+text+' (Bond '+(d>=0?'+':'')+d+'%, now '+bond(p)+'%'+(gain?', +'+fm(gain):'')+(act.cost?', −'+fm(act.cost):'')+')');
+ return{tag,d,nm};
+}
+
+const GIFTS=[['🍫','Chocolate',15,2,0,99],['🧸','Plush toy',20,4,0,12],['🎨','Art set',30,4,3,14],['🚲','Bike',150,7,5,14],['🎮','Game console',400,7,8,30],['📱','Phone',900,8,11,40],['👟','Sneakers',120,5,10,50],['💐','Flowers',40,4,16,99],['📚','Book',25,3,6,99],['⌚','Watch',700,7,16,99],['💍','Jewelry',2500,9,18,99],['✈️','Trip',4000,10,16,99],['🚗','Car',25000,14,17,70],['🏠','Rent help',1500,8,18,99],['🧣','Warm blanket',50,4,55,99],['🩺','Health gadget',200,5,55,99]];
+let OPEN=null,CAND=[];
+const find=id=>roster().find(o=>o.id===id);
+
+function card(o){
+ const p=o.p,pf=prof(o),b=bond(p),open=OPEN===o.id,ag=ageOf(p);
+ const acts=A.filter(z=>elig(z,o,pf)),left=Math.max(0,4-(pf.yr===game.age?pf.yn:0));
+ return `<div class="p31-person"><div class="p31-person-main" onclick="P44.toggle('${o.id}')"><div class="p31-avatar">${face(p)}</div><div class="p31-info"><div class="p31-name">${esc(p.name||'Unknown')}${b<40?' 🔔':''}</div><div class="p31-meta">${esc(p.relation||o.t)} · Age ${ag} · ${tierName(b)}${p.ctx?' · '+esc(p.ctx):''}</div></div><div class="p31-bond"><small>Bond ${b}%</small><div class="p31-meter"><i style="width:${b}%"></i></div></div></div>
+ <div class="p31-detail" id="p44_${o.id}" style="display:${open?'block':'none'}"><div class="p31-traits">${pf.traits.map(t=>`<span class="p31-chip">${esc(t)}</span>`).join('')}<span class="p31-chip">${pf.interactions} interactions</span><span class="p31-chip">${pf.gifts} gifts</span><span class="p31-chip">${left} contacts left this year</span></div>
+ <div class="p31-stats"><div><b>${pf.respect}%</b><span>RESPECT</span></div><div><b>${pf.closeness}%</b><span>CLOSENESS</span></div><div><b>${pf.conflict}%</b><span>CONFLICT</span></div></div>
+ <div class="p44-sub">Things you can do</div><div class="p31-actions">${acts.map(z=>`<button class="bg-slate-800" onclick="P44.act('${o.id}','${z.id}')">${z.ic} ${z.lb}${z.cost?' · '+fm(z.cost):''}</button>`).join('')}<button class="bg-purple-700" onclick="P44.giftMenu('${o.id}')">🎁 Give a gift</button>${o.t==='L'&&window.P31&&P31.partnerActions?`<button class="bg-pink-700" onclick="P31.partnerActions()">💞 Romance & family</button>`:''}</div>
+ ${pf.memories.length?`<div style="margin-top:9px">${pf.memories.slice(0,3).map(m=>`<div class="p31-memory">${esc(m)}</div>`).join('')}</div>`:''}</div></div>`;
+}
+function hub(){
+ const ps=roster();ps.forEach(prof);
+ const avg=ps.length?Math.round(ps.reduce((n,o)=>n+bond(o.p),0)/ps.length):0,low=ps.filter(o=>bond(o.p)<40).length;
+ const grp=(t,title)=>{const l=ps.filter(o=>t.includes(o.t));return l.length?`<div class="p31-section-title">${title}</div>`+l.map(card).join(''):''};
+ const html=`<h3 class="text-xl font-bold">❤️ Relationships</h3><div class="p31-wrap"><div class="p31-summary"><div><b>${ps.length}</b><span>PEOPLE</span></div><div><b>${avg}%</b><span>AVG BOND</span></div><div><b>${low}</b><span>NEED ATTENTION</span></div></div>
+ <div class="p31-actions"><button class="bg-purple-700" onclick="P44.meet()">🤝 Meet people</button><button class="bg-purple-700" onclick="P44.allTime()">👨‍👩‍👧‍👦 Time with everyone</button>${game.age>=18&&window.P39?'<button class="bg-emerald-700" onclick="P39.relationshipHub()">💵 Ask for money</button>':''}${window.P42&&P42.will?'<button class="bg-slate-800" onclick="P42.will()">📜 Will & estate</button>':''}</div>
+ <div class="p44-note">Tap a person to see their personality and what you can do together. Available activities depend on your age and theirs. Each person can take 4 interactions a year.</div>
+ ${grp('L','Love')}${grp('P','Parents')}${grp('S','Siblings')}${grp('C','Children')}${grp('E','Extended family')}${grp('F','Friends')}</div><button onclick="closeModal()" class="w-full bg-slate-700 mt-3">Close</button>`;
+ const b0=$('#modalContent .p32-body'),sc=b0&&b0.querySelector('.p31-wrap')?b0.scrollTop:0;
+ openModal(html);
+ if(sc){const nb=$('#modalContent .p32-body');if(nb)nb.scrollTop=sc}
+}
+function after(id){OPEN=id;ui();save();hub()}
+function act(id,aid){
+ const o=find(id),z=A.find(q=>q.id===aid);if(!o||!z)return;
+ const r=run(o,z,false);if(!r)return;
+ toast(r.nm+': '+(r.d>=0?'+':'')+r.d+'% bond',r.tag==='bad'?'😕':'❤️');after(id);
+}
+function allTime(){
+ let n=0;
+ roster().forEach(o=>{const pf=prof(o),opts=A.filter(z=>elig(z,o,pf)&&!z.cost&&z.b>0&&!z.sp&&!z.risk);if(opts.length&&run(o,pick(opts),true))n++});
+ toast(n?'Spent time with '+n+(n===1?' person':' people')+'. Details are in your Life Vlog.':'Everyone has had enough of you this year.','👨‍👩‍👧‍👦');
+ OPEN=null;ui();save();hub();
+}
+function giftMenu(id){
+ const o=find(id);if(!o)return;const ra=ageOf(o.p),cap=game.age<13?60:1e9;
+ const list=GIFTS.map((g,i)=>({g,i})).filter(x=>ra>=x.g[4]&&ra<=x.g[5]&&x.g[2]<=cap);
+ openModal(`<h3 class="text-xl font-bold">🎁 Gift for ${esc(labelOf(o.p))}</h3><p class="text-xs text-slate-400">Gifts that suit their age land best. Cash ${fm(game.money)}.</p><div class="p31-gifts">${list.map(x=>`<button class="p31-gift bg-slate-800" onclick="P44.gift('${id}',${x.i})"><b>${x.g[0]} ${x.g[1]}</b><span>${fm(x.g[2])}</span></button>`).join('')}</div><button onclick="P44.back()" class="w-full bg-slate-700 mt-3">Back</button>`);
+}
+function gift(id,gi){
+ const o=find(id),g=GIFTS[gi];if(!o||!g)return;
+ if(funds()<g[2])return toast('You cannot afford this gift.','💸');
+ spendM(g[2]);const pf=prof(o);let b=g[3]+(pf.traits.includes('Generous')?2:0)+(pf.traits.includes('Materialistic')?2:0);
+ setBond(o.p,bond(o.p)+b);pf.respect=cl(pf.respect+Math.round(b/3));pf.closeness=cl(pf.closeness+b);pf.conflict=cl(pf.conflict-1);pf.gifts++;pf.lastContact=game.age;pf.interactions++;
+ game.happiness=cl((game.happiness||0)+2);pf.memories.unshift('Age '+game.age+': Received '+g[1]+' from you');pf.memories=pf.memories.slice(0,6);
+ logL('🎁 Gift — '+labelOf(o.p)+': You gave them '+g[1].toLowerCase()+' worth '+fm(g[2])+'. (Bond +'+b+'%, now '+bond(o.p)+'%, −'+fm(g[2])+')');
+ toast(labelOf(o.p)+' loved the gift.','🎁');after(id);
+}
+const CTX=g=>g<13?['Classmate','Neighbor kid','Cousin of a classmate']:g<18?['Classmate','Teammate','Club friend','Neighbor']:g<26?['College friend','Coworker','Roommate','Gym buddy']:g<65?['Coworker','Neighbor','Gym buddy','Parent at school','Friend of a friend']:['Neighbor','Bridge club friend','Church friend','Walking group friend'];
+function nameFor(g){try{if(window.P42&&P42.fullName)return P42.fullName(g)}catch(e){}return pick(['Alex','Sam','Jordan','Taylor','Casey'])+' '+pick(['Smith','Brown','Lee','Clark'])}
+function meet(){
+ if(roster().filter(o=>o.t==='F').length>=25)return toast('Your social circle is full.','⚠️');
+ const c=[];for(let i=0;i<3;i++){const gender=R()<.5?'Male':'Female',ag=game.age<13?Math.max(3,game.age+rnd(-2,2)):Math.max(14,game.age+rnd(-5,6));
+  c.push({name:nameFor(gender),gender,age:ag,ctx:pick(CTX(game.age)),traits:[pick(TR),pick(TR)].filter((v,i2,a2)=>a2.indexOf(v)===i2),b:40+rnd(0,25)})}
+ CAND=c;
+ openModal(`<h3 class="text-xl font-bold">🤝 Meet people</h3><p class="text-xs text-slate-400">People you cross paths with at this stage of life.</p>${c.map((x,i)=>`<div class="p44-cand"><b>${esc(x.name)}</b><small>Age ${x.age} · ${esc(x.ctx)} · ${x.traits.map(esc).join(', ')}</small><button class="w-full bg-purple-700" onclick="P44.befriend(${i})">Say hello</button></div>`).join('')}<button onclick="P44.meet()" class="w-full bg-slate-800 mt-2">🔄 Look for others</button><button onclick="P44.back()" class="w-full bg-slate-700 mt-2">Back</button>`);
+}
+function befriend(i){
+ const x=CAND[i];if(!x)return;
+ const p={name:x.name,relation:'Friend',age:x.age,gender:x.gender,relationship:x.b,ctx:x.ctx,traits:x.traits};
+ S().friends.push(p);const id=pid(p);
+ logL('🤝 Met '+x.name+' ('+x.ctx.toLowerCase()+') and became friends.');
+ toast('You and '+x.name.split(' ')[0]+' are now friends.','🤝');CAND=[];after(id);
+}
+function back(){hub()}
+function toggle(id){const e=document.getElementById('p44_'+id);if(!e)return;const open=e.style.display==='none';e.style.display=open?'block':'none';OPEN=open?id:null}
+
+/* age-appropriate versions of the 100 social events */
+const MASTER=(window.P31&&Array.isArray(P31.events))?P31.events.slice():[];
+function filterEvents(){
+ if(!MASTER.length)return;const g=game.age||0;
+ const keep=MASTER.filter(e=>{const t=e.title||'';
+  if(g<13&&/Money|Career|Need a Ride|Boundary|Misunderstood Text|Public Embarrassment|Health Scare/.test(t))return false;
+  if(g<18&&/Money|Career/.test(t))return false;return true});
+ P31.events.length=0;keep.forEach(e=>P31.events.push(e));
+}
+const _age=window.ageOneYear||ageOneYear;
+window.ageOneYear=ageOneYear=function(){try{filterEvents()}catch(e){}return _age.apply(this,arguments)};
+try{filterEvents()}catch(e){}
+
+/* wire up: every old route into Relationships now opens this hub */
+window.renderRelationshipsTab=renderRelationshipsTab=hub;
+if(window.P31)P31.render=hub;
+if(window.P42)P42.relationships=hub;
+
+window.P44={marker:MARK,hub,act,toggle,giftMenu,gift,meet,befriend,allTime,back,skipEvent,watchdog,actions:A};
+console.log('[Patch 44] Menu watchdog, alert sweep, event softlock fix and advanced relationships active.');
+})();
+</script>
+<!-- ===== END LIFE SIM PATCH 44 ===== -->
+<!-- ===== MERGED PATCH END ===== -->
+
+<!-- ===== MERGED PATCH END ===== -->
+
+
+
+<!-- ===== MERGED PATCH START ===== -->
+<!-- ===== LIFE SIM PATCH 45: AGE-18 UNIVERSITY + BUSINESS SCHOOL + DEGREE CAREERS + MORE MENU INSTANT FIX =====
+Merge after Patch 44.
+1. At age 18, prompts the player to apply for university and opens the existing Education application screen.
+2. Adds Sterling School of Business to the existing Patch 37 university system.
+3. Venture-capital pitching requires actual college/university attendance; bootstrapping remains available.
+4. Regular professional jobs now use the existing degree-specific Patch 37 career center.
+5. More menu gets an immediate, deterministic open path and clears stale modal lock classes.
+===================================================================== -->
+<style id="p45-css">
+#p45CollegePrompt .p45-actions{display:grid;gap:9px;margin-top:14px}
+#p45CollegePrompt .p45-hero{font-size:2.2rem;text-align:center;margin-bottom:4px}
+#p45CollegePrompt .p45-note{font-size:.72rem;opacity:.72;line-height:1.5}
+#p45BusinessSchool{border:1px solid rgba(245,158,11,.45)!important}
+</style>
+<script>
+(function(){
+'use strict';
+if(window.__DESTINY45__)return;
+window.__DESTINY45__=1;
+const MARK='LIFE SIM PATCH 45: AGE-18 UNIVERSITY + BUSINESS SCHOOL + DEGREE CAREERS + MORE MENU INSTANT FIX';
+const toast=(t,i)=>{try{showToast(t,i||'✨')}catch(e){}};
+const log=t=>{game.logs=game.logs||[];game.logs.push(`Age ${game.age}: ${t}`)};
+const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* -------------------- EDUCATION HELPERS -------------------- */
+function edu(){
+ try{return window.P37&&P37.state?P37.state():game.edu37}catch(e){return game.edu37}
+}
+function hasAttendedCollege(){
+ const x=edu();
+ if(!x)return false;
+ return !!(
+   x.E ||
+   (Array.isArray(x.degs)&&x.degs.length) ||
+   (Array.isArray(x.terms)&&x.terms.length) ||
+   (x.notes&&x.notes.p45Attended)
+ );
+}
+function markAttendance(){
+ const x=edu();
+ if(!x)return;
+ x.notes=x.notes||{};
+ if(x.E || (Array.isArray(x.degs)&&x.degs.length) || (Array.isArray(x.terms)&&x.terms.length)){
+   x.notes.p45Attended=true;
+ }
+}
+setInterval(markAttendance,1500);
+
+/* -------------------- BUSINESS SCHOOL -------------------- */
+function installBusinessSchool(){
+ try{
+   if(!window.P37||!P37.debug||!P37.debug.SC)return;
+   if(!P37.debug.SC.ster){
+     P37.debug.SC.ster={
+       id:'ster',
+       name:'Sterling School of Business',
+       type:'uni',
+       tier:'Private Business School',
+       tuition:52000,
+       room:15500,
+       need:74,
+       pres:9,
+       tag:'Finance, entrepreneurship, consulting & executive network'
+     };
+   }
+ }catch(e){}
+}
+function injectBusinessSchool(){
+ installBusinessSchool();
+ const root=document.querySelector('#modalContent .ls37');
+ if(!root || document.getElementById('p45BusinessSchool'))return;
+ const text=(root.textContent||'').toLowerCase();
+ if(!text.includes('choose a path') || !text.includes('apply'))return;
+
+ const pathBtn=[...root.querySelectorAll('[data-ls37="path"]')].find(b=>b.classList.contains('on'));
+ const path=pathBtn&&pathBtn.dataset.v;
+ if(!['bach','master','mba','xfer'].includes(path))return;
+
+ const majors=P37.debug.MAJ||{};
+ const ids=path==='mba'?['bus']:['bus','fin','acct','mkt','econ'].filter(id=>majors[id]);
+ const options=ids.map(id=>`<option value="${id}">${esc(majors[id]?.n||id)}</option>`).join('');
+ if(!options)return;
+
+ const card=document.createElement('div');
+ card.id='p45BusinessSchool';
+ card.className='card';
+ card.innerHTML=`
+   <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+     <div>
+       <div class="sub">PRIVATE BUSINESS SCHOOL</div>
+       <h4 style="margin:2px 0">Sterling School of Business</h4>
+       <div class="sub">Finance, entrepreneurship, consulting & executive network</div>
+     </div>
+     <b style="white-space:nowrap">$52,000/yr</b>
+   </div>
+   <div class="lab" style="margin-top:10px">Business major</div>
+   <select id="ls37m_ster">${options}</select>
+   <button class="btn" data-ls37="apply" data-s="ster">Apply to Sterling</button>`;
+ const close=[...root.querySelectorAll('button')].find(b=>/^\s*close\s*$/i.test(b.textContent||''));
+ close?root.insertBefore(card,close):root.appendChild(card);
+}
+installBusinessSchool();
+const eduObserver=new MutationObserver(()=>{try{injectBusinessSchool();markAttendance()}catch(e){}});
+eduObserver.observe(document.body,{childList:true,subtree:true});
+
+/* -------------------- AGE 18 UNIVERSITY PROMPT -------------------- */
+function openCollegePrompt(){
+ if(!game.alive || game.age!==18)return;
+ const x=edu();
+ x.notes=x.notes||{};
+ if(x.notes.p45Age18Prompted)return;
+ x.notes.p45Age18Prompted=true;
+
+ openModal(`
+   <div id="p45CollegePrompt">
+     <div class="p45-hero">🎓</div>
+     <h3 style="text-align:center;font-size:1.2rem;font-weight:900">You’re 18 — What’s Next?</h3>
+     <p style="text-align:center;margin-top:6px">High school is ending and university applications are open. You can compare schools, majors, tuition, aid and admission chances.</p>
+     <div class="p45-actions">
+       <button class="btn" onclick="P45.applyUniversity()">Apply for University</button>
+       <button class="btn alt" onclick="P45.educationHome()">View Education</button>
+       <button class="btn alt" onclick="P45.skipUniversity()">Not right now</button>
+     </div>
+     <p class="p45-note">College attendance also matters for founders: venture investors will not hear your pitch until you have attended college or university. You can still bootstrap a company with your own money.</p>
+   </div>`);
+}
+function queueAge18Prompt(){
+ let tries=0;
+ const attempt=()=>{
+   if(!game.alive||game.age!==18)return;
+   const gm=document.getElementById('gameModal');
+   if(gm && !gm.classList.contains('hidden') && tries++<20){setTimeout(attempt,250);return}
+   openCollegePrompt();
+ };
+ setTimeout(attempt,250);
+}
+const ageBase=window.ageOneYear;
+if(typeof ageBase==='function'){
+ window.ageOneYear=ageOneYear=function(){
+   const before=game.age;
+   const r=ageBase.apply(this,arguments);
+   if(before<18 && game.age===18)queueAge18Prompt();
+   return r;
+ };
+}
+
+/* -------------------- VC EDUCATION GATE -------------------- */
+const fundingBase=window.sc7Funding;
+if(typeof fundingBase==='function'){
+ window.sc7Funding=async function(id,mode){
+   markAttendance();
+   if(mode==='vc' && !hasAttendedCollege()){
+     openModal(`
+       <h3>🎓 Investors Want Education Experience</h3>
+       <div class="space-y-3">
+         <p>You have not attended college or university yet. Venture investors want founders with some higher-education experience before they will hear your pitch.</p>
+         <div class="p45-note">You do not need to graduate. Once you have actually attended, venture pitching unlocks. Self-funding/bootstrapping is still available now.</div>
+         <button class="btn" onclick="P45.applyUniversity()">Apply for University</button>
+         <button class="btn alt" onclick="startCompanyPrompt()">Back to Startup</button>
+       </div>`);
+     return;
+   }
+   return fundingBase.apply(this,arguments);
+ };
+}
+
+/* -------------------- DEGREE-TIED PROFESSIONAL JOBS -------------------- */
+const legacyApplyJob=window.applyJobPrompt;
+window.applyJobPrompt=function(){
+ if(game.age<18){toast('You must be 18 to apply for full-time jobs.','⚠️');return}
+ if(window.P37&&P37.open){
+   P37.open('career');
+   return;
+ }
+ return legacyApplyJob&&legacyApplyJob.apply(this,arguments);
+};
+
+/* -------------------- PUBLIC ACTIONS -------------------- */
+window.P45={
+ marker:MARK,
+ hasAttendedCollege,
+ applyUniversity(){
+   try{closeModal()}catch(e){}
+   if(window.P37&&P37.open){P37.open('apply');setTimeout(injectBusinessSchool,30)}
+ },
+ educationHome(){
+   try{closeModal()}catch(e){}
+   if(window.P37&&P37.open)P37.open('home');
+ },
+ skipUniversity(){
+   log('You decided not to apply for university right now.');
+   try{closeModal()}catch(e){}
+   try{updateUI()}catch(e){}
+ },
+ installBusinessSchool
+};
+
+setTimeout(()=>{installBusinessSchool();markAttendance()},100);
+console.log('[Patch 45] Age-18 university prompt, business school, VC education gate, degree careers and More-menu instant fix active.');
+})();
+</script>
+<!-- ===== END LIFE SIM PATCH 45 ===== -->
+<!-- ===== MERGED PATCH END ===== -->
+
+
+
+
+
+
+
+<!-- ===== MERGED PATCH START ===== -->
+<!-- ===== LIFE SIM PATCH 47: AUTHORITATIVE MORE MENU + CRIME JUSTICE SYSTEM =====
+Merge after Patch 45. Patch 46 is NOT required.
+This patch hard-owns the More button so legacy More renderers cannot compete.
+============================================================================ -->
+<style id="p47-css">
+#gameModal.p47-more #modalContent{padding:0!important;overflow:hidden!important}
+.p47-shell{background:var(--p29-bg,#0d1118);color:var(--p29-text,#f7f8fb);min-height:100%;max-height:85vh;overflow:auto}
+.p47-head{position:sticky;top:0;z-index:3;background:rgba(13,17,24,.96);backdrop-filter:blur(12px);padding:18px 18px 12px;border-bottom:1px solid #ffffff12}
+.p47-head h3{font-size:1.15rem;font-weight:900;margin:0}.p47-head p{font-size:.72rem;opacity:.58;margin:3px 0 0}
+.p47-body{padding:12px 14px 20px}.p47-section{font-size:.68rem;font-weight:900;letter-spacing:.13em;text-transform:uppercase;opacity:.48;margin:15px 4px 7px}
+.p47-card{display:block;border:1px solid #ffffff12;border-radius:16px;overflow:hidden;background:#151a22}
+.p47-row{width:100%;border:0!important;border-bottom:1px solid #ffffff0e!important;border-radius:0!important;background:transparent!important;color:inherit!important;padding:12px 13px!important;display:flex!important;align-items:center!important;gap:11px!important;text-align:left!important;min-height:62px}
+.p47-row:last-child{border-bottom:0!important}.p47-row:active{background:#ffffff0a!important}
+.p47-ic{width:34px;height:34px;border-radius:11px;background:#ffffff0b;display:grid;place-items:center;font-size:1.15rem;flex:0 0 auto}
+.p47-copy{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}.p47-copy b{font-size:.88rem}.p47-copy small{font-size:.69rem;opacity:.55;white-space:normal;line-height:1.25}
+.p47-arr{opacity:.35;font-size:1.1rem}.p47-foot{text-align:center;font-size:.62rem;letter-spacing:.12em;opacity:.32;padding:19px 4px 5px}
+.p47-back{width:100%;margin-top:12px!important;padding:11px!important;border-radius:13px!important;background:#ffffff0d!important;color:inherit!important;font-weight:800}
+.p47-kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:10px 0}
+.p47-kpi,.p47-box{border:1px solid #ffffff12;background:#151a22;border-radius:14px;padding:11px}
+.p47-kpi small,.p47-muted{font-size:.68rem;opacity:.55}.p47-kpi b{display:block;font-size:1rem;margin-top:2px}
+.p47-crime{width:100%;text-align:left!important;background:#151a22!important;border:1px solid #ffffff12!important;border-radius:14px!important;padding:12px!important;color:inherit!important;margin:0 0 8px!important}
+.p47-crime b{display:block}.p47-crime small{display:block;opacity:.58;font-size:.68rem;margin-top:3px;line-height:1.35}
+.p47-good{color:#34d399}.p47-warn{color:#fbbf24}.p47-bad{color:#fb7185}
+html[data-theme=light] .p47-shell{background:#f7f8fb;color:#17191e}
+html[data-theme=light] .p47-head{background:rgba(247,248,251,.96)}
+html[data-theme=light] .p47-card,html[data-theme=light] .p47-kpi,html[data-theme=light] .p47-box,html[data-theme=light] .p47-crime{background:#fff;border-color:#dfe3ea}
+</style>
+<script>
+(function(){
+'use strict';
+if(window.__DESTINY47__)return;
+window.__DESTINY47__=1;
+const MARK='LIFE SIM PATCH 47: AUTHORITATIVE MORE MENU + CRIME JUSTICE SYSTEM';
+const $=s=>document.querySelector(s);
+const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fm=n=>{try{return formatMoney(Math.round(Number(n)||0))}catch(e){return '$'+Math.round(Number(n)||0).toLocaleString()}};
+const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+const chance=p=>Math.random()<p;
+function toast(t,i='✨'){try{showToast(t,i)}catch(e){}}
+function ui(){try{updateUI()}catch(e){}}
+function save(){try{if(window.P26&&P26.autosave)P26.autosave(false);else localStorage.setItem('destiny_p47_backup',JSON.stringify(game))}catch(e){}}
+function log(t){try{if(typeof L==='function')L(t);else (game.logs=game.logs||[]).push(`Age ${game.age}: ${t}`)}catch(e){}}
+function modal(html){
+ const gm=$('#gameModal'),mc=$('#modalContent');if(!gm||!mc)return;
+ ['p29-more','p32-opening','p43-hold','p42-more','p38-more'].forEach(c=>gm.classList.remove(c));
+ gm.classList.remove('hidden');mc.style.visibility='visible';mc.style.opacity='1';mc.style.pointerEvents='auto';
+ mc.innerHTML=html;
+}
+function row(id,ic,title,desc,fn){
+ return `<button ${id?`id="${id}"`:''} class="p47-row" onclick="${fn}"><span class="p47-ic">${ic}</span><span class="p47-copy"><b>${title}</b><small>${desc}</small></span><span class="p47-arr">›</span></button>`;
+}
+
+/* =========================================================
+   CRIME / POLICE / COURT / LAWYERS / JAIL
+========================================================= */
+const CRIMES=[
+ {id:'shoplift',ic:'🛍️',name:'Shoplifting',min:12,sev:1,reward:[20,250],detect:.24,evidence:18,sentence:[0,1],fine:[50,600],desc:'Attempt to steal merchandise from a store.'},
+ {id:'vandal',ic:'🧱',name:'Vandalism',min:12,sev:1,reward:[0,0],detect:.28,evidence:22,sentence:[0,1],fine:[100,1200],desc:'Damage property and risk being identified.'},
+ {id:'pickpocket',ic:'👛',name:'Pickpocketing',min:14,sev:2,reward:[40,900],detect:.34,evidence:28,sentence:[0,2],fine:[200,1800],desc:'Attempt a street theft with a meaningful arrest risk.'},
+ {id:'burglary',ic:'🏠',name:'Burglary',min:16,sev:3,reward:[300,8000],detect:.43,evidence:40,sentence:[1,5],fine:[500,5000],desc:'Commit a serious property crime with higher police attention.'},
+ {id:'vehicle',ic:'🚗',name:'Vehicle Theft',min:16,sev:3,reward:[800,12000],detect:.48,evidence:44,sentence:[1,6],fine:[800,7000],desc:'Steal a vehicle; police attention and sentencing can be severe.'},
+ {id:'fraud',ic:'💳',name:'Fraud',min:18,sev:3,reward:[500,18000],detect:.38,evidence:48,sentence:[1,7],fine:[1000,12000],desc:'Attempt financial fraud. Larger rewards bring serious legal exposure.'},
+ {id:'robbery',ic:'💰',name:'Robbery',min:18,sev:4,reward:[700,15000],detect:.58,evidence:58,sentence:[2,10],fine:[1500,15000],desc:'A serious theft offense with a high chance of arrest and prison.'},
+ {id:'grand',ic:'💎',name:'Major Theft',min:18,sev:4,reward:[2000,40000],detect:.55,evidence:62,sentence:[2,12],fine:[2500,25000],desc:'Attempt a high-value theft with major felony consequences.'}
+];
+const LAWYERS=[
+ {id:'public',name:'Public Defender',cost:0,skill:18,desc:'No upfront cost. Basic defense.'},
+ {id:'local',name:'Local Defense Lawyer',cost:2500,skill:34,desc:'Experienced local criminal-defense representation.'},
+ {id:'senior',name:'Senior Trial Lawyer',cost:12000,skill:52,desc:'Strong courtroom experience and case preparation.'},
+ {id:'elite',name:'Elite Defense Firm',cost:50000,skill:70,desc:'Expensive high-end representation for serious cases.'}
+];
+function S(){
+ game.crime47=game.crime47||{
+   record:[],wanted:0,heat:0,arrests:0,convictions:0,totalCrimeMoney:0,
+   case:null,jail:null,lawyer:null,lastPolice:null
+ };
+ return game.crime47;
+}
+function rand(a,b){return Math.floor(a+Math.random()*(b-a+1))}
+function crime(){
+ const s=S();
+ if(s.jail){jail();return}
+ const rec=s.record||[], convictions=rec.filter(x=>x.outcome==='Convicted').length;
+ modal(`<div class="p47-shell"><div class="p47-head"><h3>🚔 Crime</h3><p>Crime, police attention and criminal justice</p></div><div class="p47-body">
+  <div class="p47-kpis">
+   <div class="p47-kpi"><small>Police heat</small><b class="${s.heat>=60?'p47-bad':s.heat>=30?'p47-warn':''}">${Math.round(s.heat)}%</b></div>
+   <div class="p47-kpi"><small>Wanted level</small><b>${Math.round(s.wanted)}%</b></div>
+   <div class="p47-kpi"><small>Arrests</small><b>${s.arrests}</b></div>
+   <div class="p47-kpi"><small>Convictions</small><b>${convictions}</b></div>
+  </div>
+  ${s.case?`<button class="p47-crime" onclick="P47.case()"><b>⚖️ Active court case</b><small>${esc(s.case.crime)} · ${esc(s.case.status)} · evidence ${s.case.evidence}%</small></button>`:''}
+  <div class="p47-section">Choose a crime</div>
+  ${CRIMES.map(c=>`<button class="p47-crime" ${game.age<c.min?'disabled style="opacity:.42"':''} onclick="P47.commit('${c.id}')"><b>${c.ic} ${c.name}</b><small>${c.desc} · Age ${c.min}+ · risk ${Math.round(c.detect*100)}%</small></button>`).join('')}
+  <button class="p47-back" onclick="renderMoreTab()">‹ Back to More</button>
+ </div></div>`);
+}
+function commit(id){
+ const s=S(),c=CRIMES.find(x=>x.id===id);if(!c)return;
+ if(s.jail){jail();return}
+ if(s.case){toast('You already have an active criminal case.','⚖️');casePage();return}
+ if(game.age<c.min){toast(`You must be at least ${c.min}.`,'⚠️');return}
+ const skill=clamp(((game.smarts||50)-50)/500,-.06,.10);
+ const prior=Math.min(.20,s.convictions*.025+s.arrests*.015);
+ const heat=s.heat/500;
+ const caught=chance(clamp(c.detect+prior+heat-skill,.08,.92));
+ const take=c.reward[1]?rand(c.reward[0],c.reward[1]):0;
+ const entry={age:game.age,crime:c.name,severity:c.sev,outcome:caught?'Arrested':'Not caught',money:caught?0:take};
+ s.record.push(entry);
+ if(!caught){
+   if(take){game.money+=take;s.totalCrimeMoney+=take}
+   s.heat=clamp(s.heat+c.sev*5,0,100);s.wanted=clamp(s.wanted+c.sev*3,0,100);
+   log(`Committed ${c.name.toLowerCase()} and avoided arrest${take?`, taking ${fm(take)}`:''}. Police heat is now ${Math.round(s.heat)}%.`);
+   save();ui();
+   modal(`<div class="p47-shell"><div class="p47-head"><h3>${c.ic} ${c.name}</h3><p>Crime result</p></div><div class="p47-body"><div class="p47-box"><b class="p47-good">You were not arrested.</b><p class="p47-muted">${take?`You got away with ${fm(take)}.`:'You got away before police identified you.'} Your police heat increased to ${Math.round(s.heat)}%.</p></div><button class="p47-back" onclick="P47.crime()">Back to Crime</button></div></div>`);
+   return;
+ }
+ arrest(c,entry);
+}
+function arrest(c,entry){
+ const s=S();s.arrests++;s.heat=clamp(s.heat+c.sev*12,0,100);s.wanted=0;
+ const evidence=clamp(c.evidence+rand(-12,18)+Math.round(s.heat*.12),10,95);
+ const bail=Math.max(0,Math.round((c.sev*c.sev*750)+rand(0,1500)));
+ s.case={id:Date.now(),crime:c.name,crimeId:c.id,severity:c.sev,evidence,bail,status:'Arrested — awaiting court',lawyer:null,plea:null,entryIndex:s.record.length-1};
+ s.lastPolice={age:game.age,crime:c.name,evidence};
+ log(`Police arrested you for ${c.name.toLowerCase()}. You were booked and now face a court case with ${evidence}% evidence strength.`);
+ save();ui();
+ modal(`<div class="p47-shell"><div class="p47-head"><h3>🚓 Arrested</h3><p>Police custody</p></div><div class="p47-body">
+  <div class="p47-box"><b>You were arrested for ${esc(c.name)}.</b><p class="p47-muted">Police booked you and forwarded the case for prosecution. Evidence strength: ${evidence}%.</p></div>
+  <div class="p47-kpis"><div class="p47-kpi"><small>Bail</small><b>${fm(bail)}</b></div><div class="p47-kpi"><small>Charge severity</small><b>${c.sev}/4</b></div></div>
+  <button class="p47-crime" onclick="P47.case()"><b>⚖️ Go to Court Case</b><small>Hire a lawyer, choose a plea and resolve the case.</small></button>
+ </div></div>`);
+ s.case.bail=bail;
+}
+function casePage(){
+ const s=S(),k=s.case;if(!k){crime();return}
+ const law=k.lawyer?LAWYERS.find(x=>x.id===k.lawyer):null;
+ modal(`<div class="p47-shell"><div class="p47-head"><h3>⚖️ Court Case</h3><p>${esc(k.crime)}</p></div><div class="p47-body">
+  <div class="p47-kpis"><div class="p47-kpi"><small>Status</small><b>${esc(k.status)}</b></div><div class="p47-kpi"><small>Evidence</small><b>${k.evidence}%</b></div></div>
+  <div class="p47-box"><b>Legal representation</b><p class="p47-muted">${law?`${law.name} · defense skill ${law.skill}%`:'You have not selected a lawyer yet.'}</p></div>
+  <div class="p47-section">Lawyers</div>
+  ${LAWYERS.map(l=>`<button class="p47-crime" onclick="P47.lawyer('${l.id}')"><b>${l.id==='public'?'🧑‍⚖️':'💼'} ${l.name} ${l.cost?'· '+fm(l.cost):'· Free'}</b><small>${l.desc} Defense skill ${l.skill}%.</small></button>`).join('')}
+  <div class="p47-section">How do you respond?</div>
+  <button class="p47-crime" onclick="P47.plead('guilty')"><b>📄 Plead Guilty</b><small>Accept responsibility. Usually reduces the sentence but guarantees a conviction.</small></button>
+  <button class="p47-crime" onclick="P47.plead('notguilty')"><b>⚖️ Plead Not Guilty / Go to Trial</b><small>Your lawyer, evidence and record affect the verdict.</small></button>
+  <button class="p47-back" onclick="P47.crime()">‹ Back to Crime</button>
+ </div></div>`);
+}
+function lawyer(id){
+ const s=S(),k=s.case,l=LAWYERS.find(x=>x.id===id);if(!k||!l)return;
+ if(l.cost>game.money){toast('You cannot afford this lawyer.','⚠️');return}
+ if(l.cost){game.money-=l.cost;log(`Hired ${l.name} for ${fm(l.cost)} to defend your ${k.crime.toLowerCase()} case.`)}
+ else log(`Accepted representation from a public defender for your ${k.crime.toLowerCase()} case.`);
+ k.lawyer=id;k.status='Preparing for court';save();ui();casePage();
+}
+function plead(type){
+ const s=S(),k=s.case;if(!k)return;
+ const l=LAWYERS.find(x=>x.id===k.lawyer)||LAWYERS[0];
+ k.plea=type;
+ if(type==='guilty'){resolveCase(true,.68,'Guilty plea');return}
+ const prior=Math.min(24,s.convictions*5);
+ const defense=l.skill+(game.smarts||50)*.12+rand(-10,10);
+ const prosecution=k.evidence+prior+rand(-8,8);
+ const convicted=prosecution>defense;
+ resolveCase(convicted,convicted?1:.0,'Trial');
+}
+function resolveCase(convicted,sentenceMult,via){
+ const s=S(),k=s.case,c=CRIMES.find(x=>x.id===k.crimeId)||CRIMES[0],entry=s.record[k.entryIndex];
+ if(!convicted){
+   if(entry)entry.outcome='Acquitted';
+   log(`You were found not guilty of ${k.crime.toLowerCase()} after trial. The case was dismissed.`);
+   s.heat=clamp(s.heat-18,0,100);s.case=null;save();ui();
+   modal(`<div class="p47-shell"><div class="p47-head"><h3>⚖️ Not Guilty</h3><p>Court result</p></div><div class="p47-body"><div class="p47-box"><b class="p47-good">You were acquitted.</b><p class="p47-muted">The court did not convict you. The active case is now closed.</p></div><button class="p47-back" onclick="P47.crime()">Back to Crime</button></div></div>`);
+   return;
+ }
+ s.convictions++;if(entry)entry.outcome='Convicted';
+ let years=rand(c.sentence[0],c.sentence[1]);
+ if(via==='Guilty plea')years=Math.max(0,Math.floor(years*sentenceMult));
+ const fine=rand(c.fine[0],c.fine[1]);
+ const paid=Math.min(game.money,fine);game.money-=paid;
+ const unpaid=fine-paid;
+ if(unpaid>0)game.debt=(game.debt||0)+unpaid;
+ log(`Convicted of ${k.crime.toLowerCase()} by ${via.toLowerCase()}. Sentence: ${years?years+' year'+(years===1?'':'s')+' in jail':'no jail time'} and ${fm(fine)} in fines.`);
+ s.case=null;s.heat=clamp(s.heat-25,0,100);
+ if(years>0)s.jail={crime:k.crime,total:years,remaining:years,startAge:game.age};
+ save();ui();
+ if(years>0)jail();
+ else modal(`<div class="p47-shell"><div class="p47-head"><h3>⚖️ Convicted</h3><p>Sentence imposed</p></div><div class="p47-body"><div class="p47-box"><b class="p47-bad">${esc(k.crime)} conviction</b><p class="p47-muted">No jail term. Fine: ${fm(fine)}${unpaid?` · ${fm(unpaid)} added to debt`:''}.</p></div><button class="p47-back" onclick="P47.crime()">Back to Crime</button></div></div>`);
+}
+function jail(){
+ const s=S(),j=s.jail;if(!j){crime();return}
+ modal(`<div class="p47-shell"><div class="p47-head"><h3>🔒 Jail</h3><p>Serving a criminal sentence</p></div><div class="p47-body">
+  <div class="p47-kpis"><div class="p47-kpi"><small>Conviction</small><b>${esc(j.crime)}</b></div><div class="p47-kpi"><small>Time remaining</small><b>${j.remaining} year${j.remaining===1?'':'s'}</b></div></div>
+  <div class="p47-box"><b>You are incarcerated.</b><p class="p47-muted">Age up to serve your sentence. Each year served is recorded in your life history. Release occurs when the remaining sentence reaches zero.</p></div>
+  <button class="p47-crime" onclick="P47.jailAct('study')"><b>📚 Study</b><small>Use your time productively. Small chance to improve smarts.</small></button>
+  <button class="p47-crime" onclick="P47.jailAct('exercise')"><b>🏋️ Exercise</b><small>Work on health while serving your sentence.</small></button>
+  <button class="p47-crime" onclick="P47.jailAct('quiet')"><b>🧘 Keep a Low Profile</b><small>Avoid trouble and focus on getting through the year.</small></button>
+  <button class="p47-back" onclick="renderMoreTab()">‹ Back to More</button>
+ </div></div>`);
+}
+function jailAct(a){
+ const s=S();if(!s.jail)return;
+ if(a==='study'){game.smarts=clamp((game.smarts||0)+rand(1,3),0,100);log('Studied while incarcerated and worked on your education.')}
+ if(a==='exercise'){game.health=clamp((game.health||0)+rand(1,3),0,100);log('Exercised while incarcerated and focused on your health.')}
+ if(a==='quiet'){game.happiness=clamp((game.happiness||0)+1,0,100);log('Kept a low profile while serving your jail sentence.')}
+ save();ui();jail();
+}
+
+/* Sentence progression on age-up. */
+const ageBase=window.ageOneYear;
+if(typeof ageBase==='function'){
+ window.ageOneYear=function(){
+   const before=game.age,s=S(),wasJailed=!!s.jail;
+   const r=ageBase.apply(this,arguments);
+   if(wasJailed&&s.jail&&game.age>before){
+     s.jail.remaining=Math.max(0,s.jail.remaining-1);
+     if(s.jail.remaining<=0){
+       const crimeName=s.jail.crime;s.jail=null;
+       log(`Released from jail after completing your sentence for ${crimeName.toLowerCase()}.`);
+       toast('You have been released from jail.','🔓');
+     }else{
+       log(`Served another year in jail. ${s.jail.remaining} year${s.jail.remaining===1?'':'s'} remain on your sentence.`);
+     }
+     save();ui();
+   }
+   return r;
+ };
+}
+
+window.P47={
+ marker:MARK,education,openFame,crime,commit,case:casePage,lawyer,plead,jail,jailAct,state:S
+};
+console.log('[Patch 47] One authoritative More menu + crime/justice system active.');
+})();
+</script>
+<!-- ===== END LIFE SIM PATCH 47 ===== -->
+<!-- ===== MERGED PATCH END ===== -->
+
+
+
+<!-- ===== MERGED PATCH START ===== -->
+<!-- ===== LIFE SIM PATCH 48: HEALTH + DISEASE EVENTS + HOSPITAL + ADULT DATING =====
+Merge after Patch 47.
+Adds persistent illnesses/STIs, age-driven health events, diagnosis/treatment,
+hospital care, and adult-only hookups/one-night stands.
+================================================================================ -->
+<style id="p48-css">
+.p48-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}
+.p48-stat,.p48-box{border:1px solid #ffffff12;background:#151a22;border-radius:14px;padding:11px}
+.p48-stat small,.p48-muted{font-size:.68rem;opacity:.58}.p48-stat b{display:block;font-size:.98rem;margin-top:2px}
+.p48-card{width:100%;text-align:left!important;background:#151a22!important;border:1px solid #ffffff12!important;border-radius:14px!important;padding:12px!important;color:inherit!important;margin:0 0 8px!important}
+.p48-card b{display:block}.p48-card small{display:block;font-size:.68rem;opacity:.58;line-height:1.35;margin-top:3px}
+.p48-tag{display:inline-block;font-size:.62rem;padding:3px 7px;border-radius:999px;background:#ffffff0c;margin:5px 4px 0 0}
+.p48-red{color:#fb7185}.p48-yellow{color:#fbbf24}.p48-green{color:#34d399}
+html[data-theme=light] .p48-stat,html[data-theme=light] .p48-box,html[data-theme=light] .p48-card{background:#fff;border-color:#dfe3ea}
+</style>
+<script>
+(function(){
+'use strict';
+if(window.__DESTINY48__)return;
+window.__DESTINY48__=1;
+const MARK='LIFE SIM PATCH 48: HEALTH DISEASE EVENTS HOSPITAL ADULT DATING';
+const $=s=>document.querySelector(s);
+const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clamp=(n,a=0,b=100)=>Math.max(a,Math.min(b,n));
+const rand=(a,b)=>Math.floor(a+Math.random()*(b-a+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const chance=p=>Math.random()<p;
+const fm=n=>{try{return formatMoney(Math.round(Number(n)||0))}catch(e){return '$'+Math.round(Number(n)||0).toLocaleString()}};
+function toast(t,i='✨'){try{showToast(t,i)}catch(e){}}
+function ui(){try{updateUI()}catch(e){}}
+function save(){try{if(window.P26&&P26.autosave)P26.autosave(false)}catch(e){}}
+function log(t){try{if(typeof L==='function')L(t);else(game.logs=game.logs||[]).push(`Age ${game.age}: ${t}`)}catch(e){}}
+function modal(html){try{openModal(html)}catch(e){const gm=$('#gameModal'),mc=$('#modalContent');if(gm&&mc){mc.innerHTML=html;gm.classList.remove('hidden')}}}
+function backMore(){if(window.P47&&P47.more)P47.more();else if(window.renderMoreTab)renderMoreTab()}
+
+const CONDITIONS={
+ cold:{name:'Common Cold',icon:'🤧',type:'illness',sev:1,contagious:true,chronic:false,health:-1,desc:'Congestion, sore throat and fatigue.',tests:['exam'],treat:['rest','otc'],natural:.78},
+ flu:{name:'Influenza',icon:'🤒',type:'illness',sev:2,contagious:true,chronic:false,health:-3,desc:'Fever, aches, cough and fatigue.',tests:['exam','viral'],treat:['rest','antiviral'],natural:.52},
+ gastro:{name:'Gastroenteritis',icon:'🤢',type:'illness',sev:2,contagious:true,chronic:false,health:-3,desc:'Nausea, stomach cramps and dehydration risk.',tests:['exam','blood'],treat:['fluids','rest'],natural:.60},
+ migraine:{name:'Migraine',icon:'🤕',type:'illness',sev:2,contagious:false,chronic:true,health:-2,desc:'Recurring severe headache with sensitivity to light or sound.',tests:['exam'],treat:['migraine'],natural:.35},
+ asthma:{name:'Asthma',icon:'🫁',type:'disease',sev:2,contagious:false,chronic:true,health:-2,desc:'Recurring airway inflammation that can make breathing difficult.',tests:['exam','lung'],treat:['inhaler'],natural:.05},
+ pneumonia:{name:'Pneumonia',icon:'🫁',type:'disease',sev:4,contagious:true,chronic:false,health:-8,desc:'A serious lung infection requiring medical attention.',tests:['exam','chest','blood'],treat:['antibiotic','hospital'],natural:.18},
+ hypertension:{name:'High Blood Pressure',icon:'🫀',type:'disease',sev:2,contagious:false,chronic:true,health:-2,desc:'Persistently elevated blood pressure, often without obvious symptoms.',tests:['vitals','blood'],treat:['bpmed'],natural:.02},
+ diabetes:{name:'Type 2 Diabetes',icon:'🩸',type:'disease',sev:3,contagious:false,chronic:true,health:-3,desc:'A chronic condition affecting blood-sugar regulation.',tests:['blood'],treat:['diabetes'],natural:.01},
+ arthritis:{name:'Arthritis',icon:'🦴',type:'disease',sev:2,contagious:false,chronic:true,health:-2,desc:'Joint pain and stiffness that can worsen with age.',tests:['exam','xray'],treat:['arthritis'],natural:.02},
+ chlamydia:{name:'Chlamydia',icon:'🧫',type:'sti',sev:2,contagious:true,chronic:false,health:-2,desc:'A common bacterial STI that may have few or no symptoms.',tests:['sti'],treat:['antibiotic'],natural:.02},
+ gonorrhea:{name:'Gonorrhea',icon:'🧫',type:'sti',sev:2,contagious:true,chronic:false,health:-3,desc:'A bacterial STI requiring diagnosis and treatment.',tests:['sti'],treat:['antibiotic'],natural:.01},
+ syphilis:{name:'Syphilis',icon:'🧫',type:'sti',sev:3,contagious:true,chronic:false,health:-4,desc:'A bacterial STI that can become serious when untreated.',tests:['sti','blood'],treat:['antibiotic'],natural:.005},
+ herpes:{name:'Genital Herpes',icon:'🧬',type:'sti',sev:2,contagious:true,chronic:true,health:-1,desc:'A chronic viral STI that can cause recurring outbreaks.',tests:['sti'],treat:['antiviral'],natural:0},
+ hiv:{name:'HIV',icon:'🧬',type:'sti',sev:4,contagious:true,chronic:true,health:-4,desc:'A chronic viral infection managed with ongoing medical treatment.',tests:['sti','blood'],treat:['art'],natural:0}
+};
+const TESTS={
+ exam:{name:'Doctor Consultation',cost:90,desc:'History, symptoms and physical examination.'},
+ vitals:{name:'Vitals & Blood Pressure',cost:45,desc:'Blood pressure, pulse and basic observations.'},
+ blood:{name:'Blood Panel',cost:180,desc:'Laboratory blood testing.'},
+ viral:{name:'Respiratory Viral Test',cost:120,desc:'Checks for common respiratory viruses.'},
+ chest:{name:'Chest Imaging',cost:350,desc:'Imaging for serious respiratory symptoms.'},
+ lung:{name:'Lung Function Test',cost:240,desc:'Measures airflow and breathing function.'},
+ xray:{name:'X-Ray',cost:260,desc:'Imaging for bones and joints.'},
+ sti:{name:'STI Screening Panel',cost:220,desc:'Confidential screening for common sexually transmitted infections.'}
+};
+const TREAT={
+ rest:{name:'Rest & Supportive Care',cost:35,success:.58,desc:'Rest, hydration and symptom management.'},
+ otc:{name:'Symptom Relief Medicine',cost:40,success:.45,desc:'Over-the-counter symptom relief.'},
+ fluids:{name:'Rehydration Treatment',cost:120,success:.72,desc:'Fluids and monitoring for dehydration.'},
+ antiviral:{name:'Antiviral Treatment',cost:260,success:.62,desc:'Prescription antiviral management when appropriate.'},
+ antibiotic:{name:'Antibiotic Treatment',cost:180,success:.90,desc:'Prescription treatment for susceptible bacterial infections.'},
+ hospital:{name:'Hospital Observation',cost:1800,success:.86,desc:'Close monitoring and hospital-level supportive care.'},
+ migraine:{name:'Migraine Treatment Plan',cost:280,success:.72,desc:'Prescription treatment and trigger-management plan.'},
+ inhaler:{name:'Asthma Treatment Plan',cost:420,success:.82,desc:'Controller/rescue medication and follow-up.'},
+ bpmed:{name:'Blood Pressure Management',cost:360,success:.84,desc:'Medication, monitoring and follow-up.'},
+ diabetes:{name:'Diabetes Management Plan',cost:650,success:.80,desc:'Medication, monitoring and ongoing care.'},
+ arthritis:{name:'Arthritis Care Plan',cost:320,success:.70,desc:'Pain control, mobility plan and follow-up.'},
+ art:{name:'HIV Treatment Program',cost:900,success:.92,desc:'Ongoing antiretroviral treatment and monitoring.'}
+};
+function S(){
+ game.health48=game.health48||{conditions:[],visits:0,tests:0,spent:0,sexualPartners:0,hookups:0,lastEventAge:null};
+ return game.health48;
+}
+function active(id){return S().conditions.find(x=>x.id===id&&x.active)}
+function addCondition(id,source='random'){
+ const d=CONDITIONS[id],s=S();if(!d||active(id))return false;
+ const x={id,active:true,diagnosed:false,treated:false,onTreatment:false,since:game.age,source,severity:d.sev};
+ s.conditions.push(x);
+ game.health=clamp((game.health||50)-Math.max(1,d.sev));
+ log(`Developed symptoms consistent with ${d.name}. The condition has not been formally diagnosed yet.`);
+ return true;
+}
+function known(){return S().conditions.filter(x=>x.active&&x.diagnosed)}
+function unknown(){return S().conditions.filter(x=>x.active&&!x.diagnosed)}
+function symptoms(){
+ const a=S().conditions.filter(x=>x.active);
+ if(!a.length)return 'No active symptoms reported.';
+ return a.map(x=>{const d=CONDITIONS[x.id];return x.diagnosed?d.name:d.desc}).join(' · ');
+}
+
+/* ---------------- HOSPITAL ---------------- */
+function hospital(){
+ const s=S(),a=s.conditions.filter(x=>x.active),k=known(),u=unknown();
+ modal(`<div class="p47-shell"><div class="p47-head"><h3>🏥 Hospital & Health</h3><p>Diagnosis, testing, treatment and follow-up</p></div><div class="p47-body">
+ <div class="p48-grid">
+  <div class="p48-stat"><small>Health</small><b>${Math.round(game.health||0)}%</b></div>
+  <div class="p48-stat"><small>Active conditions</small><b>${a.length}</b></div>
+  <div class="p48-stat"><small>Hospital visits</small><b>${s.visits}</b></div>
+  <div class="p48-stat"><small>Medical spending</small><b>${fm(s.spent)}</b></div>
+ </div>
+ <div class="p48-box"><b>Current symptoms</b><p class="p48-muted">${esc(symptoms())}</p></div>
+ <div class="p47-section">Care</div>
+ <button class="p48-card" onclick="P48.checkup()"><b>🩺 See a Doctor · ${fm(90)}</b><small>Consultation, symptom review and examination. A doctor may recommend tests.</small></button>
+ <button class="p48-card" onclick="P48.tests()"><b>🧪 Tests & Screening</b><small>Blood work, imaging, respiratory tests, STI screening and other diagnostics.</small></button>
+ ${k.length?`<button class="p48-card" onclick="P48.treatments()"><b>💊 Treatment</b><small>View treatment options for your diagnosed conditions.</small></button>`:''}
+ <button class="p48-card" onclick="P48.records()"><b>📋 Medical Record</b><small>Review current and past diagnoses, treatment and health history.</small></button>
+ ${u.length?`<div class="p48-box"><b class="p48-yellow">You have unresolved symptoms.</b><p class="p48-muted">A consultation or appropriate diagnostic test may identify the cause.</p></div>`:''}
+ <button class="p47-back" onclick="P48.back()">‹ Back</button>
+ </div></div>`);
+}
+function pay(n){
+ if((game.money||0)<n){toast('You cannot afford this medical service.','💸');return false}
+ game.money-=n;S().spent+=n;return true
+}
+function checkup(){
+ if(!pay(90))return;const s=S();s.visits++;
+ const u=unknown();
+ if(u.length){
+   const found=pick(u);found.diagnosed=true;
+   const d=CONDITIONS[found.id];
+   log(`Visited a doctor for ${fm(90)} and was diagnosed with ${d.name}.`);
+   toast(`Diagnosis: ${d.name}`,'🩺');
+ }else{
+   game.health=clamp((game.health||0)+2);
+   log(`Had a medical checkup. No new condition was diagnosed.`);
+   toast('Checkup complete.','🩺');
+ }
+ save();ui();hospital();
+}
+function testsPage(){
+ modal(`<div class="p47-shell"><div class="p47-head"><h3>🧪 Tests & Screening</h3><p>Choose a diagnostic service</p></div><div class="p47-body">
+ ${Object.entries(TESTS).map(([id,t])=>`<button class="p48-card" onclick="P48.test('${id}')"><b>${t.name} · ${fm(t.cost)}</b><small>${t.desc}</small></button>`).join('')}
+ <button class="p47-back" onclick="P48.hospital()">‹ Hospital</button></div></div>`);
+}
+function doTest(id){
+ const t=TESTS[id];if(!t||!pay(t.cost))return;const s=S();s.tests++;
+ const matches=s.conditions.filter(x=>x.active&&!x.diagnosed&&CONDITIONS[x.id].tests.includes(id));
+ if(matches.length){
+   matches.forEach(x=>x.diagnosed=true);
+   const names=matches.map(x=>CONDITIONS[x.id].name);
+   log(`${t.name} detected ${names.join(', ')}.`);
+   toast(`Detected: ${names.join(', ')}`,'🧪');
+ }else{
+   log(`${t.name} found no new condition.`);
+   toast('No new condition detected.','✅');
+ }
+ save();ui();testsPage();
+}
+function treatments(){
+ const a=known();
+ modal(`<div class="p47-shell"><div class="p47-head"><h3>💊 Treatment</h3><p>Diagnosed conditions</p></div><div class="p47-body">
+ ${a.length?a.map(x=>{const d=CONDITIONS[x.id];return`<div class="p48-box" style="margin-bottom:9px"><b>${d.icon} ${d.name}</b><p class="p48-muted">${d.desc}</p>${d.treat.map(tid=>{const t=TREAT[tid];return`<button class="p48-card" onclick="P48.treat('${x.id}','${tid}')"><b>${t.name} · ${fm(t.cost)}</b><small>${t.desc}</small></button>`}).join('')}</div>`}).join(''):'<div class="p48-box">No diagnosed active conditions.</div>'}
+ <button class="p47-back" onclick="P48.hospital()">‹ Hospital</button></div></div>`);
+}
+function treat(id,tid){
+ const x=active(id),d=CONDITIONS[id],t=TREAT[tid];if(!x||!d||!t||!pay(t.cost))return;
+ x.treated=true;x.onTreatment=d.chronic;
+ let cured=!d.chronic&&chance(t.success);
+ if(cured){x.active=false;x.onTreatment=false;game.health=clamp((game.health||0)+Math.max(2,d.sev*2));log(`Completed ${t.name} for ${d.name}. Follow-up confirmed the condition resolved.`);toast(`${d.name} resolved.`,'✅')}
+ else if(d.chronic){game.health=clamp((game.health||0)+Math.max(1,d.sev));log(`Started ${t.name} for ${d.name}. The condition is being medically managed.`);toast(`${d.name} is being managed.`,'💊')}
+ else{game.health=clamp((game.health||0)+1);log(`Received ${t.name} for ${d.name}, but symptoms have not fully resolved yet.`);toast('Treatment completed; follow-up may be needed.','🩺')}
+ save();ui();treatments();
+}
+function records(){
+ const all=S().conditions;
+ modal(`<div class="p47-shell"><div class="p47-head"><h3>📋 Medical Record</h3><p>Health history</p></div><div class="p47-body">
+ ${all.length?all.slice().reverse().map(x=>{const d=CONDITIONS[x.id];return`<div class="p48-box" style="margin-bottom:8px"><b>${d.icon} ${x.diagnosed?d.name:'Undiagnosed illness'}</b><div><span class="p48-tag">Age ${x.since}</span><span class="p48-tag">${x.active?'Active':'Resolved'}</span>${x.onTreatment?'<span class="p48-tag">Managed</span>':''}</div><p class="p48-muted">${x.diagnosed?d.desc:'Symptoms were present but no formal diagnosis was recorded.'}</p></div>`}).join(''):'<div class="p48-box">No medical conditions recorded.</div>'}
+ <button class="p47-back" onclick="P48.hospital()">‹ Hospital</button></div></div>`);
+}
+
+/* ---------------- ADULT DATING / HOOKUPS ---------------- */
+const FIRST=['Alex','Jordan','Taylor','Morgan','Casey','Riley','Avery','Cameron','Jamie','Drew','Sam','Quinn'];
+function adultDating(){
+ if(game.age<18){toast('Adult dating unlocks at age 18.','🔒');return}
+ const s=S();
+ modal(`<div class="p47-shell"><div class="p47-head"><h3>💞 Adult Dating</h3><p>Dating, hookups and casual relationships</p></div><div class="p47-body">
+ <div class="p48-grid"><div class="p48-stat"><small>Casual encounters</small><b>${s.hookups}</b></div><div class="p48-stat"><small>Partners</small><b>${s.sexualPartners}</b></div></div>
+ <button class="p48-card" onclick="P48.encounter('hookup')"><b>💋 Look for a Hookup</b><small>Meet another consenting adult for a casual encounter. Attraction, rejection and health consequences are simulated.</small></button>
+ <button class="p48-card" onclick="P48.encounter('onenight')"><b>🌙 One-Night Stand</b><small>Meet someone for a single casual night with relationship and sexual-health outcomes.</small></button>
+ <button class="p48-card" onclick="P48.test('sti')"><b>🧪 Get an STI Screening · ${fm(TESTS.sti.cost)}</b><small>Confidential hospital screening for common STIs.</small></button>
+ <button class="p47-back" onclick="P48.backActivities()">‹ Activities</button></div></div>`);
+}
+function encounter(kind){
+ if(game.age<18)return;
+ const name=pick(FIRST),age=rand(Math.max(18,game.age-6),Math.max(19,game.age+7));
+ const accept=clamp(.50+(game.looks||50)/250+(game.happiness||50)/600,0.38,.88);
+ if(!chance(accept)){
+   game.happiness=clamp((game.happiness||0)-1);
+   log(`Met ${name}, age ${age}, while looking for a casual date, but there was no mutual interest.`);
+   toast('There was no mutual interest.','🙂');save();ui();adultDating();return;
+ }
+ modal(`<div class="p47-shell"><div class="p47-head"><h3>${kind==='hookup'?'💋 Hookup':'🌙 One-Night Stand'}</h3><p>You met ${esc(name)}, age ${age}</p></div><div class="p47-body">
+ <div class="p48-box"><b>There is mutual interest.</b><p class="p48-muted">Choose how you want to handle the encounter.</p></div>
+ <button class="p48-card" onclick="P48.finishEncounter('${kind}','${name}',${age},true)"><b>🛡️ Use Protection</b><small>Lower STI and pregnancy risk.</small></button>
+ <button class="p48-card" onclick="P48.finishEncounter('${kind}','${name}',${age},false)"><b>⚠️ Do Not Use Protection</b><small>Higher STI and pregnancy risk.</small></button>
+ <button class="p48-card" onclick="P48.adultDating()"><b>👋 Change Your Mind</b><small>End the encounter and leave.</small></button>
+ </div></div>`);
+}
+function finishEncounter(kind,name,age,protectedSex){
+ const s=S();s.hookups++;s.sexualPartners++;
+ game.happiness=clamp((game.happiness||0)+rand(1,4));
+ const stiRisk=protectedSex?.025:.105;
+ const pool=['chlamydia','gonorrhea','herpes','syphilis','hiv'];
+ let got=null;
+ if(chance(stiRisk)){
+   const weights=protectedSex?['chlamydia','gonorrhea','herpes']:pool;
+   got=pick(weights);addCondition(got,'sexual contact');
+ }
+ let pregnancy=false;
+ /* Game abstracts reproductive pairing; pregnancy can only occur where the existing game supports it. */
+ if(!protectedSex&&chance(.09)){
+   try{
+     if(game.gender==='Female'){game.pregnancy=game.pregnancy||{active:true,since:game.age,partner:name};pregnancy=true}
+     else if(game.gender==='Male'){pregnancy=true}
+   }catch(e){}
+ }
+ log(`${kind==='hookup'?'Had a consensual hookup':'Had a consensual one-night stand'} with ${name}, age ${age}${protectedSex?', using protection':', without protection'}.${got?' You later developed symptoms that may require STI testing.':''}${pregnancy?' There is also a possible pregnancy consequence.':''}`);
+ save();ui();
+ modal(`<div class="p47-shell"><div class="p47-head"><h3>💞 Encounter</h3><p>${esc(name)}, age ${age}</p></div><div class="p47-body">
+ <div class="p48-box"><b>${protectedSex?'You used protection.':'You did not use protection.'}</b><p class="p48-muted">${got?'You have developed symptoms. An STI screening can identify the cause.':'You have no immediate symptoms, though screening remains available.'}${pregnancy?' A possible pregnancy may also need follow-up.':''}</p></div>
+ <button class="p48-card" onclick="P48.test('sti')"><b>🧪 Get STI Screening</b><small>Go to the hospital for confidential testing.</small></button>
+ <button class="p47-back" onclick="P48.adultDating()">Back to Adult Dating</button></div></div>`);
+}
+
+/* ---------------- RANDOM DISEASE EVENTS / YEARLY PROGRESSION ---------------- */
+function randomHealthEvent(){
+ const s=S();if(s.lastEventAge===game.age)return;s.lastEventAge=game.age;
+ let p=.055;
+ if(game.age<6)p=.075;else if(game.age>55)p=.12;else if(game.age>35)p=.085;
+ if((game.health||50)<45)p+=.05;
+ if(!chance(p))return;
+ let pool=['cold','flu','gastro'];
+ if(game.age>=12)pool.push('migraine','asthma');
+ if(game.age>=35)pool.push('hypertension','diabetes');
+ if(game.age>=55)pool.push('arthritis','pneumonia','hypertension','diabetes');
+ const id=pick(pool);if(!addCondition(id,'random illness'))return;
+ const d=CONDITIONS[id];
+ setTimeout(()=>modal(`<div class="p47-shell"><div class="p47-head"><h3>${d.icon} Health Event</h3><p>You are feeling unwell</p></div><div class="p47-body">
+ <div class="p48-box"><b>${esc(d.desc)}</b><p class="p48-muted">You do not yet know exactly what is causing the symptoms.</p></div>
+ <button class="p48-card" onclick="P48.hospital()"><b>🏥 Go to the Hospital</b><small>See a doctor and investigate the symptoms.</small></button>
+ <button class="p48-card" onclick="closeModal()"><b>🛏️ Wait and Rest</b><small>Some illnesses resolve naturally, while others can persist or worsen.</small></button>
+ </div></div>`),350);
+}
+function healthYear(){
+ const s=S();
+ s.conditions.filter(x=>x.active).forEach(x=>{
+   const d=CONDITIONS[x.id];
+   if(d.chronic){
+     const hit=x.onTreatment?Math.max(0,Math.ceil(Math.abs(d.health)*.35)):Math.abs(d.health);
+     game.health=clamp((game.health||0)-hit);
+     if(x.onTreatment&&chance(.10)){game.health=clamp((game.health||0)+1)}
+   }else if(chance(d.natural+(x.treated?.15:0))){
+     x.active=false;log(`${d.name} resolved${x.diagnosed?' after recovery and care':''}.`);
+   }else{
+     game.health=clamp((game.health||0)+d.health);
+     if(d.sev>=3&&game.health<35)log(`${d.name} is taking a serious toll on your health. Medical care is recommended.`);
+   }
+ });
+ randomHealthEvent();
+}
+
+/* Age wrapper added after existing systems. */
+const ageBase=window.ageOneYear;
+if(typeof ageBase==='function'){
+ window.ageOneYear=function(){
+   const before=game.age,r=ageBase.apply(this,arguments);
+   if(game.alive&&game.age>before){try{healthYear();save();ui()}catch(e){console.error('[P48 health year]',e)}}
+   return r;
+ };
+}
+
+/* Add Adult Dating + Hospital to Activities without replacing the current Activities system. */
+function injectActivities(){
+ const mc=$('#modalContent');if(!mc||$('#p48Activities'))return;
+ const txt=(mc.textContent||'').toLowerCase();if(!txt.includes('activities')&&!txt.includes('free time'))return;
+ const host=mc.querySelector('.p32-body')||mc;
+ const wrap=document.createElement('div');wrap.id='p48Activities';
+ wrap.innerHTML=`<div class="p38-card p38-act"><div class="ai">🏥</div><div class="am"><b>Hospital & Health</b><p>Doctors, testing, diagnosis and treatment.</p><div><span class="p38-chip">Medical care</span></div></div><button class="p38-btn sm pri" onclick="P48.hospital()">Open</button></div>
+ ${game.age>=18?`<div class="p38-card p38-act"><div class="ai">💞</div><div class="am"><b>Adult Dating</b><p>Dating, hookups and one-night stands for adults.</p><div><span class="p38-chip">Age 18+</span></div></div><button class="p38-btn sm pri" onclick="P48.adultDating()">Open</button></div>`:''}`;
+ host.appendChild(wrap);
+}
+const actsBase=window.renderActivitiesTab;
+if(typeof actsBase==='function'){
+ window.renderActivitiesTab=function(){const r=actsBase.apply(this,arguments);setTimeout(injectActivities,0);return r};
+}
+
+window.P48={
+ marker:MARK,state:S,conditions:CONDITIONS,hospital,checkup,tests:testsPage,test:doTest,
+ treatments,treat,records,adultDating,encounter,finishEncounter,
+ back:backMore,backActivities(){if(window.renderActivitiesTab)renderActivitiesTab();else backMore()},
+ addCondition
+};
+console.log('[Patch 48] Detailed health, disease events, hospital and adult dating active.');
+})();
+</script>
+<!-- ===== END LIFE SIM PATCH 48 ===== -->
+<!-- ===== MERGED PATCH END ===== -->
+
+
+
+
+<!-- ===== DESTINY REBUILT MORE MENU V1 ===== -->
+<style id="destiny-more-v1-css">
+#gameModal.destiny-more-v1 #modalContent{padding:0!important;overflow:hidden!important}
+.dm1{min-height:100%;max-height:86vh;overflow:auto;background:#0d1118;color:#f7f8fb}
+.dm1-head{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;padding:17px 16px 13px;background:rgba(13,17,24,.97);backdrop-filter:blur(14px);border-bottom:1px solid #ffffff12}
+.dm1-title{flex:1}.dm1-title b{display:block;font-size:1.08rem}.dm1-title small{display:block;opacity:.55;font-size:.7rem;margin-top:2px}
+.dm1-close{width:36px!important;height:36px!important;margin:0!important;padding:0!important;border:0!important;border-radius:12px!important;background:#ffffff0c!important;color:inherit!important;font-size:1.1rem!important}
+.dm1-body{padding:11px 13px 22px}.dm1-sec{font-size:.66rem;font-weight:900;letter-spacing:.13em;text-transform:uppercase;opacity:.45;margin:15px 4px 7px}
+.dm1-card{border:1px solid #ffffff12;background:#151a22;border-radius:16px;overflow:hidden}
+.dm1-row{width:100%!important;min-height:61px!important;margin:0!important;padding:11px 12px!important;border:0!important;border-bottom:1px solid #ffffff0e!important;border-radius:0!important;background:transparent!important;color:inherit!important;display:flex!important;align-items:center!important;gap:11px!important;text-align:left!important}
+.dm1-row:last-child{border-bottom:0!important}.dm1-row:active{background:#ffffff0a!important}
+.dm1-ic{width:35px;height:35px;border-radius:11px;background:#ffffff0b;display:grid;place-items:center;flex:0 0 auto;font-size:1.12rem}
+.dm1-copy{flex:1;min-width:0}.dm1-copy b{display:block;font-size:.87rem}.dm1-copy small{display:block;font-size:.68rem;line-height:1.3;opacity:.55;margin-top:2px}
+.dm1-arr{opacity:.32;font-size:1.15rem}.dm1-foot{text-align:center;font-size:.59rem;letter-spacing:.13em;opacity:.28;padding:19px 0 2px}
+html[data-theme=light] .dm1{background:#f6f7fa;color:#17191e}
+html[data-theme=light] .dm1-head{background:rgba(246,247,250,.97)}
+html[data-theme=light] .dm1-card{background:#fff;border-color:#dfe3ea}
+</style>
+<script>
+(function(){
+'use strict';
+if(window.__DESTINY_MORE_REBUILT_V1__)return;
+window.__DESTINY_MORE_REBUILT_V1__=1;
+const MARK='DESTINY REBUILT MORE MENU V1';
+const $=s=>document.querySelector(s);
+
+function available(name){return typeof window[name]==='function'}
+function call(name,...args){
+ const f=window[name];
+ if(typeof f==='function')return f(...args);
+ try{showToast(name+' is unavailable.','⚠️')}catch(_){}
+}
+function education(){
+ if(window.P37&&typeof P37.open==='function')return P37.open(game.age<16?'hs':'home');
+ if(window.P45&&typeof P45.educationHome==='function')return P45.educationHome();
+ try{showToast('Education is unavailable.','⚠️')}catch(_){}
+}
+function fame(){
+ if(window.P28&&typeof P28.hub==='function')return P28.hub();
+ if(window.P33&&typeof P33.openFame==='function')return P33.openFame();
+ return call('openFameHub');
+}
+function crime(){if(window.P47&&typeof P47.crime==='function')return P47.crime()}
+function health(){if(window.P48&&typeof P48.hospital==='function')return P48.hospital()}
+function row(icon,title,desc,action,id=''){
+ return `<button ${id?`id="${id}"`:''} class="dm1-row" type="button" data-dm1-action="${action}"><span class="dm1-ic">${icon}</span><span class="dm1-copy"><b>${title}</b><small>${desc}</small></span><span class="dm1-arr">›</span></button>`;
+}
+const actions={
+ activities:()=>call('renderActivitiesTab'),
+ fame,
+ education,
+ health,
+ crime,
+ stats:()=>call('p15Stats'),
+ achievements:()=>call('openStatus'),
+ timeline:()=>call('p1Timeline'),
+ travel:()=>call('v13Hub'),
+ bank:()=>call('finOpen'),
+ luxury:()=>call('openShoppingTab'),
+ creator:()=>call('openCreatorHub'),
+ pets:()=>call('openPetsTab'),
+ emigrate:()=>call('openEmigrateTab'),
+ store:()=>call('openMarketplace'),
+ settings:()=>call('openSettings')
+};
+function open(){
+ const g=$('#gameModal'),m=$('#modalContent');if(!g||!m)return;
+ /* Erase whatever was in the shared modal. No old More renderer is called. */
+ g.className=g.className.replace(/\bp\d+-more\b/g,'').replace(/\bp\d+-opening\b/g,'').replace(/\bp\d+-hold\b/g,'');
+ g.classList.add('destiny-more-v1');g.classList.remove('hidden');
+ m.className='';
+ m.style.visibility='visible';m.style.opacity='1';m.style.pointerEvents='auto';
+ m.innerHTML=`<div class="dm1" data-destiny-more-v1="1">
+  <div class="dm1-head"><div class="dm1-title"><b>More</b><small>Activities, life systems and settings</small></div><button class="dm1-close" type="button" data-dm1-close="1">✕</button></div>
+  <div class="dm1-body">
+   <div class="dm1-sec">Life</div><div class="dm1-card">
+    ${row('🎯','Activities','Things to do, play and explore','activities')}
+    ${row('⭐','Fame','Celebrity status and public life','fame')}
+    ${row('🎓','Education','School, university and qualifications','education','ls37EduEntry')}
+    ${row('🏥','Hospital & Health','Doctors, tests, illness and treatment','health')}
+    ${row('🚔','Crime','Crime, police, courts, lawyers and jail','crime')}
+    ${row('📊','Stats','View your complete life statistics','stats')}
+    ${row('🏆','Achievements','Goals and accomplishments','achievements')}
+   </div>
+   <div class="dm1-sec">Money & Lifestyle</div><div class="dm1-card">
+    ${row('🏦','Bank, Credit & Loans','Banking, borrowing and credit','bank')}
+    ${row('🛍️','Luxury Shopping & Jets','Luxury goods, vehicles and private jets','luxury')}
+    ${row('📹','Digital Creator Studio','YouTube, TikTok, Twitch and creator career','creator')}
+   </div>
+   <div class="dm1-sec">World</div><div class="dm1-card">
+        ${row('✈️','Travel','Vacations, family holidays and destinations','travel')}
+${row('📜','Life Timeline','Review your life history','timeline')}
+    ${row('🐾','Pets Shelter','Adopt and manage pets','pets')}
+    ${row('🌍','Emigrate','Move to another country','emigrate')}
+   </div>
+   <div class="dm1-sec">Game</div><div class="dm1-card">
+    ${row('💎','Premium Store','Premium game content','store')}
+    ${row('⚙️','Settings','Theme, audio and preferences','settings')}
+   </div>
+   <div class="dm1-foot">DESTINY · LIVE YOUR STORY</div>
+  </div></div>`;
+}
+
+/* One public More function. */
+window.renderMoreTab=open;
+
+/* Do not rely on inline openTab('more'). Own the nav click once, at document capture. */
+document.addEventListener('click',function(e){
+ const nav=e.target.closest&&e.target.closest('#bottomNav button');
+ if(nav && /openTab\(['"]more['"]\)/.test(nav.getAttribute('onclick')||'')){
+   e.preventDefault();e.stopImmediatePropagation();
+   try{playSound('click')}catch(_){}
+   open();return;
+ }
+ const a=e.target.closest&&e.target.closest('[data-dm1-action]');
+ if(a){
+   e.preventDefault();e.stopImmediatePropagation();
+   const fn=actions[a.dataset.dm1Action];if(fn)fn();return;
+ }
+ const c=e.target.closest&&e.target.closest('[data-dm1-close]');
+ if(c){
+   e.preventDefault();e.stopImmediatePropagation();
+   try{closeModal()}catch(_){$('#gameModal')?.classList.add('hidden')}
+ }
+},true);
+
+/* Any old inline Back button that says renderMoreTab() now resolves to THIS function.
+   There is no separate More history stack anymore. */
+window.DestinyMore={marker:MARK,open,actions};
+console.log('[Destiny] Rebuilt More menu installed. Legacy More renderers removed from source.');
+})();
+</script>
+<!-- ===== END DESTINY REBUILT MORE MENU V1 ===== -->
+
+
+
+<style id="destiny-more-fullscreen-v53">
+#gameModal.destiny-more-v1{position:fixed!important;inset:0!important;width:100vw!important;max-width:none!important;height:100dvh!important;max-height:none!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;transform:none!important;z-index:10000!important;background:#0d1118!important}
+#gameModal.destiny-more-v1 #modalContent{width:100%!important;max-width:none!important;height:100%!important;max-height:none!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;overflow:hidden!important}
+#gameModal.destiny-more-v1 .dm1{width:100%!important;height:100dvh!important;min-height:100dvh!important;max-height:none!important;border-radius:0!important;overflow-y:auto!important;overscroll-behavior:contain;padding-bottom:max(12px,env(safe-area-inset-bottom))}
+#gameModal.destiny-more-v1 .dm1-head{padding-top:max(17px,env(safe-area-inset-top))}
+html[data-theme=light] #gameModal.destiny-more-v1{background:#f6f7fa!important}
+</style>
+
+<!-- ===== LIFE SIM PATCH 54: NPC PORTRAITS + RESPONSIVE MODAL WIDTH ===== -->
+<style id="p54-css">
+/* Normal game dialogs stay readable on wide monitors. More is intentionally fullscreen. */
+#gameModal:not(.destiny-more-v1) #modalContent{
+ width:min(calc(100vw - 32px),640px)!important;
+ max-width:640px!important;
+ margin-left:auto!important;
+ margin-right:auto!important;
+ box-sizing:border-box!important;
+}
+@media(max-width:680px){
+ #gameModal:not(.destiny-more-v1) #modalContent{
+   width:calc(100vw - 16px)!important;
+   max-width:calc(100vw - 16px)!important;
+ }
+}
+@media(max-width:640px){
+ #gameModal.p32-modal:not(.destiny-more-v1) #modalContent.p32-menu{
+   width:100%!important;
+   max-width:100%!important;
+ }
+}
+/* Never undo the dedicated fullscreen More layout. */
+#gameModal.destiny-more-v1 #modalContent{width:100%!important;max-width:none!important}
+
+/* Generated NPC portraits replace the old emoji circles. */
+.p54-npc-face{
+ display:block!important;width:100%!important;height:100%!important;
+ object-fit:cover!important;border-radius:inherit!important;
+}
+.p31-avatar.p54-face-host,.p42-face.p54-face-host,.p44-face.p54-face-host{
+ overflow:hidden!important;padding:0!important;background:transparent!important;
+}
+.p44-cand .p54-candidate{
+ width:46px;height:46px;border-radius:50%;overflow:hidden;flex:0 0 46px;
+ border:1px solid rgba(148,163,184,.22);
+}
+.p44-cand.p54-cand-row{display:grid;grid-template-columns:46px 1fr;gap:10px;align-items:start}
+.p44-cand.p54-cand-row>button{grid-column:1/-1}
+</style>
+<script>
+(function(){
+'use strict';
+if(window.__DESTINY54__)return;window.__DESTINY54__=1;
+
+/* Deterministic local illustrated portrait generator.
+   Same NPC identity => same face every render/session; no network/image API required. */
+function hash(str){
+ let h=2166136261>>>0;
+ str=String(str||'NPC');
+ for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)}
+ return h>>>0;
+}
+function pick(a,n,shift){return a[((n>>>shift)%a.length+a.length)%a.length]}
+function escAttr(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function portraitData(name,age,gender,relation){
+ const key=[name,age,gender,relation].join('|'),h=hash(key);
+ const skins=['#f2c7a5','#dca47d','#bd7d55','#8b563b','#633b2b','#f0b98d'];
+ const hairs=['#17120f','#2a1b14','#4b2d1f','#6b4423','#b78a54','#d7c2a2'];
+ const shirts=['#4f46e5','#7c3aed','#2563eb','#0f766e','#be185d','#b45309'];
+ const bg=['#dbeafe','#ede9fe','#fce7f3','#dcfce7','#fef3c7','#e0e7ff'];
+ const skin=pick(skins,h,0),hair=pick(hairs,h,4),shirt=pick(shirts,h,8),back=pick(bg,h,12);
+ const eye=(h&1)?'#2b211b':'#1f2937';
+ const style=(h>>>16)%4;
+ let hairPath=style===0
+   ?'<path d="M19 39c2-19 14-29 31-29s29 10 31 29c-8-8-18-12-31-12S27 31 19 39Z" fill="'+hair+'"/>'
+   :style===1
+   ?'<path d="M18 42c0-22 12-33 32-33 17 0 29 9 32 28-9-5-18-7-28-5-12 2-23 1-36 10Z" fill="'+hair+'"/>'
+   :style===2
+   ?'<path d="M20 38c5-19 16-28 31-28 16 0 26 9 30 27-11-6-19-8-29-7-12 1-20 4-32 8Z" fill="'+hair+'"/><circle cx="24" cy="29" r="8" fill="'+hair+'"/>'
+   :'<path d="M17 40c4-20 15-31 33-31s29 11 33 31c-7-7-17-10-33-10S25 33 17 40Z" fill="'+hair+'"/><path d="M18 35c-3 15 0 25 7 31V39Z" fill="'+hair+'"/><path d="M82 35c3 15 0 25-7 31V39Z" fill="'+hair+'"/>';
+ const svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">'+
+   '<rect width="100" height="100" rx="24" fill="'+back+'"/>'+
+   '<path d="M15 100c3-22 17-34 35-34s32 12 35 34Z" fill="'+shirt+'"/>'+
+   '<ellipse cx="50" cy="45" rx="27" ry="31" fill="'+skin+'"/>'+hairPath+
+   '<ellipse cx="39" cy="45" rx="3" ry="3.5" fill="'+eye+'"/><ellipse cx="61" cy="45" rx="3" ry="3.5" fill="'+eye+'"/>'+
+   '<path d="M47 54c2 2 4 2 6 0" fill="none" stroke="#8b5e4b" stroke-width="2" stroke-linecap="round"/>'+
+   '<path d="M40 62c6 5 14 5 20 0" fill="none" stroke="#8f3f4f" stroke-width="2.5" stroke-linecap="round"/>'+
+   '</svg>';
+ return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg);
+}
+window.DestinyNPCFace=function(person,relation){
+ person=person||{};
+ const name=person.name||person.firstName||'Unknown';
+ const age=person.age==null?'':person.age;
+ const gender=person.gender||'';
+ const rel=person.relation||relation||'';
+ return portraitData(name,age,gender,rel);
+};
+
+function nameNear(host){
+ const card=host.closest('.p31-person,.p42-card,.p44-card,.p44-cand')||host.parentElement;
+ if(!card)return 'Unknown';
+ const el=card.querySelector('.p31-name,.p42-name,.p44-name,b');
+ return (el&&el.textContent||'Unknown').replace(/\s*🔔\s*/g,'').trim();
+}
+function metaNear(host){
+ const card=host.closest('.p31-person,.p42-card,.p44-card,.p44-cand')||host.parentElement;
+ const el=card&&card.querySelector('.p31-meta,.p42-meta,.p44-meta,small');
+ const t=el&&el.textContent||'';
+ const am=t.match(/Age\s+(\d+)/i), parts=t.split('·');
+ return {age:am?am[1]:'',relation:(parts[0]||'').trim()};
+}
+function upgradeHost(host){
+ if(!host||host.dataset.p54face)return;
+ const nm=nameNear(host),mt=metaNear(host);
+ /* Avoid replacing non-person decorative avatar nodes. */
+ if(!nm||nm==='Unknown')return;
+ host.dataset.p54face='1';host.classList.add('p54-face-host');
+ host.innerHTML='<img class="p54-npc-face" alt="'+escAttr(nm)+'" src="'+portraitData(nm,mt.age,'',mt.relation)+'">';
+}
+function upgrade(){
+ document.querySelectorAll('.p31-avatar,.p42-face,.p44-face').forEach(upgradeHost);
+
+ /* Meet-people candidates did not previously have any avatar at all. */
+ document.querySelectorAll('.p44-cand').forEach(card=>{
+   if(card.dataset.p54candidate)return;
+   const b=card.querySelector(':scope>b');if(!b)return;
+   const sm=card.querySelector(':scope>small'),name=(b.textContent||'').trim();
+   const t=sm&&sm.textContent||'',am=t.match(/Age\s+(\d+)/i);
+   const wrap=document.createElement('div');wrap.className='p54-candidate';
+   wrap.innerHTML='<img class="p54-npc-face" alt="'+escAttr(name)+'" src="'+portraitData(name,am?am[1]:'','','Candidate')+'">';
+   card.classList.add('p54-cand-row');card.insertBefore(wrap,b);
+   const text=document.createElement('div');text.className='p54-candidate-copy';
+   card.insertBefore(text,b);text.appendChild(b);if(sm)text.appendChild(sm);
+   card.dataset.p54candidate='1';
+ });
+}
+new MutationObserver(()=>requestAnimationFrame(upgrade)).observe(document.body,{childList:true,subtree:true});
+addEventListener('load',upgrade);setTimeout(upgrade,0);
+window.P54={portrait:portraitData,upgrade};
+console.log('[Patch 54] NPC generated portraits + responsive modal max-width active.');
+})();
+</script>
+<!-- ===== END PATCH 54 ===== -->
 </body>
 
 <!-- ===== LIFE SIM PATCH 18: FINAL LIFE VLOG VISIBILITY + RENDERER LOCK ===== -->
