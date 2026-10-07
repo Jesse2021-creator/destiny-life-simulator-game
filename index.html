@@ -5672,6 +5672,1328 @@ console.log('[Patch 25] Light / Dark / System appearance settings active.');
 
 <!-- ===== MERGED PATCH END ===== -->
 
+
+
+<!-- ===== MERGED PATCH START ===== -->
+<!-- LIFE SIM PATCH 26: AUTOSAVE + CASINO + LUXURY + ASSET MANAGEMENT REPAIR -->
+<style>
+#p26Modal{position:fixed;inset:0;z-index:100200;background:rgba(4,7,16,.76);backdrop-filter:blur(10px);display:none;align-items:flex-end;justify-content:center}
+#p26Modal.on{display:flex}
+.p26-sheet{width:min(720px,100%);max-height:94vh;overflow:auto;background:#111827;color:#f8fafc;border-radius:25px 25px 0 0;border:1px solid #334155;box-shadow:0 -18px 55px #0008}
+html[data-theme="light"] .p26-sheet{background:#fff;color:#172033;border-color:#e5e7eb}
+.p26-head{position:sticky;top:0;z-index:4;background:inherit;padding:15px 16px;border-bottom:1px solid #334155;display:flex;align-items:center;gap:10px}
+html[data-theme="light"] .p26-head{border-color:#e5e7eb}
+.p26-head h2{margin:0;flex:1;font-size:1.05rem}.p26-x{width:37px;height:37px;border:0;border-radius:50%;background:#334155;color:#fff;font-size:20px}
+.p26-body{padding:13px 13px 30px}.p26-tabs{display:flex;gap:7px;overflow:auto;padding-bottom:11px}.p26-tabs button,.p26-btn{border:0;border-radius:11px;padding:9px 11px;background:#334155;color:#fff;font-weight:800;cursor:pointer;white-space:nowrap}.p26-tabs button.on,.p26-btn.primary{background:#7c3aed}.p26-btn.green{background:#059669}.p26-btn.red{background:#dc2626}.p26-btn:disabled{opacity:.4}
+.p26-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.p26-card{padding:12px;border:1px solid #334155;border-radius:16px;background:#0f172a}
+html[data-theme="light"] .p26-card{background:#f8fafc;border-color:#e5e7eb}.p26-card h3{margin:3px 0 4px;font-size:.92rem}.p26-muted{font-size:.72rem;line-height:1.45;color:#94a3b8}.p26-price{font-size:1rem;font-weight:900;margin:7px 0}.p26-row{display:flex;gap:7px;flex-wrap:wrap;align-items:center}.p26-badge{font-size:.62rem;font-weight:900;background:#7c3aed22;color:#c4b5fd;border-radius:999px;padding:3px 7px}.p26-input,.p26-select{width:100%;box-sizing:border-box;margin:6px 0;padding:10px;border-radius:10px;border:1px solid #475569;background:#0b1220;color:#fff}.p26-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:10px}.p26-kpis div{padding:9px;border-radius:12px;background:#ffffff0d;text-align:center}.p26-kpis b{display:block;font-size:.86rem}.p26-kpis small{font-size:.58rem;color:#94a3b8}.p26-section{font-size:.69rem;font-weight:900;letter-spacing:.09em;color:#94a3b8;margin:14px 2px 7px}.p26-cards{font-size:1.8rem;letter-spacing:3px;margin:9px 0}.p26-track{height:5px;border-radius:99px;background:#334155;overflow:hidden;margin-top:5px}.p26-track i{display:block;height:100%;background:#8b5cf6}
+@media(max-width:520px){.p26-grid{grid-template-columns:1fr}.p26-sheet{max-height:92vh}.p26-btn{font-size:.72rem}}
+</style>
+
+<div id="p26Modal"><div class="p26-sheet"><div class="p26-head"><h2 id="p26Title">Destiny</h2><button class="p26-x" onclick="P26.close()">×</button></div><div class="p26-body" id="p26Body"></div></div></div>
+
+<script>
+/* LIFE SIM PATCH 26: AUTOSAVE + CASINO + LUXURY + ASSET MANAGEMENT REPAIR */
+(function(){
+'use strict';
+const MARK='LIFE SIM PATCH 26: AUTOSAVE + CASINO + LUXURY + ASSET MANAGEMENT REPAIR';
+const $=s=>document.querySelector(s), rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const pick=a=>a[rnd(0,a.length-1)], uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const money=n=>typeof formatMoney==='function'?formatMoney(n):'$'+Math.round(n||0).toLocaleString();
+
+function state(){
+ if(!game.p26)game.p26={year:null,cars:[],homes:[],yachts:[],jets:[],leases:[],bets:[],race:null,bj:null,casino:{wagered:0,wins:0,losses:0,profit:0}};
+ if(!game.p26.casino)game.p26.casino={wagered:0,wins:0,losses:0,profit:0};
+ ['cars','homes','yachts','jets','leases','bets'].forEach(k=>{if(!Array.isArray(game.p26[k]))game.p26[k]=[]});
+ return game.p26;
+}
+function log(t){if(!Array.isArray(game.logs))game.logs=[];game.logs.push(`Age ${game.age}: ${t}`)}
+function refresh(){try{updateUI()}catch(e){}}
+function toast(t,i='✨'){try{showToast(t,i)}catch(e){}}
+function pay(v){v=Math.round(Number(v)||0);if(v<=0)return false;if(game.money<v){toast('You do not have enough cash.','⚠️');return false}game.money-=v;refresh();return true}
+function earn(v){game.money+=Math.round(Number(v)||0);refresh()}
+function p26save(){autosave(false)}
+function open(title,html){$('#p26Title').textContent=title;$('#p26Body').innerHTML=html;$('#p26Modal').classList.add('on')}
+function close(){ $('#p26Modal').classList.remove('on') }
+
+/* ---------- AUTOSAVE AFTER FIRST MANUAL SAVE ---------- */
+const autoKey=()=>`destiny_autosave_${game.firstName||''}_${game.lastName||''}_${game.generation||1}`;
+function lifeKey(s){return `${s.firstName||''}|${s.lastName||''}|${s.generation||1}`}
+function autosave(show){
+ if(!game.alive||localStorage.getItem(autoKey())!=='1')return false;
+ const snap=JSON.parse(JSON.stringify(game));snap.savedAt=Date.now();snap.gems=undefined;
+ const k=lifeKey(game);let i=savedLives.findIndex(s=>lifeKey(s)===k);
+ if(i<0)return false;
+ savedLives[i]=snap;
+ try{localStorage.setItem('saved_lives',JSON.stringify(savedLives));if(show)toast('Autosaved.','💾');return true}catch(e){return false}
+}
+const oldSaveLife=saveCurrentLife;
+saveCurrentLife=function(){
+ oldSaveLife();
+ if(game.alive){
+   const i=savedLives.findIndex(s=>lifeKey(s)===lifeKey(game));
+   if(i>=0){localStorage.setItem(autoKey(),'1');autosave(false)}
+ }
+};
+setInterval(()=>autosave(false),5000);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)autosave(false)});
+window.addEventListener('beforeunload',()=>autosave(false));
+
+/* ---------- YEARLY SHOP INVENTORY ---------- */
+const cars=[
+ ['Toyota Corolla','Economy Sedan',132,18000],['Honda Civic','Compact',158,26000],['Toyota Camry','Sedan',203,34000],
+ ['Tesla Model 3','EV',283,46000],['BMW 5 Series','Luxury Sedan',375,76000],['Mercedes-Benz GLE','Luxury SUV',375,92000],
+ ['Range Rover Autobiography','Luxury SUV',523,168000],['Porsche 911 Carrera','Sports Car',379,145000],
+ ['Mercedes-AMG GT 63','Performance',577,190000],['Bentley Continental GT Speed','Grand Tourer',771,330000],
+ ['Rolls-Royce Cullinan','Ultra Luxury',563,475000],['McLaren 750S','Supercar',740,355000],
+ ['Lamborghini Revuelto','Supercar',1001,620000],['Ferrari SF90 Spider','Supercar',986,690000],
+ ['Bugatti Tourbillon','Hypercar',1800,4600000],['Koenigsegg Jesko','Hypercar',1600,3900000]
+];
+const homes=[
+ ['Studio Apartment','Apartment',1,1,550,95000],['City Apartment','Apartment',2,2,1050,235000],['Family Townhouse','Townhouse',3,3,1900,410000],
+ ['Suburban Home','House',4,3,2800,620000],['Waterfront Home','Luxury Home',4,4,4200,1450000],['Downtown Penthouse','Penthouse',3,4,3900,2800000],
+ ['Mediterranean Villa','Villa',5,6,7200,5200000],['Gated Estate','Estate',7,9,12500,11000000],['Oceanfront Mega Mansion','Mega Mansion',10,14,24000,32000000]
+];
+const yachts=[
+ ['Azimut 53','Motor Yacht',53,6,2,1900000],['Sunseeker 76','Motor Yacht',76,8,3,6200000],['Princess Y85','Luxury Yacht',85,8,4,9800000],
+ ['Ferretti 1000','Superyacht',98,10,5,14500000],['Benetti Oasis 40M','Superyacht',131,12,9,28500000],['Feadship 55M','Superyacht',180,12,13,72000000],['Lürssen 90M','Mega Yacht',295,18,30,185000000]
+];
+const jets=[
+ ['HondaJet Elite II','Very Light Jet',4,1547,422,7200000],['Embraer Phenom 300E','Light Jet',8,2010,464,12500000],
+ ['Cessna Citation Latitude','Midsize Jet',9,2700,446,19500000],['Bombardier Challenger 3500','Super Midsize',10,3400,470,29000000],
+ ['Gulfstream G500','Large Cabin',14,5300,516,54000000],['Dassault Falcon 10X','Ultra Long Range',19,7500,600,79000000],
+ ['Gulfstream G700','Ultra Long Range',19,7750,516,82000000],['Bombardier Global 8000','Ultra Long Range',19,8000,487,81000000]
+];
+const locs=['Lagos','London','Dubai','New York','Los Angeles','Miami','Paris','Monaco','Singapore','Cape Town'];
+function vari(v,p=.12){return Math.round(v*(1+(Math.random()*2-1)*p))}
+function generate(){
+ const s=state(),y=game.age;
+ s.cars=cars.map(x=>({id:uid(),kind:'car',name:x[0],type:x[1],hp:x[2],price:vari(x[3]),year:rnd(Math.max(2012,2026-rnd(0,9)),2026),mileage:rnd(0,90000),condition:pick(['Fair','Good','Very Good','Excellent']),annual:Math.round(x[3]*.055)}));
+ s.homes=homes.map(x=>({id:uid(),kind:'home',name:x[0],type:x[1],beds:x[2],baths:x[3],sqft:vari(x[4],.08),price:vari(x[5],.17),location:pick(locs),condition:pick(['Good','Very Good','Excellent']),annual:Math.round(x[5]*.018),marketRent:Math.round(x[5]*(.0035+Math.random()*.0025))}));
+ s.yachts=yachts.map(x=>({id:uid(),kind:'yacht',name:x[0],type:x[1],feet:x[2],guests:x[3],crew:x[4],price:vari(x[5]),year:rnd(2016,2026),speed:rnd(17,33),annual:Math.round(x[5]*.1)}));
+ s.jets=jets.map(x=>({id:uid(),kind:'jet',name:x[0],type:x[1],seats:x[2],range:x[3],speed:x[4],price:vari(x[5]),year:rnd(2017,2026),hours:rnd(30,4200),annual:Math.round(x[5]*.065)}));
+ s.year=y;p26save();
+}
+function ensureInventory(){const s=state();if(s.year!==game.age||!s.cars.length)generate()}
+
+/* ---------- CURRENT FINANCE SYSTEM INTEGRATION ---------- */
+function financeAsset(item,kind){
+ if(game.age<18){toast('You must be 18 to finance an asset.','⚠️');return false}
+ const downPct=kind==='home'?.20:.15,down=Math.round(item.price*downPct),principal=item.price-down;
+ if(game.money<down){toast(`You need ${money(down)} for the down payment.`,'⚠️');return false}
+ let f=null;try{f=typeof financialOverhaulState==='function'?financialOverhaulState():null}catch(e){}
+ if(!f||!Array.isArray(f.loans)){toast('The bank loan system is unavailable.','⚠️');return false}
+ const type=kind==='home'?'mortgage':'auto',term=kind==='home'?360:72;
+ const score=Number(f.creditScore||650),base=kind==='home'?6.25:7.25,rate=Math.max(3,base+(680-score)*.018);
+ const r=rate/1200,payment=principal*r/(1-Math.pow(1+r,-term));
+ game.money-=down;
+ f.loans.push({id:uid(),type,name:kind==='home'?'Mortgage':'Auto Loan',assetName:item.name,principal,balance:principal,rate:+rate.toFixed(2),term,monthsLeft:term,payment:+payment.toFixed(2),downPayment:down,startAge:game.age,late:0,assetId:item.id});
+ return true;
+}
+function ownedArray(kind){return kind==='home'?game.realEstate:game.vehicles}
+function purchase(kind,id,mode){
+ ensureInventory();const s=state(),arr=s[kind==='car'?'cars':kind==='home'?'homes':kind==='yacht'?'yachts':'jets'],item=arr.find(x=>x.id===id);if(!item)return;
+ if(mode==='lease'){
+   if(!['car','home'].includes(kind))return;
+   const monthly=Math.round(item.price*(kind==='home'?.0045:.012)),deposit=monthly*2;
+   if(!pay(deposit))return;
+   s.leases.push({id:uid(),kind,name:item.name,monthly,active:true,startAge:game.age,item:{...item}});
+   log(`Leased ${item.name} for ${money(monthly)} per month.`);p26save();luxury(kind);return;
+ }
+ if(mode==='cash'){if(!pay(item.price))return}
+ else if(mode==='finance'){if(!financeAsset(item,kind))return}
+ const obj={...item,value:item.price,purchasePrice:item.price,purchaseAge:game.age,assetType:kind,currentValue:item.price,rent:null,tenant:null};
+ ownedArray(kind).push(obj);
+ log(`Purchased ${item.name} for ${money(item.price)}${mode==='finance'?' with financing':''}.`);
+ toast(`${item.name} purchased.`,'✅');p26save();refresh();luxury(kind);
+}
+function sell(kind,id){
+ const arr=ownedArray(kind),i=arr.findIndex(x=>x.id===id);if(i<0)return;const a=arr[i],value=Math.round(a.currentValue||a.value||a.price||0);
+ if(!confirm(`Sell ${a.name} for ${money(value)}?`))return;
+ arr.splice(i,1);earn(value);log(`Sold ${a.name} for ${money(value)}.`);p26save();assetManager(kind);
+}
+function setRent(id){
+ const h=game.realEstate.find(x=>x.id===id);if(!h)return;
+ const ask=Number(prompt(`Monthly rent for ${h.name}. Estimated market rent: ${money(h.marketRent||Math.round(h.value*.0045))}`,h.rent?.ask||h.marketRent||Math.round(h.value*.0045)));
+ if(!(ask>0))return;h.rent={listed:true,ask:Math.round(ask)};if(h.tenant&&ask>(h.marketRent||1)*1.5)h.tenant=null;p26save();assetManager('home');
+}
+
+/* ---------- LUXURY SHOP ---------- */
+function specs(x,k){
+ if(k==='car')return `${x.year} · ${x.hp} hp · ${x.mileage.toLocaleString()} mi · ${x.condition}`;
+ if(k==='home')return `${x.location} · ${x.beds} bed · ${x.baths} bath · ${x.sqft.toLocaleString()} sq ft · ${x.condition}`;
+ if(k==='yacht')return `${x.year} · ${x.feet} ft · ${x.guests} guests · ${x.crew} crew · ${x.speed} kn`;
+ return `${x.year} · ${x.seats} seats · ${x.range.toLocaleString()} nm · ${x.speed} kt · ${x.hours.toLocaleString()} hrs`;
+}
+function luxury(k='car'){
+ ensureInventory();const s=state(),tabs=[['car','Cars'],['home','Properties'],['yacht','Yachts'],['jet','Private Jets']];
+ const arr=s[k==='car'?'cars':k==='home'?'homes':k==='yacht'?'yachts':'jets'];
+ open('Luxury Shopping',`<div class="p26-tabs">${tabs.map(t=>`<button class="${k===t[0]?'on':''}" onclick="P26.luxury('${t[0]}')">${t[1]}</button>`).join('')}<button onclick="P26.assets()">My Assets</button></div>
+ <div class="p26-muted">Listings regenerate each in-game year. Cars and properties can be bought outright, financed through your existing bank-loan system, or leased.</div>
+ <div class="p26-grid" style="margin-top:10px">${arr.map(x=>`<div class="p26-card"><span class="p26-badge">${esc(x.type)}</span><h3>${esc(x.name)}</h3><div class="p26-muted">${esc(specs(x,k))}</div><div class="p26-price">${money(x.price)}</div><div class="p26-muted">Est. annual cost ${money(x.annual)}</div><div class="p26-row" style="margin-top:9px"><button class="p26-btn green" onclick="P26.buy('${k}','${x.id}','cash')">Buy Cash</button>${['car','home'].includes(k)?`<button class="p26-btn" onclick="P26.buy('${k}','${x.id}','finance')">Finance</button><button class="p26-btn" onclick="P26.buy('${k}','${x.id}','lease')">Lease</button>`:''}</div></div>`).join('')}</div>`);
+}
+function assetManager(filter='all'){
+ const all=[...game.realEstate.map(x=>({...x,_kind:'home'})),...game.vehicles.map(x=>({...x,_kind:x.assetType||(/yacht/i.test(x.type||x.name)?'yacht':(/jet/i.test(x.type||x.name)?'jet':'car'))}))];
+ const show=filter==='all'?all:all.filter(x=>x._kind===filter),s=state();
+ const equity=all.reduce((n,x)=>n+Number(x.currentValue||x.value||x.price||0),0);
+ open('Asset Management',`<div class="p26-kpis"><div><b>${all.length}</b><small>OWNED</small></div><div><b>${money(equity)}</b><small>ASSET VALUE</small></div><div><b>${s.leases.filter(x=>x.active).length}</b><small>LEASES</small></div></div>
+ <div class="p26-tabs">${[['all','All'],['home','Property'],['car','Cars'],['yacht','Yachts'],['jet','Jets']].map(t=>`<button class="${filter===t[0]?'on':''}" onclick="P26.assets('${t[0]}')">${t[1]}</button>`).join('')}<button onclick="P26.luxury()">Shop</button></div>
+ ${show.length?show.map(x=>`<div class="p26-card" style="margin-bottom:8px"><span class="p26-badge">${x._kind.toUpperCase()}</span><h3>${esc(x.name)}</h3><div class="p26-price">${money(x.currentValue||x.value||x.price)}</div><div class="p26-muted">Purchase ${money(x.purchasePrice||x.price||x.value)} · Age ${x.purchaseAge??'—'}</div>${x._kind==='home'?`<div class="p26-muted">${x.rent?.listed?`Listed ${money(x.rent.ask)}/mo · ${x.tenant?'Occupied':'Vacant'}`:'Not listed for rent'}</div>`:''}<div class="p26-row" style="margin-top:8px">${x._kind==='home'?`<button class="p26-btn" onclick="P26.rent('${x.id}')">${x.rent?.listed?'Change Rent':'Rent Out'}</button>`:''}<button class="p26-btn red" onclick="P26.sell('${x._kind}','${x.id}')">Sell</button></div></div>`).join(''):'<div class="p26-card"><div class="p26-muted">You do not own assets in this category yet.</div><button class="p26-btn primary" style="margin-top:9px" onclick="P26.luxury()">Open Luxury Shopping</button></div>'}
+ <div class="p26-section">ACTIVE LEASES</div>${s.leases.filter(x=>x.active).map(x=>`<div class="p26-card" style="margin-bottom:8px"><b>${esc(x.name)}</b><div class="p26-muted">${x.kind} · ${money(x.monthly)}/month</div><button class="p26-btn red" style="margin-top:7px" onclick="P26.endLease('${x.id}')">End Lease</button></div>`).join('')||'<div class="p26-muted">No active leases.</div>'}`);
+}
+
+/* ---------- CASINO ---------- */
+function cstats(){const c=state().casino;return `<div class="p26-kpis"><div><b>${money(c.wagered)}</b><small>WAGERED</small></div><div><b>${c.wins}-${c.losses}</b><small>W / L</small></div><div><b>${money(c.profit)}</b><small>P/L</small></div></div>`}
+function casino(tab='blackjack'){
+ const tabs=[['blackjack','Blackjack'],['roulette','Roulette'],['slots','Slots'],['sports','Sports Betting'],['horses','Horse Racing']];
+ let b=cstats()+`<div class="p26-tabs">${tabs.map(t=>`<button class="${tab===t[0]?'on':''}" onclick="P26.casino('${t[0]}')">${t[1]}</button>`).join('')}</div>`;
+ if(tab==='blackjack')b+=blackjackUI();if(tab==='roulette')b+=rouletteUI();if(tab==='slots')b+=slotsUI();if(tab==='sports')b+=sportsUI();if(tab==='horses')b+=horseUI();
+ open('Casino & Sportsbook',b);
+}
+function result(stake,ret){const c=state().casino;c.wagered+=stake;c.profit+=ret-stake;if(ret>stake)c.wins++;else if(ret<stake)c.losses++;p26save()}
+const deck=()=>{const ranks=['A','2','3','4','5','6','7','8','9','10','J','Q','K'],suits=['♠','♥','♦','♣'];return pick(ranks)+pick(suits)}
+function score(hand){let n=0,a=0;hand.forEach(c=>{let r=c.slice(0,-1);if(r==='A'){a++;n+=11}else n+=['J','Q','K'].includes(r)?10:+r});while(n>21&&a){n-=10;a--}return n}
+function blackjackUI(){
+ const s=state();if(!s.bj)return `<div class="p26-card"><h3>Blackjack</h3><div class="p26-muted">Get as close to 21 as possible without going over.</div><input id="p26BjStake" class="p26-input" type="number" min="10" value="100"><button class="p26-btn primary" onclick="P26.bjDeal()">Deal</button></div>`;
+ const b=s.bj;return `<div class="p26-card"><div class="p26-muted">DEALER</div><div class="p26-cards">${b.dealer.join(' ')}</div><b>${b.done?score(b.dealer):'?'}</b><div class="p26-section">YOUR HAND</div><div class="p26-cards">${b.player.join(' ')}</div><b>${score(b.player)}</b><div class="p26-row" style="margin-top:10px">${b.done?`<button class="p26-btn primary" onclick="P26.bjNew()">New Hand</button>`:`<button class="p26-btn primary" onclick="P26.bjHit()">Hit</button><button class="p26-btn" onclick="P26.bjStand()">Stand</button>`}</div>${b.msg?`<p><b>${esc(b.msg)}</b></p>`:''}</div>`;
+}
+function bjDeal(){const st=Math.round(+$(`#p26BjStake`).value);if(!(st>=10)||!pay(st))return;state().bj={stake:st,player:[deck(),deck()],dealer:[deck(),deck()],done:false,msg:''};if(score(state().bj.player)===21)bjFinish();else casino('blackjack')}
+function bjFinish(){const b=state().bj;while(score(b.dealer)<17)b.dealer.push(deck());const p=score(b.player),d=score(b.dealer);let ret=0,msg='Dealer wins.';if(p===21&&b.player.length===2){ret=Math.round(b.stake*2.5);msg='Blackjack!'}else if(p>21)msg='Bust.';else if(d>21||p>d){ret=b.stake*2;msg='You win.'}else if(p===d){ret=b.stake;msg='Push.'}if(ret)earn(ret);result(b.stake,ret);b.done=true;b.msg=msg;log(`Played blackjack: ${msg}`);casino('blackjack')}
+function rouletteUI(){return `<div class="p26-card"><h3>Roulette</h3><input id="p26RouStake" class="p26-input" type="number" min="10" value="100"><select id="p26RouBet" class="p26-select"><option>Red</option><option>Black</option><option>Odd</option><option>Even</option>${Array.from({length:37},(_,i)=>`<option value="${i}">Number ${i}</option>`).join('')}</select><button class="p26-btn primary" onclick="P26.roulette()">Spin</button></div>`}
+function roulette(){const st=Math.round(+$('#p26RouStake').value),bet=$('#p26RouBet').value;if(!(st>=10)||!pay(st))return;const n=rnd(0,36),reds=[1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36],red=reds.includes(n);let win=false,m=2;if(bet==='Red')win=n&&red;if(bet==='Black')win=n&&!red;if(bet==='Odd')win=n&&n%2;if(bet==='Even')win=n&&n%2===0;if(/^\d+$/.test(bet)){win=n===+bet;m=36}const ret=win?st*m:0;if(ret)earn(ret);result(st,ret);log(`Roulette landed on ${n}. ${win?'Won '+money(ret):'Lost '+money(st)}.`);toast(`Roulette: ${n} — ${win?'WIN '+money(ret):'LOSS'}`,win?'🎉':'🎰');casino('roulette')}
+function slotsUI(){return `<div class="p26-card"><h3>Slots</h3><input id="p26SlotStake" class="p26-input" type="number" min="5" value="50"><button class="p26-btn primary" onclick="P26.slots()">Spin</button><div class="p26-cards">🎰 🎰 🎰</div></div>`}
+function slots(){const st=Math.round(+$('#p26SlotStake').value);if(!(st>=5)||!pay(st))return;const sy=['🍒','🍋','💎','7️⃣','⭐','🔔'],r=[pick(sy),pick(sy),pick(sy)],same=r.every(x=>x===r[0]),two=new Set(r).size===2,m=same?(r[0]==='7️⃣'?25:r[0]==='💎'?15:8):(two?1.5:0),ret=Math.round(st*m);if(ret)earn(ret);result(st,ret);toast(`${r.join(' ')} ${ret?'— '+money(ret):'— No win'}`,'🎰');casino('slots')}
+
+/* sportsbook */
+const teamPools={Football:['Arsenal','Barcelona','Real Madrid','Bayern Munich','Inter Milan','PSG','Liverpool','Manchester City'],Basketball:['Los Angeles','Boston','Miami','Denver','Phoenix','Milwaukee','Dallas','New York'],Tennis:['A. Novak','L. Mateo','J. Carter','D. Silva','M. Laurent','K. Ito']};
+function fixtures(){let a=[];Object.entries(teamPools).forEach(([sport,t])=>{for(let i=0;i<3;i++){let x=pick(t),y=pick(t);while(y===x)y=pick(t);let p=.34+Math.random()*.32,q=1-p,m=1.07;a.push({id:uid(),sport,a:x,b:y,pa:p,pb:q,oa:+(1/(p*m)).toFixed(2),ob:+(1/(q*m)).toFixed(2)})}});return a}
+function sportsUI(){const s=state();if(!s.fixtures||s.fixtureAge!==game.age){s.fixtures=fixtures();s.fixtureAge=game.age}return `<div class="p26-muted">Simulated realistic decimal odds. Open bets settle when you age up.</div><div class="p26-grid" style="margin-top:9px">${s.fixtures.map(f=>`<div class="p26-card"><span class="p26-badge">${f.sport}</span><h3>${f.a} vs ${f.b}</h3><div class="p26-row"><button class="p26-btn" onclick="P26.bet('${f.id}','a')">${f.a} · ${f.oa}</button><button class="p26-btn" onclick="P26.bet('${f.id}','b')">${f.b} · ${f.ob}</button></div></div>`).join('')}</div><div class="p26-section">YOUR BETS</div>${s.bets.slice(-10).reverse().map(b=>`<div class="p26-card" style="margin-bottom:7px"><b>${esc(b.pick)}</b> @ ${b.odds}<div class="p26-muted">${money(b.stake)} · ${b.status}</div></div>`).join('')||'<div class="p26-muted">No bets placed.</div>'}`}
+function bet(id,side){const f=state().fixtures.find(x=>x.id===id);if(!f)return;const st=Math.round(+prompt(`Stake on ${side==='a'?f.a:f.b}:`,100));if(!(st>0)||!pay(st))return;state().bets.push({id:uid(),sport:f.sport,pick:side==='a'?f.a:f.b,odds:side==='a'?f.oa:f.ob,prob:side==='a'?f.pa:f.pb,stake:st,status:'pending'});log(`Placed a ${money(st)} ${f.sport} bet on ${side==='a'?f.a:f.b}.`);p26save();casino('sports')}
+function settleBets(){state().bets.filter(b=>b.status==='pending').forEach(b=>{const win=Math.random()<b.prob;b.status=win?'won':'lost';if(win){b.return=Math.round(b.stake*b.odds);earn(b.return);log(`${b.sport} bet won and returned ${money(b.return)}.`)}else log(`${b.sport} bet on ${b.pick} lost.`)})}
+
+/* horse racing */
+function makeRace(){let h=Array.from({length:8},(_,i)=>({id:i,name:pick(['Midnight','Golden','Royal','Silver','Crimson','Lucky','Storm','Velvet'])+' '+pick(['Comet','Crown','Thunder','Spirit','Arrow','Dream','Legend','Star']),rating:rnd(65,98),form:rnd(1,5)}));let sum=h.reduce((n,x)=>n+x.rating+x.form*4,0);h.forEach(x=>{x.prob=(x.rating+x.form*4)/sum;x.odds=+(1/(x.prob*1.12)).toFixed(2);x.progress=0});return{horses:h,done:false}}
+function horseUI(){const s=state();if(!s.race)s.race=makeRace();const r=s.race;return `<div class="p26-card"><h3>Horse Racing</h3><div class="p26-muted">Choose a runner. Ratings and form influence the odds.</div>${r.horses.map(h=>`<div style="padding:8px 0;border-bottom:1px solid #334155"><b>${h.name}</b> · ${h.odds}<div class="p26-muted">Rating ${h.rating} · Form ${'●'.repeat(h.form)}</div><div class="p26-track"><i style="width:${h.progress}%"></i></div>${!r.done?`<button class="p26-btn" style="margin-top:5px" onclick="P26.horseBet(${h.id})">Bet</button>`:''}</div>`).join('')}${r.done?`<p><b>${esc(r.msg)}</b></p><button class="p26-btn primary" onclick="P26.nextRace()">Next Race</button>`:''}</div>`}
+function horseBet(id){const r=state().race,h=r.horses.find(x=>x.id===id),st=Math.round(+prompt(`Stake on ${h.name} at ${h.odds}:`,100));if(!(st>0)||!pay(st))return;let x=Math.random(),a=0,w=r.horses[0];for(const z of r.horses){a+=z.prob;if(x<=a){w=z;break}}r.horses.forEach(z=>z.progress=z.id===w.id?100:rnd(68,96));r.done=true;const win=w.id===id,ret=win?Math.round(st*h.odds):0;if(ret)earn(ret);result(st,ret);r.msg=`${w.name} won. ${win?'Your ticket returned '+money(ret)+'.':'Your bet lost.'}`;log(`Horse race: ${r.msg}`);p26save();casino('horses')}
+
+/* ---------- YEARLY ASSET ECONOMY ---------- */
+function yearlyAssets(){
+ game.realEstate.forEach(h=>{
+   const base=h.currentValue||h.value||h.price||0,quality={Fair:-.01,Good:.005,'Very Good':.012,Excellent:.018}[h.condition]||.005;
+   h.currentValue=h.value=Math.max(Math.round((h.purchasePrice||base)*.5),Math.round(base*(1+quality+(Math.random()-.35)*.075)));
+   if(h.rent?.listed){
+     const market=h.marketRent||Math.round(h.value*.0045);
+     if(!h.tenant){
+       const ratio=h.rent.ask/Math.max(1,market),chance=Math.max(.05,Math.min(.9,.78-(ratio-1)*.7));
+       if(Math.random()<chance){h.tenant={name:pick(['A. Johnson','T. Okafor','S. Brown','D. Adeyemi']),since:game.age};log(`Found a tenant for ${h.name} at ${money(h.rent.ask)}/month.`)}
+       else log(`${h.name} remained vacant at ${money(h.rent.ask)}/month.`);
+     }
+     if(h.tenant){earn(h.rent.ask*12);if(Math.random()<.12){h.tenant=null;log(`The tenant moved out of ${h.name}.`)}}
+   }
+ });
+ game.vehicles.forEach(v=>{let base=v.currentValue||v.value||v.price||0,f=v.assetType==='yacht'?(.88+Math.random()*.05):v.assetType==='jet'?(.90+Math.random()*.045):(/Bugatti|Koenigsegg/.test(v.name)?(1+(Math.random()-.35)*.06):(1-(.07+Math.random()*.09)));v.currentValue=v.value=Math.max(100,Math.round(base*f))});
+ state().leases.filter(x=>x.active).forEach(l=>{const due=l.monthly*12;if(game.money>=due){game.money-=due;log(`Paid ${money(due)} for a year of ${l.name} lease payments.`)}else{l.active=false;log(`${l.name} lease ended after missed payments.`)}});
+}
+
+/* actual ageOneYear hook */
+const oldAge=ageOneYear;
+ageOneYear=function(){const before=game.age;oldAge();if(game.alive&&game.age>before){settleBets();yearlyAssets();generate();autosave(false);refresh()}};
+
+/* ---------- REPAIR ENTRY POINTS ---------- */
+const oldActivity=window.doActivity;
+window.doActivity=function(type){if(type==='casino'){casino();return}return oldActivity(type)};
+window.openShoppingTab=function(){luxury('car')};
+
+/* Add Asset Management to the REAL existing Assets screen */
+const oldAssets=renderAssetsTab;
+renderAssetsTab=function(){
+ oldAssets();
+ setTimeout(()=>{
+   const root=document.getElementById('modalContent');if(!root||root.querySelector('#p26ManageAssets'))return;
+   const b=document.createElement('button');b.id='p26ManageAssets';b.className='w-full py-3 bg-purple-600 hover:bg-purple-500 rounded-xl font-bold mt-3';b.textContent='🏠 Asset Management — Cars, Property, Yachts & Jets';b.onclick=()=>assetManager('all');
+   const closeBtn=[...root.querySelectorAll('button')].find(x=>x.textContent.trim()==='Close');if(closeBtn)root.insertBefore(b,closeBtn);else root.appendChild(b);
+ },0);
+};
+
+/* Repair Patch 21 public routes so old menu buttons no longer open empty screens */
+if(window.P21){
+ window.P21.casino=casino;
+ window.P21.luxury=luxury;
+ window.P21.shop=luxury;
+}
+
+/* Expose */
+window.P26={
+ marker:MARK,open,close,casino,luxury,assets:assetManager,
+ buy:purchase,sell,rent:setRent,
+ endLease(id){const l=state().leases.find(x=>x.id===id);if(l)l.active=false;p26save();assetManager()},
+ bjDeal,bjHit(){const b=state().bj;if(!b||b.done)return;b.player.push(deck());if(score(b.player)>21)bjFinish();else casino('blackjack')},
+ bjStand:bjFinish,bjNew(){state().bj=null;casino('blackjack')},
+ roulette,slots,bet,horseBet,nextRace(){state().race=null;casino('horses')},
+ autosave
+};
+
+ensureInventory();
+console.log('[Patch 26] Autosave, casino, luxury purchases and asset management repaired.');
+})();
+</script>
+
+<!-- ===== MERGED PATCH END ===== -->
+
+
+
+<!-- ===== MERGED PATCH START ===== -->
+<!-- LIFE SIM PATCH 27: CASINO POPUPS + AGE DOWN + RELATIONSHIPS + FAME + LOTTERY -->
+<style>
+/* DESTINY PATCH 27 */
+#p27Pop{position:fixed;inset:0;z-index:100500;background:#020617b8;backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:18px}
+#p27Pop.on{display:flex}.p27-popbox{width:min(430px,100%);background:#111827;color:#f8fafc;border:1px solid #334155;border-radius:22px;padding:17px;box-shadow:0 22px 70px #0009}
+html[data-theme=light] .p27-popbox{background:#fff;color:#111827;border-color:#e5e7eb}.p27-popbox h3{margin:0 0 6px;font-size:1rem}.p27-popbox p{margin:0 0 11px;color:#94a3b8;font-size:.76rem;line-height:1.45}.p27-in{width:100%;box-sizing:border-box;padding:11px;border-radius:11px;border:1px solid #475569;background:#0b1220;color:#fff;margin:6px 0 11px}.p27-actions{display:flex;gap:8px}.p27-actions button{flex:1;border:0;border-radius:11px;padding:10px;font-weight:850;background:#334155;color:#fff}.p27-actions .yes{background:#7c3aed}
+#p27AgeDown{position:absolute!important;right:-9px!important;bottom:-9px!important;z-index:8;width:37px;height:37px;border-radius:50%;border:3px solid #111827;background:#ec4899;color:white;font-weight:950;font-size:.78rem;box-shadow:0 5px 15px #0006;display:grid;place-items:center;padding:0}
+html[data-theme=light] #p27AgeDown{border-color:#fff}
+.p27-relcard,.p27-famecard{padding:12px;border-radius:15px;background:#0f172a;border:1px solid #334155;margin-bottom:8px}.p27-relgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}.p27-relgrid button,.p27-btn{border:0;border-radius:10px;padding:9px;background:#334155;color:#fff;font-weight:800;font-size:.72rem}.p27-btn.pink{background:#db2777}.p27-btn.purple{background:#7c3aed}.p27-btn.red{background:#dc2626}.p27-mini{font-size:.68rem;color:#94a3b8;line-height:1.45}.p27-meter{height:6px;background:#334155;border-radius:99px;overflow:hidden;margin:6px 0}.p27-meter i{display:block;height:100%;background:#ec4899}.p27-pill{display:inline-block;padding:3px 7px;border-radius:999px;background:#7c3aed22;color:#c4b5fd;font-size:.62rem;font-weight:900;margin:2px 3px 2px 0}
+</style>
+<div id="p27Pop"><div class="p27-popbox"><h3 id="p27PopTitle"></h3><p id="p27PopText"></p><div id="p27PopField"></div><div class="p27-actions"><button onclick="P27.popCancel()">Cancel</button><button class="yes" onclick="P27.popOK()">Confirm</button></div></div></div>
+<script>
+/* LIFE SIM PATCH 27: CASINO POPUPS + AGE DOWN + RELATIONSHIPS + FAME + LOTTERY */
+(function(){
+'use strict';
+if(window.__DESTINY27__)return;window.__DESTINY27__=1;
+const MARK='LIFE SIM PATCH 27: CASINO POPUPS + AGE DOWN + RELATIONSHIPS + FAME + LOTTERY';
+const R=()=>Math.random(),pick=a=>a[Math.floor(R()*a.length)],cl=(n,a=0,b=100)=>Math.max(a,Math.min(b,n));
+const fm=n=>typeof formatMoney==='function'?formatMoney(n):'$'+Math.round(n||0).toLocaleString();
+const log=t=>{game.logs=game.logs||[];game.logs.push(`Age ${game.age}: ${t}`)};
+const save=()=>{try{window.P26&&P26.autosave(false)}catch(e){}};
+function st(){game.p27=game.p27||{ageDown:false,career:null,careerHistory:[],lottery:[],royalties:0};return game.p27}
+
+/* ---------- CUSTOM PROMPTS (no browser prompt/confirm in casino) ---------- */
+let cb=null;
+function popup(title,text,type='number',value='100',ok){
+ cb=ok;document.getElementById('p27PopTitle').textContent=title;document.getElementById('p27PopText').textContent=text;
+ document.getElementById('p27PopField').innerHTML=type==='none'?'':`<input id="p27PopInput" class="p27-in" type="${type}" value="${String(value).replace(/"/g,'&quot;')}">`;
+ document.getElementById('p27Pop').classList.add('on');setTimeout(()=>document.getElementById('p27PopInput')?.focus(),30)
+}
+function popCancel(){document.getElementById('p27Pop').classList.remove('on');cb=null}
+function popOK(){let f=document.getElementById('p27PopInput'),v=f?f.value:true,c=cb;popCancel();if(c)c(v)}
+function number(title,text,value,fn){popup(title,text,'number',value,v=>{v=Math.round(+v);if(v>0)fn(v);else showToast('Enter a valid amount.','⚠️')})}
+function yesno(title,text,fn){popup(title,text,'none','',()=>fn())}
+
+/* ---------- CASINO 18+ + CUSTOM POPUPS ---------- */
+const oldCasino=P26.casino;
+P26.casino=function(tab){
+ if(game.age<18){showToast('You must be 18 or older to enter the casino.','🔞');return}
+ return oldCasino(tab)
+};
+if(window.P21)P21.casino=P26.casino;
+const oldDo=window.doActivity;window.doActivity=function(type){if(type==='casino'){P26.casino();return}return oldDo(type)};
+
+P26.bet=function(id,side){
+ if(game.age<18)return P26.casino();
+ const s=game.p26,f=s?.fixtures?.find(x=>x.id===id);if(!f)return;
+ const name=side==='a'?f.a:f.b,odds=side==='a'?f.oa:f.ob,prob=side==='a'?f.pa:f.pb;
+ number('Place Sports Bet',`${name} at decimal odds ${odds}. Enter your stake.`,100,stake=>{
+   if(game.money<stake){showToast('You do not have enough cash.','⚠️');return}
+   game.money-=stake;s.bets.push({id:Date.now().toString(36)+R().toString(36).slice(2,6),sport:f.sport,pick:name,odds,prob,stake,status:'pending'});
+   log(`Placed a ${fm(stake)} ${f.sport} bet on ${name}.`);save();updateUI();P26.casino('sports')
+ })
+};
+P26.horseBet=function(id){
+ if(game.age<18)return P26.casino();
+ const r=game.p26?.race,h=r?.horses?.find(x=>x.id===id);if(!h)return;
+ number('Horse Racing',`${h.name} at ${h.odds}. Enter your stake.`,100,stake=>{
+  if(game.money<stake){showToast('You do not have enough cash.','⚠️');return}
+  game.money-=stake;let x=R(),a=0,w=r.horses[0];for(const z of r.horses){a+=z.prob;if(x<=a){w=z;break}}
+  r.horses.forEach(z=>z.progress=z.id===w.id?100:Math.floor(68+R()*29));r.done=true;
+  let win=w.id===id,ret=win?Math.round(stake*h.odds):0;if(ret)game.money+=ret;
+  let c=game.p26.casino;c.wagered+=stake;c.profit+=ret-stake;win?c.wins++:c.losses++;
+  r.msg=`${w.name} won. ${win?'Your ticket returned '+fm(ret)+'.':'Your bet lost.'}`;log(`Horse race: ${r.msg}`);save();updateUI();P26.casino('horses')
+ })
+};
+P26.roulette=function(){
+ number('Roulette','Enter your stake.',100,stake=>{
+  if(game.money<stake){showToast('You do not have enough cash.','⚠️');return}
+  const bet=document.getElementById('p26RouBet')?.value||'Red';game.money-=stake;const n=Math.floor(R()*37),reds=[1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36],red=reds.includes(n);
+  let win=false,m=2;if(bet==='Red')win=!!n&&red;if(bet==='Black')win=!!n&&!red;if(bet==='Odd')win=!!n&&!!(n%2);if(bet==='Even')win=!!n&&n%2===0;if(/^\d+$/.test(bet)){win=n===+bet;m=36}
+  const ret=win?stake*m:0;if(ret)game.money+=ret;let c=game.p26.casino;c.wagered+=stake;c.profit+=ret-stake;win?c.wins++:c.losses++;log(`Roulette landed on ${n}. ${win?'Won '+fm(ret):'Lost '+fm(stake)}.`);save();updateUI();showToast(`Roulette: ${n} — ${win?'WIN '+fm(ret):'LOSS'}`,'🎰');P26.casino('roulette')
+ })
+};
+P26.slots=function(){
+ number('Slot Machine','Enter your stake.',50,stake=>{
+  if(game.money<stake){showToast('You do not have enough cash.','⚠️');return}game.money-=stake;const sy=['🍒','🍋','💎','7️⃣','⭐','🔔'],r=[pick(sy),pick(sy),pick(sy)],same=r.every(x=>x===r[0]),two=new Set(r).size===2,m=same?(r[0]==='7️⃣'?25:r[0]==='💎'?15:8):(two?1.5:0),ret=Math.round(stake*m);if(ret)game.money+=ret;let c=game.p26.casino;c.wagered+=stake;c.profit+=ret-stake;ret>stake?c.wins++:c.losses++;save();updateUI();showToast(`${r.join(' ')} ${ret?'— '+fm(ret):'— No win'}`,'🎰');P26.casino('slots')
+ })
+};
+P26.bjDeal=function(){
+ number('Blackjack','Enter your stake. You must be 18+ to gamble.',100,stake=>{
+  if(stake<10){showToast('Minimum blackjack stake is $10.','⚠️');return}if(game.money<stake){showToast('You do not have enough cash.','⚠️');return}
+  game.money-=stake;game.p26.bj={stake,player:[card(),card()],dealer:[card(),card()],done:false,msg:''};updateUI();P26.casino('blackjack')
+ })
+};
+function card(){return pick(['A','2','3','4','5','6','7','8','9','10','J','Q','K'])+pick(['♠','♥','♦','♣'])}
+
+/* ---------- AGE DOWN PREMIUM ---------- */
+function ageBtn(){return document.querySelector('#bottomNav .age')||[...document.querySelectorAll('button')].find(b=>/Age\s*\+?1|AGE/i.test(b.textContent||''))}
+function ageDownButton(){
+ const b=ageBtn();if(!b||!st().ageDown)return;if(getComputedStyle(b).position==='static')b.style.position='relative';
+ if(!document.getElementById('p27AgeDown')){const x=document.createElement('button');x.id='p27AgeDown';x.type='button';x.textContent='−1';x.title='Age Down (25 Gems)';x.onclick=e=>{e.preventDefault();e.stopPropagation();ageDown()};b.appendChild(x)}
+}
+function buyAgeDown(){
+ if(st().ageDown){showToast('Age Down is already unlocked.','✔️');return}
+ if((game.gems||0)<500){showToast('Age Down costs 500 Gems.','💎');return}
+ yesno('Unlock Age Down','Unlock the Age Down control for 500 Gems? Each use costs 25 Gems.',()=>{game.gems-=500;st().ageDown=true;log('Unlocked the premium Age Down ability.');ageDownButton();updateUI();save();P26.assets()})
+}
+function ageDown(){
+ if(game.age<=0){showToast("You can't age below 0.",'⚠️');return}if((game.gems||0)<25){showToast('Age Down costs 25 Gems per use.','💎');return}
+ yesno('Age Down',`Spend 25 Gems to change your displayed age from ${game.age} to ${game.age-1}? This does not reverse money, purchases, relationships or past events.`,()=>{
+  game.gems-=25;game.age--;if(game.partner?.age>0)game.partner.age=Math.max(16,game.partner.age-1);log(`Used Age Down. Your age is now ${game.age}.`);updateUI();save()
+ })
+}
+const oldAssets=P26.assets;P26.assets=function(filter){oldAssets(filter);setTimeout(()=>{let body=document.getElementById('p26Body');if(!body||body.querySelector('#p27AgeShop'))return;let d=document.createElement('div');d.id='p27AgeShop';d.className='p27-famecard';d.innerHTML=`<b>⏳ Premium Life Control</b><div class="p27-mini">Age Down places a −1 button on the lower-right of the Age button. It changes age only and cannot undo previous events or transactions.</div><button class="p27-btn purple" style="margin-top:8px" onclick="P27.buyAgeDown()">${st().ageDown?'Age Down Unlocked · 25 💎 per use':'Unlock Age Down · 500 💎'}</button>`;body.prepend(d)},0)};
+new MutationObserver(ageDownButton).observe(document.body,{childList:true,subtree:true});ageDownButton();
+
+/* ---------- RELATIONSHIP / MARRIAGE / FAMILY ---------- */
+function rel(){
+ game.p27rel=game.p27rel||{marital:'single',engaged:false,marriedAge:null,prenup:false,birthControl:false,pregnancy:null};
+ if(game.partner){game.partner.relationship=cl(game.partner.relationship??70);game.partner.relation=game.p27rel.marital==='married'?'Spouse':'Partner'}
+ return game.p27rel
+}
+const names=['Amara','Chloe','Sophia','Maya','Jessica','Daniel','Michael','David','Noah','Ethan','Tobi','Ada'];
+function partnerUI(){
+ const r=rel(),p=game.partner;if(!p)return game.age>=16?`<button class="p27-btn pink" onclick="P27.findLove()">💘 Meet Someone</button>`:`<div class="p27-mini">Romance unlocks at age 16.</div>`;
+ const status=r.marital==='married'?'Married':r.engaged?'Engaged':'Dating';
+ return `<div class="p27-relcard"><b>${p.name}</b> <span class="p27-pill">${status}</span><div class="p27-mini">Age ${p.age||game.age} · Relationship ${p.relationship}%</div><div class="p27-meter"><i style="width:${p.relationship}%"></i></div>
+ <div class="p27-relgrid"><button onclick="P27.date()">❤️ Date</button><button onclick="P27.gift()">🎁 Gift</button>${r.marital==='single'&&!r.engaged?`<button onclick="P27.propose()">💍 Propose</button>`:''}${r.engaged?`<button onclick="P27.wedding()">💒 Get Married</button>`:''}${r.marital==='married'?`<button onclick="P27.intimacy()">❤️ Make Love</button><button onclick="P27.birthControl()">💊 Birth Control</button><button onclick="P27.divorce()">⚖️ Divorce</button>`:`<button onclick="P27.intimacy()">❤️ Make Love</button><button onclick="P27.breakup()">💔 Break Up</button>`}</div>
+ ${r.engaged&&!r.prenup?`<button class="p27-btn" style="margin-top:7px" onclick="P27.prenup()">📄 Ask for Prenup</button>`:''}${r.marital==='married'?`<div class="p27-mini" style="margin-top:7px">Prenup: ${r.prenup?'Signed':'None'} · Birth control: ${r.birthControl?'On':'Off'}</div>`:''}</div>`
+}
+window.renderRelationshipsTab=function(){
+ rel();openModal(`<h3 class="text-xl font-bold text-purple-400">❤️ Relationships & Family</h3><div class="space-y-3 text-sm"><div><h4 class="text-xs uppercase tracking-wider text-slate-400 font-bold mb-2">Partner & Romance</h4>${partnerUI()}</div>
+ <div><h4 class="text-xs uppercase tracking-wider text-slate-400 font-bold mb-2">Children</h4>${(game.children||[]).map((c,i)=>`<div class="p27-relcard"><b>${c.name||'Child'}</b><div class="p27-mini">Age ${c.age||0} · ${c.gender||''}</div><button class="p27-btn" onclick="P27.child(${i})">Spend Time</button></div>`).join('')||'<div class="p27-mini">No children yet.</div>'}</div>
+ <div><h4 class="text-xs uppercase tracking-wider text-slate-400 font-bold mb-2">Family</h4>${(game.family||[]).slice(0,8).map((f,i)=>`<div class="p27-relcard"><b>${f.name} · ${f.relation}</b><div class="p27-mini">Age ${f.age} · Bond ${f.relationship||0}%</div><button class="p27-btn" onclick="interactFamily(${i})">Spend Time</button></div>`).join('')}</div></div><button onclick="closeModal()" class="w-full py-2.5 bg-slate-700 rounded-xl font-bold mt-3">Close</button>`)
+};
+function findLove(){if(game.age<16)return;let p={name:pick(names),age:Math.max(16,game.age+Math.floor(R()*7)-3),relationship:65+Math.floor(R()*20),relation:'Partner'};game.partner=p;let r=rel();r.marital='single';r.engaged=false;r.prenup=false;r.birthControl=false;log(`Started dating ${p.name}.`);showToast(`You started dating ${p.name}.`,'💖');save();renderRelationshipsTab()}
+function propose(){let p=game.partner,r=rel();if(!p)return;if(game.age<18){showToast('Marriage proposals unlock at 18.','⚠️');return}let chance=.25+p.relationship/140;if(R()<chance){r.engaged=true;p.relationship=cl(p.relationship+5);log(`${p.name} accepted your marriage proposal.`);showToast('They said yes!','💍')}else{p.relationship=cl(p.relationship-12);log(`${p.name} declined your marriage proposal.`);showToast('The proposal was declined.','💔')}save();renderRelationshipsTab()}
+function prenup(){let p=game.partner,r=rel();if(!p||!r.engaged)return;let chance=.75-(Math.max(0,(window.getTotalNetWorth?.()||0)-250000)/5000000);if(R()<Math.max(.25,chance)){r.prenup=true;log(`${p.name} signed a prenuptial agreement.`);showToast('Prenup signed.','📄')}else{p.relationship=cl(p.relationship-8);log(`${p.name} refused to sign a prenup.`);showToast('Prenup refused.','⚠️')}save();renderRelationshipsTab()}
+function wedding(){let p=game.partner,r=rel();if(!p||!r.engaged)return;if(game.age<18)return showToast('You must be 18 to marry.','⚠️');r.engaged=false;r.marital='married';r.marriedAge=game.age;p.relation='Spouse';p.relationship=cl(p.relationship+10);game.happiness=cl(game.happiness+15);log(`Married ${p.name}${r.prenup?' with a prenup':''}.`);showToast(`You married ${p.name}!`,'💒');save();renderRelationshipsTab()}
+function intimacy(){
+ if(game.age<18||!game.partner){showToast('You must be an adult with a partner.','⚠️');return}
+ popup('Make Love','Choose protection. Protection reduces pregnancy risk.','none','',null);
+ document.getElementById('p27PopField').innerHTML=`<div class="p27-relgrid"><button onclick="P27.sexChoice('protected')">Use Protection</button><button onclick="P27.sexChoice('unprotected')">No Protection</button></div>`;document.querySelector('#p27Pop .p27-actions').style.display='none'
+}
+function sexChoice(mode){
+ document.querySelector('#p27Pop .p27-actions').style.display='flex';popCancel();let r=rel(),p=game.partner;p.relationship=cl(p.relationship+4);game.happiness=cl(game.happiness+4);
+ let chance=mode==='protected'?.02:.20;if(r.birthControl)chance*=.15;
+ if(R()<chance){r.pregnancy={dueAge:game.age+1,parent:p.name};log(`You and ${p.name} are expecting a baby.`);showToast('A pregnancy occurred.','🍼')}else{log(`Shared an intimate moment with ${p.name}${mode==='protected'?' using protection':''}.`);showToast('You spent intimate time together.','❤️')}
+ save();renderRelationshipsTab()
+}
+function birthControl(){let r=rel();r.birthControl=!r.birthControl;log(`${game.gender==='Female'?'You':game.partner.name} ${r.birthControl?'started':'stopped'} birth control.`);showToast(`Birth control ${r.birthControl?'enabled':'disabled'}.`,'💊');save();renderRelationshipsTab()}
+function divorce(){
+ let r=rel(),p=game.partner;if(!p||r.marital!=='married')return;let nw=Math.max(0,window.getTotalNetWorth?.()||game.money||0),share=r.prenup?Math.round(nw*.10):Math.round(nw*(.35+R()*.16)),cashLoss=Math.min(game.money,share);
+ yesno('Divorce Settlement',`${r.prenup?'Your prenup limits the settlement.':'Without a prenup, marital assets may be divided.'} Estimated settlement: ${fm(share)}. Continue?`,()=>{
+  game.money-=cashLoss;
+  if(share>cashLoss&&!r.prenup){
+   let target=share-cashLoss;
+   for(const arr of [game.realEstate,game.vehicles]){while(arr.length&&target>0){let a=arr.pop(),v=a.currentValue||a.value||a.price||0;target-=v}}
+  }
+  log(`Divorced ${p.name}. Settlement: ${fm(share)}.`);game.partner=null;r.marital='single';r.engaged=false;r.prenup=false;r.birthControl=false;game.happiness=cl(game.happiness-15);save();renderRelationshipsTab()
+ })
+}
+function breakup(){let p=game.partner;if(!p)return;yesno('End Relationship',`Break up with ${p.name}?`,()=>{log(`Ended the relationship with ${p.name}.`);game.partner=null;let r=rel();r.marital='single';r.engaged=false;game.happiness=cl(game.happiness-8);save();renderRelationshipsTab()})}
+
+/* ---------- FAME CAREERS ---------- */
+const careers=[
+ {id:'athlete',icon:'🏆',name:'Professional Athlete',min:18,skill:'health',base:85000,peak:3500000,desc:'Train, compete, negotiate contracts, endorsements and championships.'},
+ {id:'musician',icon:'🎤',name:'Musician',min:16,skill:'looks',base:25000,peak:5000000,desc:'Release music, perform shows, build fans, earn royalties and tour.'},
+ {id:'actor',icon:'🎬',name:'Actor',min:16,skill:'looks',base:30000,peak:4500000,desc:'Audition for roles, film projects, win awards and negotiate fees.'},
+ {id:'producer',icon:'🎛️',name:'Music Producer',min:18,skill:'smarts',base:55000,peak:2800000,desc:'Produce records, work with artists and earn production royalties.'},
+ {id:'director',icon:'🎥',name:'Movie Director',min:21,skill:'smarts',base:70000,peak:4000000,desc:'Direct films, manage budgets, box office performance and awards.'}
+];
+function fameCareer(){
+ let s=st(),c=s.career,career=c&&careers.find(x=>x.id===c.id);
+ openModal(`<h3 class="text-xl font-bold text-purple-400">⭐ Fame & Entertainment Careers</h3>${c&&career?`<div class="p27-famecard"><span class="p27-pill">${career.icon} ${career.name}</span><h4 class="font-black mt-2">${c.level}</h4><div class="p27-mini">Fame ${game.fame||0}% · Reputation ${game.reputation||50}% · Fans ${(c.fans||0).toLocaleString()} · Career earnings ${fm(c.earnings||0)}</div><div class="p27-meter"><i style="width:${game.fame||0}%"></i></div><div class="p27-relgrid"><button onclick="P27.fameAction('work')">Work / Perform</button><button onclick="P27.fameAction('train')">Practice</button><button onclick="P27.fameAction('media')">Media Appearance</button><button onclick="P27.fameAction('deal')">Seek Deal</button></div></div>`:`<div class="p27-mini mb-2">Premium careers are difficult to break into. Talent, health/smarts/looks, reputation and luck affect auditions and contracts.</div>${careers.map(x=>`<div class="p27-famecard"><b>${x.icon} ${x.name}</b><div class="p27-mini">${x.desc}<br>Minimum age ${x.min}</div><button class="p27-btn purple" style="margin-top:7px" onclick="P27.joinCareer('${x.id}')">Try Career</button></div>`).join('')}`}<button onclick="renderCareerTab()" class="w-full py-2.5 bg-slate-700 rounded-xl font-bold mt-3">Back</button>`)
+}
+function joinCareer(id){let x=careers.find(z=>z.id===id);if(game.age<x.min)return showToast(`Minimum age is ${x.min}.`,'⚠️');let skill=game[x.skill]||50,chance=.18+skill/220+(game.fame||0)/400;if(R()>chance){showToast('You did not make the cut. Keep improving your skills.','❌');log(`Tried to enter a career as ${x.name} but was rejected.`);return}st().career={id,level:'Emerging Talent',fans:Math.floor(R()*5000),earnings:0,skill:20,projects:0,awards:0};game.job={title:x.name,salary:x.base};game.fame=cl((game.fame||0)+5);log(`Began a professional career as ${x.name}.`);showToast(`You broke into ${x.name}!`,'⭐');save();fameCareer()}
+function fameAction(a){let c=st().career,x=careers.find(z=>z.id===c?.id);if(!c||!x)return;let earn=0;if(a==='train'){c.skill=cl(c.skill+3);game[x.skill]=cl((game[x.skill]||50)+2);game.happiness=cl(game.happiness-1);log(`Practiced for your ${x.name} career.`)}
+ if(a==='work'){c.projects++;let success=R()<(.3+c.skill/180+(game.fame||0)/250);earn=Math.round(x.base/8*(success?2+R()*5:.35+R()));c.earnings+=earn;game.money+=earn;c.fans+=Math.round((success?2000:200)*Math.max(1,game.fame/10));game.fame=cl((game.fame||0)+(success?Math.ceil(R()*7):1));c.skill=cl(c.skill+2);log(`${success?'Succeeded':'Worked'} on a ${x.name} project and earned ${fm(earn)}.`)}
+ if(a==='media'){let good=R()<.72;game.fame=cl((game.fame||0)+(good?4:-3));game.reputation=cl((game.reputation||50)+(good?2:-5));log(`Made a ${good?'successful':'controversial'} media appearance.`)}
+ if(a==='deal'){let chance=.15+(game.fame||0)/130+c.skill/250;if(R()<chance){earn=Math.round(x.peak*(.02+R()*.12));game.money+=earn;c.earnings+=earn;game.fame=cl(game.fame+5);log(`Signed a major ${x.name} deal worth ${fm(earn)}.`);showToast(`Deal signed: ${fm(earn)}`,'💰')}else showToast('No major deal offers arrived.','📭')}
+ save();updateUI();fameCareer()
+}
+/* add Fame to existing Career screen */
+const oldCareer=renderCareerTab;renderCareerTab=function(){oldCareer();setTimeout(()=>{let m=document.getElementById('modalContent');if(!m||m.querySelector('#p27FameBtn'))return;let b=document.createElement('button');b.id='p27FameBtn';b.className='w-full py-3 bg-gradient-to-r from-fuchsia-600 to-purple-600 rounded-xl font-bold mt-3';b.textContent='⭐ Fame & Premium Careers';b.onclick=fameCareer;let close=[...m.querySelectorAll('button')].find(x=>x.textContent.trim()==='Close');close?m.insertBefore(b,close):m.appendChild(b)},0)};
+
+/* ---------- LOTTERY ---------- */
+function lottery(){
+ if(game.age<18){showToast('You must be 18 to buy lottery tickets.','🔞');return}
+ openModal(`<h3 class="text-xl font-bold text-purple-400">🎟️ Destiny Lottery</h3><div class="p27-famecard"><b>National Jackpot</b><div class="text-2xl font-black mt-1">${fm(lotteryJackpot())}</div><div class="p27-mini">Ticket: $10 · Choose 5 numbers from 1–40. Jackpot odds are intentionally very low. Smaller matches can win prizes.</div><button class="p27-btn purple" style="margin-top:8px" onclick="P27.quickPick()">Quick Pick · $10</button></div><div class="p27-mini">${st().lottery.slice(-8).reverse().map(x=>`Age ${x.age}: ${x.nums.join('-')} · ${x.result}`).join('<br>')||'No tickets played yet.'}</div><button onclick="renderActivitiesTab()" class="w-full py-2.5 bg-slate-700 rounded-xl font-bold mt-3">Back</button>`)
+}
+function lotteryJackpot(){let base=5000000;try{base=+(localStorage.getItem('destiny_lottery_jackpot')||base)}catch(e){}return base}
+function quickPick(){if(game.money<10)return showToast('A lottery ticket costs $10.','⚠️');game.money-=10;let nums=[];while(nums.length<5){let n=1+Math.floor(R()*40);if(!nums.includes(n))nums.push(n)}nums.sort((a,b)=>a-b);let draw=[];while(draw.length<5){let n=1+Math.floor(R()*40);if(!draw.includes(n))draw.push(n)}let hits=nums.filter(n=>draw.includes(n)).length,j=lotteryJackpot(),prize=hits===5?j:hits===4?50000:hits===3?1000:hits===2?50:0;if(prize){game.money+=prize;if(hits===5)localStorage.setItem('destiny_lottery_jackpot','5000000')}else localStorage.setItem('destiny_lottery_jackpot',String(j+500000));let result=prize?`${hits} matches · Won ${fm(prize)}`:`${hits} matches · No prize`;st().lottery.push({age:game.age,nums,draw,result});log(`Lottery ticket ${nums.join('-')}: ${result}.`);showToast(`Draw: ${draw.sort((a,b)=>a-b).join('-')} · ${result}`,'🎟️');save();updateUI();lottery()}
+/* add lottery to Activities */
+const oldActivities=renderActivitiesTab;renderActivitiesTab=function(){oldActivities();setTimeout(()=>{let m=document.getElementById('modalContent');if(!m||m.querySelector('#p27Lottery'))return;let b=document.createElement('button');b.id='p27Lottery';b.className='w-full py-3 bg-slate-900 rounded-xl font-semibold text-left px-4 border border-slate-700';b.innerHTML='<span>🎟️ Play Lottery</span><span class="text-xs text-amber-400 float-right">18+</span>';b.onclick=lottery;let list=m.querySelector('.space-y-3');list?list.appendChild(b):m.appendChild(b)},0)};
+
+/* ---------- YEAR PROCESSING: children, pregnancy, fame income ---------- */
+const oldAge=window.ageOneYear||ageOneYear;window.ageOneYear=ageOneYear=function(){
+ let before=game.age,r=oldAge.apply(this,arguments);if(game.alive&&game.age>before){
+  let rr=rel();if(rr.pregnancy&&game.age>=rr.pregnancy.dueAge){let gender=R()<.5?'Male':'Female',name=pick(gender==='Male'?['Noah','Liam','Ethan','Tobi','Daniel']:['Amara','Maya','Ada','Sophia','Chloe']);game.children.push({name,age:0,gender,intelligence:40+Math.floor(R()*45)});log(`${name} was born.`);rr.pregnancy=null;showToast(`Welcome ${name}!`,'👶')}
+  (game.children||[]).forEach(c=>{if(typeof c.age==='number')c.age++});if(game.partner&&typeof game.partner.age==='number')game.partner.age++;
+  let c=st().career,x=careers.find(z=>z.id===c?.id);if(c&&x){let royal=Math.round((c.earnings||0)*(.015+game.fame/5000));if(royal>0){game.money+=royal;st().royalties+=royal;log(`Received ${fm(royal)} in ${x.name} royalties/endorsement income.`)}}
+  save();updateUI()
+ }return r
+};
+
+/* public API */
+window.P27={marker:MARK,popCancel,popOK,buyAgeDown,findLove,propose,prenup,wedding,intimacy,sexChoice,birthControl,divorce,breakup,
+ date(){if(!game.partner)return;game.partner.relationship=cl(game.partner.relationship+5);game.happiness=cl(game.happiness+4);log(`Went on a date with ${game.partner.name}.`);save();renderRelationshipsTab()},
+ gift(){if(!game.partner)return;number('Buy Gift',`How much would you like to spend on a gift for ${game.partner.name}?`,250,n=>{if(game.money<n)return showToast('Not enough cash.','⚠️');game.money-=n;game.partner.relationship=cl(game.partner.relationship+Math.min(15,2+Math.floor(n/500)));log(`Bought ${game.partner.name} a ${fm(n)} gift.`);save();updateUI();renderRelationshipsTab()})},
+ child(i){let c=game.children[i];if(!c)return;game.happiness=cl(game.happiness+3);log(`Spent quality time with ${c.name}.`);save();renderRelationshipsTab()},
+ joinCareer,fameAction,lottery,quickPick
+};
+window.proposeMarriage=propose;
+setTimeout(ageDownButton,100);
+console.log('[Patch 27] Casino custom popups, Age Down, relationships, fame careers and lottery active.');
+})();
+</script>
+<!-- ===== MERGED PATCH END ===== -->
+
+
+
+<!-- ===== MERGED PATCH START ===== -->
+<!-- LIFE SIM PATCH 28: FAME LIFE STATUS + 100 CELEBRITY EVENTS -->
+<style>
+#p28FameStatus{margin:8px 12px 10px;padding:11px 12px;border-radius:15px;background:var(--card,#fff);border:1px solid rgba(148,163,184,.22);box-shadow:0 3px 14px rgba(0,0,0,.05);color:var(--text,#111827)}
+.p28-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}.p28-head b{font-size:.82rem}.p28-rank{font-size:.62rem;font-weight:900;padding:4px 7px;border-radius:999px;background:#7c3aed1f;color:#8b5cf6}
+.p28-bar{height:7px;border-radius:99px;background:#94a3b82b;overflow:hidden}.p28-bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#8b5cf6,#ec4899);transition:width .35s}
+.p28-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:8px}.p28-grid div{text-align:center;padding:6px 3px;border-radius:9px;background:#94a3b812}.p28-grid b{display:block;font-size:.72rem}.p28-grid span{font-size:.55rem;opacity:.65}
+.p28-eventtag{display:inline-block;font-size:.61rem;font-weight:900;padding:4px 7px;border-radius:999px;background:#7c3aed22;color:#c4b5fd;margin-bottom:6px}.p28-eventchoices{display:grid;gap:7px;margin-top:11px}.p28-eventchoices button{border:0;border-radius:12px;padding:11px;text-align:left;background:#334155;color:#fff;font-weight:800}
+</style>
+<script>
+/* LIFE SIM PATCH 28: FAME LIFE STATUS + 100 CELEBRITY EVENTS */
+(function(){
+'use strict';if(window.__DESTINY28__)return;window.__DESTINY28__=1;
+const EVENTS=[{"cat":"Fans","title":"Recognized at Dinner","text":"A group of fans recognizes you while you're trying to have a quiet dinner.","choices":[{"label":"Take photos with everyone","fame":2,"rep":2,"happy":3,"money":0,"health":0,"fans":1800,"log":"Stayed late taking photos with fans."},{"label":"Politely ask for privacy","fame":0,"rep":0,"happy":1,"money":0,"health":0,"fans":-150,"log":"Asked fans for some privacy."},{"label":"Leave through the back","fame":-1,"rep":-1,"happy":-2,"money":0,"health":0,"fans":-500,"log":"Left a restaurant to avoid a crowd."}],"min":10,"max":100,"jobs":[]},{"cat":"Media","title":"Surprise Interview","text":"A reporter catches you outside an event and asks about your latest work.","choices":[{"label":"Give a thoughtful interview","fame":2,"rep":3,"happy":1,"money":0,"health":0,"fans":1200,"log":"Gave a thoughtful surprise interview."},{"label":"Keep it brief","fame":0,"rep":0,"happy":0,"money":0,"health":0,"fans":100,"log":"Kept a surprise interview brief."},{"label":"Ignore the reporter","fame":-1,"rep":-2,"happy":0,"money":0,"health":0,"fans":-300,"log":"Ignored a reporter."}],"min":12,"max":100,"jobs":[]},{"cat":"Paparazzi","title":"Paparazzi at Home","text":"Photographers are waiting near your home.","choices":[{"label":"Call security","fame":0,"rep":1,"happy":-1,"money":-1200,"health":0,"fans":0,"log":"Hired security to clear photographers."},{"label":"Ask them to leave","fame":0,"rep":0,"happy":-2,"money":0,"health":0,"fans":0,"log":"Confronted photographers outside home."},{"label":"Pose for them","fame":2,"rep":-1,"happy":1,"money":0,"health":0,"fans":1000,"log":"Posed for paparazzi outside home."}],"min":25,"max":100,"jobs":[]},{"cat":"Endorsement","title":"Sneaker Endorsement","text":"A sportswear brand offers you a paid social campaign.","choices":[{"label":"Accept the deal","fame":3,"rep":0,"happy":2,"money":25000,"health":0,"fans":5000,"log":"Signed a sneaker endorsement."},{"label":"Negotiate harder","fame":1,"rep":1,"happy":0,"money":40000,"health":0,"fans":1500,"log":"Negotiated a better endorsement fee."},{"label":"Decline it","fame":0,"rep":2,"happy":0,"money":0,"health":0,"fans":0,"log":"Declined a sneaker endorsement."}],"min":20,"max":100,"jobs":[]},{"cat":"Scandal","title":"Old Post Resurfaces","text":"An old embarrassing social post starts circulating again.","choices":[{"label":"Apologize sincerely","fame":-1,"rep":5,"happy":-2,"money":0,"health":0,"fans":-300,"log":"Apologized for an old social post."},{"label":"Say it was taken out of context","fame":1,"rep":-4,"happy":-2,"money":0,"health":0,"fans":-1000,"log":"Defended an old controversial post."},{"label":"Stay silent","fame":-2,"rep":-2,"happy":-1,"money":0,"health":0,"fans":-600,"log":"Stayed silent during an online controversy."}],"min":20,"max":100,"jobs":[]},{"cat":"Awards","title":"Award Nomination","text":"You've been nominated for an industry award.","choices":[{"label":"Attend the ceremony","fame":4,"rep":3,"happy":5,"money":-3000,"health":0,"fans":4000,"log":"Attended an award ceremony as a nominee."},{"label":"Skip the ceremony","fame":-1,"rep":-2,"happy":0,"money":0,"health":0,"fans":-300,"log":"Skipped an award ceremony."}],"min":30,"max":100,"jobs":[]},{"cat":"Fans","title":"Fan Gift","text":"A devoted fan sends an expensive-looking gift to your management office.","choices":[{"label":"Accept and thank them","fame":1,"rep":1,"happy":2,"money":0,"health":0,"fans":500,"log":"Thanked a fan for a gift."},{"label":"Return it politely","fame":0,"rep":3,"happy":0,"money":0,"health":0,"fans":100,"log":"Returned an expensive fan gift."},{"label":"Donate it","fame":1,"rep":5,"happy":3,"money":0,"health":0,"fans":700,"log":"Donated a fan gift to charity."}],"min":10,"max":100,"jobs":[]},{"cat":"Security","title":"Overenthusiastic Fan","text":"A fan repeatedly appears outside places you visit.","choices":[{"label":"Increase security","fame":0,"rep":1,"happy":-2,"money":-5000,"health":0,"fans":0,"log":"Increased personal security after unwanted attention."},{"label":"Ask management to intervene","fame":0,"rep":0,"happy":-1,"money":-1000,"health":0,"fans":0,"log":"Asked management to handle an intrusive fan."},{"label":"Ignore it","fame":0,"rep":-1,"happy":-3,"money":0,"health":-2,"fans":0,"log":"Ignored repeated unwanted attention."}],"min":35,"max":100,"jobs":[]},{"cat":"Career","title":"Rival Celebrity","text":"Another celebrity publicly says your success is overrated.","choices":[{"label":"Praise their work","fame":1,"rep":5,"happy":1,"money":0,"health":0,"fans":900,"log":"Responded gracefully to a celebrity rival."},{"label":"Fire back","fame":3,"rep":-5,"happy":1,"money":0,"health":0,"fans":1800,"log":"Publicly fired back at a celebrity rival."},{"label":"Ignore it","fame":0,"rep":2,"happy":0,"money":0,"health":0,"fans":200,"log":"Ignored criticism from a celebrity rival."}],"min":20,"max":100,"jobs":[]},{"cat":"Charity","title":"Charity Gala","text":"You're invited to headline a major charity gala.","choices":[{"label":"Attend and donate","fame":2,"rep":7,"happy":4,"money":-10000,"health":0,"fans":2500,"log":"Attended and donated at a charity gala."},{"label":"Attend only","fame":2,"rep":3,"happy":2,"money":0,"health":0,"fans":1200,"log":"Attended a charity gala."},{"label":"Decline","fame":0,"rep":-1,"happy":0,"money":0,"health":0,"fans":-100,"log":"Declined a charity gala invitation."}],"min":25,"max":100,"jobs":[]},{"cat":"Media","title":"Magazine Cover","text":"A major magazine offers you a cover feature.","choices":[{"label":"Do the cover","fame":5,"rep":2,"happy":4,"money":12000,"health":0,"fans":6000,"log":"Appeared on a major magazine cover."},{"label":"Ask for creative control","fame":3,"rep":3,"happy":2,"money":8000,"health":0,"fans":3000,"log":"Did a magazine cover with creative control."},{"label":"Decline","fame":0,"rep":1,"happy":0,"money":0,"health":0,"fans":0,"log":"Declined a magazine cover."}],"min":35,"max":100,"jobs":[]},{"cat":"Endorsement","title":"Questionable Sponsor","text":"A high-paying brand has a poor public reputation.","choices":[{"label":"Take the money","fame":3,"rep":-8,"happy":1,"money":90000,"health":0,"fans":4000,"log":"Accepted a controversial sponsorship."},{"label":"Reject the sponsor","fame":-1,"rep":6,"happy":2,"money":0,"health":0,"fans":1000,"log":"Rejected a controversial sponsorship."}],"min":35,"max":100,"jobs":[]},{"cat":"Public","title":"Airport Crowd","text":"Fans gather around you at an airport.","choices":[{"label":"Stop and greet them","fame":2,"rep":2,"happy":3,"money":0,"health":0,"fans":2200,"log":"Greeted fans at an airport."},{"label":"Use VIP security","fame":0,"rep":0,"happy":0,"money":-2500,"health":0,"fans":0,"log":"Used VIP security at an airport."},{"label":"Rush past","fame":-1,"rep":-2,"happy":-1,"money":0,"health":0,"fans":-400,"log":"Rushed past fans at an airport."}],"min":15,"max":100,"jobs":[]},{"cat":"Relationship","title":"Public Couple","text":"The press asks whether you and your partner are serious.","choices":[{"label":"Speak warmly","fame":2,"rep":2,"happy":3,"money":0,"health":0,"fans":1500,"log":"Spoke publicly about a relationship."},{"label":"Keep it private","fame":0,"rep":2,"happy":1,"money":0,"health":0,"fans":0,"log":"Kept a relationship private."},{"label":"Make a joke","fame":1,"rep":-1,"happy":0,"money":0,"health":0,"fans":500,"log":"Joked about a relationship in public."}],"min":20,"max":100,"jobs":[]},{"cat":"Media","title":"Podcast Invitation","text":"A popular podcast wants a long-form interview.","choices":[{"label":"Be open and personal","fame":4,"rep":2,"happy":3,"money":7000,"health":0,"fans":5000,"log":"Opened up during a podcast interview."},{"label":"Keep it professional","fame":2,"rep":2,"happy":1,"money":7000,"health":0,"fans":1800,"log":"Gave a professional podcast interview."},{"label":"Decline","fame":0,"rep":0,"happy":0,"money":0,"health":0,"fans":0,"log":"Declined a podcast invitation."}],"min":15,"max":100,"jobs":[]},{"cat":"Scandal","title":"Leaked Private Message","text":"A private message attributed to you is circulating online.","choices":[{"label":"Confirm and apologize","fame":-2,"rep":5,"happy":-4,"money":0,"health":0,"fans":-600,"log":"Addressed a leaked private message."},{"label":"Deny it","fame":1,"rep":-5,"happy":-3,"money":0,"health":0,"fans":-1000,"log":"Denied a leaked private message."},{"label":"Let lawyers handle it","fame":-1,"rep":1,"happy":-2,"money":-10000,"health":0,"fans":-200,"log":"Used lawyers during a leaked-message controversy."}],"min":30,"max":100,"jobs":[]},{"cat":"Career","title":"Agent Dispute","text":"Your agent wants a larger commission after your recent success.","choices":[{"label":"Agree","fame":1,"rep":1,"happy":0,"money":-15000,"health":0,"fans":0,"log":"Renegotiated an agent commission."},{"label":"Negotiate","fame":0,"rep":1,"happy":-1,"money":-5000,"health":0,"fans":0,"log":"Negotiated with an agent."},{"label":"Fire the agent","fame":-1,"rep":-1,"happy":-3,"money":0,"health":0,"fans":-200,"log":"Fired an agent."}],"min":30,"max":100,"jobs":[]},{"cat":"Career","title":"Major Collaboration","text":"A more famous star invites you to collaborate.","choices":[{"label":"Accept","fame":5,"rep":2,"happy":5,"money":20000,"health":0,"fans":8000,"log":"Collaborated with a major celebrity."},{"label":"Demand equal billing","fame":2,"rep":-1,"happy":0,"money":35000,"health":0,"fans":2500,"log":"Negotiated equal billing on a collaboration."},{"label":"Decline","fame":0,"rep":0,"happy":0,"money":0,"health":0,"fans":0,"log":"Declined a celebrity collaboration."}],"min":25,"max":100,"jobs":[]},{"cat":"Fans","title":"Meet and Greet","text":"Your team proposes a ticketed meet-and-greet.","choices":[{"label":"Keep prices affordable","fame":2,"rep":4,"happy":4,"money":12000,"health":0,"fans":4000,"log":"Held an affordable fan meet-and-greet."},{"label":"Charge premium prices","fame":3,"rep":-3,"happy":3,"money":45000,"health":0,"fans":2200,"log":"Held a premium-priced meet-and-greet."},{"label":"Cancel it","fame":-1,"rep":-2,"happy":-1,"money":0,"health":0,"fans":-600,"log":"Cancelled a fan meet-and-greet."}],"min":20,"max":100,"jobs":[]},{"cat":"Health","title":"Fame Burnout","text":"Constant attention and work are exhausting you.","choices":[{"label":"Take a month off","fame":-3,"rep":1,"happy":8,"money":-5000,"health":8,"fans":-300,"log":"Took time away from fame to recover."},{"label":"Keep working","fame":2,"rep":-1,"happy":-5,"money":25000,"health":-6,"fans":1000,"log":"Kept working despite burnout."},{"label":"Reduce appearances","fame":-1,"rep":2,"happy":4,"money":0,"health":3,"fans":0,"log":"Reduced public appearances to manage burnout."}],"min":35,"max":100,"jobs":[]},{"cat":"Media","title":"Red Carpet Question","text":"A red-carpet interviewer asks a deliberately provocative question.","choices":[{"label":"Answer calmly","fame":1,"rep":4,"happy":1,"money":0,"health":0,"fans":700,"log":"Handled a provocative red-carpet question calmly."},{"label":"Walk away","fame":-1,"rep":0,"happy":-1,"money":0,"health":0,"fans":-100,"log":"Walked away from a red-carpet question."},{"label":"Give a spicy answer","fame":4,"rep":-4,"happy":2,"money":0,"health":0,"fans":2500,"log":"Gave a controversial red-carpet answer."}],"min":25,"max":100,"jobs":[]},{"cat":"Awards","title":"Acceptance Speech","text":"You win an award and have seconds to address the room.","choices":[{"label":"Thank your team","fame":4,"rep":5,"happy":6,"money":0,"health":0,"fans":5000,"log":"Gave a gracious award acceptance speech."},{"label":"Thank your fans","fame":5,"rep":3,"happy":6,"money":0,"health":0,"fans":7000,"log":"Dedicated an award to fans."},{"label":"Call out your critics","fame":6,"rep":-6,"happy":4,"money":0,"health":0,"fans":9000,"log":"Called out critics during an award speech."}],"min":45,"max":100,"jobs":[]},{"cat":"Endorsement","title":"Luxury Brand Contract","text":"A luxury label wants you as a global ambassador.","choices":[{"label":"Sign","fame":5,"rep":1,"happy":3,"money":180000,"health":0,"fans":12000,"log":"Became a luxury brand ambassador."},{"label":"Negotiate exclusivity","fame":4,"rep":2,"happy":1,"money":260000,"health":0,"fans":7000,"log":"Negotiated an exclusive luxury endorsement."},{"label":"Decline","fame":0,"rep":2,"happy":0,"money":0,"health":0,"fans":0,"log":"Declined a luxury brand contract."}],"min":50,"max":100,"jobs":[]},{"cat":"Public","title":"Restaurant Comp","text":"A restaurant offers to erase your bill if you post about them.","choices":[{"label":"Pay normally","fame":0,"rep":4,"happy":1,"money":-500,"health":0,"fans":0,"log":"Paid for dinner instead of accepting a celebrity freebie."},{"label":"Post for the free meal","fame":1,"rep":-1,"happy":2,"money":500,"health":0,"fans":500,"log":"Accepted a promotional restaurant comp."}],"min":15,"max":100,"jobs":[]},{"cat":"Fans","title":"Fan Tattoo","text":"A fan shows you a tattoo of your face.","choices":[{"label":"Be touched","fame":1,"rep":2,"happy":3,"money":0,"health":0,"fans":600,"log":"Reacted warmly to a fan tattoo."},{"label":"Feel uncomfortable","fame":0,"rep":0,"happy":-1,"money":0,"health":0,"fans":0,"log":"Felt uncomfortable about an intense fan tribute."}],"min":10,"max":100,"jobs":[]},{"cat":"Security","title":"Crowd Surge","text":"A crowd pushes toward you after a public appearance.","choices":[{"label":"End the appearance","fame":0,"rep":2,"happy":-2,"money":0,"health":0,"fans":-100,"log":"Ended an appearance for crowd safety."},{"label":"Stay with extra security","fame":2,"rep":0,"happy":-1,"money":-7000,"health":-1,"fans":800,"log":"Continued an appearance with extra security."}],"min":35,"max":100,"jobs":[]},{"cat":"Scandal","title":"False Rumor","text":"A false rumor about you trends online.","choices":[{"label":"Issue a clear statement","fame":-1,"rep":4,"happy":-2,"money":-3000,"health":0,"fans":-100,"log":"Issued a statement denying a false rumor."},{"label":"Ignore it","fame":-2,"rep":0,"happy":-2,"money":0,"health":0,"fans":-500,"log":"Ignored a false rumor."},{"label":"Threaten legal action","fame":0,"rep":-1,"happy":-2,"money":-12000,"health":0,"fans":-200,"log":"Threatened legal action over a false rumor."}],"min":30,"max":100,"jobs":[]},{"cat":"Career","title":"Manager Wants Rebrand","text":"Your manager says your image is becoming stale.","choices":[{"label":"Rebrand boldly","fame":4,"rep":0,"happy":2,"money":-30000,"health":0,"fans":5000,"log":"Launched a major public rebrand."},{"label":"Make small changes","fame":1,"rep":1,"happy":1,"money":-5000,"health":0,"fans":1200,"log":"Refreshed your public image."},{"label":"Refuse","fame":-1,"rep":0,"happy":0,"money":0,"health":0,"fans":-300,"log":"Rejected a proposed rebrand."}],"min":25,"max":100,"jobs":[]},{"cat":"Public","title":"Private Jet Criticism","text":"People criticize your luxury travel habits.","choices":[{"label":"Explain your schedule","fame":0,"rep":0,"happy":-1,"money":0,"health":0,"fans":-200,"log":"Defended your travel schedule."},{"label":"Offset and reduce travel","fame":-1,"rep":5,"happy":1,"money":-20000,"health":0,"fans":500,"log":"Reduced luxury travel after criticism."},{"label":"Ignore critics","fame":1,"rep":-4,"happy":0,"money":0,"health":0,"fans":300,"log":"Ignored criticism about luxury travel."}],"min":55,"max":100,"jobs":[]},{"cat":"Charity","title":"Disaster Fundraiser","text":"Organizers ask you to amplify an emergency fundraiser.","choices":[{"label":"Donate and promote","fame":2,"rep":8,"happy":4,"money":-25000,"health":0,"fans":3000,"log":"Supported an emergency fundraiser."},{"label":"Promote it","fame":1,"rep":4,"happy":2,"money":0,"health":0,"fans":1200,"log":"Promoted an emergency fundraiser."},{"label":"Stay out of it","fame":0,"rep":-1,"happy":0,"money":0,"health":0,"fans":0,"log":"Declined involvement in a fundraiser."}],"min":20,"max":100,"jobs":[]},{"cat":"Fans","title":"Fan Club Milestone","text":"Your official fan community reaches a major membership milestone.","choices":[{"label":"Record a thank-you video","fame":2,"rep":3,"happy":4,"money":0,"health":0,"fans":3500,"log":"Recorded a thank-you video for fans."},{"label":"Send merchandise","fame":2,"rep":5,"happy":3,"money":-10000,"health":0,"fans":5000,"log":"Sent gifts to fan-club members."}],"min":20,"max":100,"jobs":[]},{"cat":"Media","title":"Documentary Offer","text":"A production company wants to make a documentary about your life.","choices":[{"label":"Give full access","fame":6,"rep":1,"happy":2,"money":150000,"health":0,"fans":10000,"log":"Agreed to an intimate documentary."},{"label":"Limited access","fame":3,"rep":3,"happy":1,"money":80000,"health":0,"fans":4000,"log":"Agreed to a controlled documentary."},{"label":"Decline","fame":0,"rep":1,"happy":0,"money":0,"health":0,"fans":0,"log":"Declined a documentary about your life."}],"min":45,"max":100,"jobs":[]},{"cat":"Career","title":"Bad Review","text":"A critic gives your latest project a brutal review.","choices":[{"label":"Accept the criticism","fame":-1,"rep":3,"happy":-2,"money":0,"health":0,"fans":-300,"log":"Accepted a harsh professional review."},{"label":"Respond publicly","fame":2,"rep":-4,"happy":-2,"money":0,"health":0,"fans":1000,"log":"Argued with a critic publicly."},{"label":"Use it as motivation","fame":0,"rep":2,"happy":2,"money":0,"health":1,"fans":200,"log":"Used a bad review as motivation."}],"min":15,"max":100,"jobs":[]},{"cat":"Media","title":"Viral Meme","text":"A funny moment involving you becomes a massive meme.","choices":[{"label":"Join the joke","fame":4,"rep":3,"happy":5,"money":0,"health":0,"fans":8000,"log":"Joined in on a viral meme about yourself."},{"label":"Ignore it","fame":1,"rep":0,"happy":0,"money":0,"health":0,"fans":1000,"log":"Ignored a viral meme."},{"label":"Ask for removals","fame":-2,"rep":-4,"happy":-2,"money":-5000,"health":0,"fans":-1500,"log":"Tried to remove a viral meme."}],"min":10,"max":100,"jobs":[]},{"cat":"Endorsement","title":"Fragrance Deal","text":"A company wants to launch a fragrance using your name.","choices":[{"label":"Launch it","fame":4,"rep":0,"happy":3,"money":120000,"health":0,"fans":8000,"log":"Launched a celebrity fragrance."},{"label":"Demand quality control","fame":3,"rep":3,"happy":2,"money":85000,"health":0,"fans":4000,"log":"Launched a carefully controlled fragrance."},{"label":"Decline","fame":0,"rep":1,"happy":0,"money":0,"health":0,"fans":0,"log":"Declined a fragrance deal."}],"min":40,"max":100,"jobs":[]},{"cat":"Public","title":"Celebrity Party","text":"You're invited to an exclusive celebrity party.","choices":[{"label":"Go and network","fame":2,"rep":0,"happy":5,"money":-3000,"health":0,"fans":1800,"log":"Networked at a celebrity party."},{"label":"Leave early","fame":0,"rep":1,"happy":1,"money":-500,"health":0,"fans":100,"log":"Made a brief appearance at a celebrity party."},{"label":"Skip it","fame":-1,"rep":0,"happy":0,"money":0,"health":0,"fans":-100,"log":"Skipped a celebrity party."}],"min":25,"max":100,"jobs":[]},{"cat":"Relationship","title":"Partner Hates Attention","text":"Your partner says the public attention is damaging your relationship.","choices":[{"label":"Protect their privacy","fame":-1,"rep":3,"happy":2,"money":-5000,"health":0,"fans":-100,"log":"Changed routines to protect your partner's privacy."},{"label":"Ask them to adapt","fame":1,"rep":-2,"happy":-2,"money":0,"health":0,"fans":300,"log":"Asked your partner to adapt to public attention."},{"label":"Take a public break","fame":-3,"rep":1,"happy":3,"money":0,"health":0,"fans":-700,"log":"Took a break from public appearances for your relationship."}],"min":30,"max":100,"jobs":[]},{"cat":"Career","title":"Team Member Quits","text":"A trusted member of your professional team resigns unexpectedly.","choices":[{"label":"Offer more money","fame":0,"rep":0,"happy":-1,"money":-25000,"health":0,"fans":0,"log":"Paid more to retain a key team member."},{"label":"Let them leave","fame":-1,"rep":0,"happy":-2,"money":0,"health":0,"fans":0,"log":"Lost a trusted team member."},{"label":"Hire a replacement","fame":0,"rep":0,"happy":-1,"money":-12000,"health":0,"fans":0,"log":"Hired a replacement team member."}],"min":25,"max":100,"jobs":[]},{"cat":"Fans","title":"Autograph Reseller","text":"You discover someone is selling stacks of your autographs online.","choices":[{"label":"Stop bulk signing","fame":0,"rep":1,"happy":-1,"money":0,"health":0,"fans":-100,"log":"Stopped bulk autograph signing."},{"label":"Ignore it","fame":0,"rep":0,"happy":0,"money":0,"health":0,"fans":0,"log":"Ignored autograph resellers."},{"label":"Sell official signed items","fame":2,"rep":0,"happy":2,"money":30000,"health":0,"fans":1200,"log":"Launched official signed merchandise."}],"min":20,"max":100,"jobs":[]},{"cat":"Scandal","title":"Entourage Trouble","text":"Someone in your entourage causes a scene at a nightclub.","choices":[{"label":"Apologize publicly","fame":-1,"rep":4,"happy":-2,"money":-5000,"health":0,"fans":-200,"log":"Apologized after entourage trouble."},{"label":"Drop them from your team","fame":0,"rep":3,"happy":-2,"money":0,"health":0,"fans":0,"log":"Removed a troublesome entourage member."},{"label":"Defend them","fame":2,"rep":-6,"happy":0,"money":0,"health":0,"fans":700,"log":"Defended an entourage member after a public incident."}],"min":30,"max":100,"jobs":[]},{"cat":"Media","title":"Live TV Mistake","text":"You stumble badly during a live television appearance.","choices":[{"label":"Laugh it off","fame":2,"rep":2,"happy":2,"money":0,"health":0,"fans":1200,"log":"Laughed off a live TV mistake."},{"label":"Pretend nothing happened","fame":0,"rep":0,"happy":-1,"money":0,"health":0,"fans":100,"log":"Ignored a live TV mistake."}],"min":15,"max":100,"jobs":[]},{"cat":"Awards","title":"Award Snub","text":"You were expected to be nominated, but your name is missing.","choices":[{"label":"Congratulate nominees","fame":0,"rep":4,"happy":0,"money":0,"health":0,"fans":200,"log":"Congratulated award nominees after being snubbed."},{"label":"Complain publicly","fame":2,"rep":-5,"happy":-2,"money":0,"health":0,"fans":900,"log":"Complained publicly about an award snub."},{"label":"Say nothing","fame":-1,"rep":1,"happy":-1,"money":0,"health":0,"fans":0,"log":"Stayed quiet after an award snub."}],"min":30,"max":100,"jobs":[]},{"cat":"Career","title":"International Opportunity","text":"You're offered a major project abroad for several months.","choices":[{"label":"Take it","fame":4,"rep":2,"happy":3,"money":180000,"health":0,"fans":7000,"log":"Accepted a major international project."},{"label":"Negotiate shorter schedule","fame":2,"rep":2,"happy":2,"money":120000,"health":0,"fans":3000,"log":"Negotiated an international project schedule."},{"label":"Decline","fame":-1,"rep":0,"happy":0,"money":0,"health":0,"fans":-300,"log":"Declined an international project."}],"min":35,"max":100,"jobs":[]},{"cat":"Public","title":"Impersonator","text":"A convincing impersonator of you becomes popular online.","choices":[{"label":"Invite them to collaborate","fame":3,"rep":4,"happy":4,"money":5000,"health":0,"fans":5000,"log":"Collaborated with a popular impersonator."},{"label":"Ignore them","fame":0,"rep":0,"happy":0,"money":0,"health":0,"fans":300,"log":"Ignored a celebrity impersonator."},{"label":"Send a legal warning","fame":-1,"rep":-3,"happy":-1,"money":-8000,"health":0,"fans":-800,"log":"Sent a legal warning to an impersonator."}],"min":25,"max":100,"jobs":[]},{"cat":"Fans","title":"Hospital Visit","text":"A young fan asks if you can visit them during a difficult hospital stay.","choices":[{"label":"Visit privately","fame":1,"rep":7,"happy":5,"money":-2000,"health":0,"fans":1800,"log":"Made a private hospital visit for a fan."},{"label":"Send a video","fame":1,"rep":3,"happy":2,"money":0,"health":0,"fans":600,"log":"Sent a personal video to a fan in hospital."},{"label":"Decline","fame":0,"rep":-2,"happy":-1,"money":0,"health":0,"fans":-100,"log":"Could not accept a fan hospital visit request."}],"min":20,"max":100,"jobs":[]},{"cat":"Media","title":"Biographer Calls","text":"A writer wants your cooperation on an authorized biography.","choices":[{"label":"Cooperate","fame":3,"rep":2,"happy":2,"money":60000,"health":0,"fans":3500,"log":"Cooperated on an authorized biography."},{"label":"Refuse access","fame":0,"rep":0,"happy":0,"money":0,"health":0,"fans":0,"log":"Refused to cooperate with a biography."}],"min":40,"max":100,"jobs":[]},{"cat":"Endorsement","title":"Equity Deal","text":"A startup offers equity instead of a normal endorsement fee.","choices":[{"label":"Take equity","fame":2,"rep":0,"happy":1,"money":-5000,"health":0,"fans":1800,"log":"Accepted startup equity for an endorsement."},{"label":"Demand cash","fame":1,"rep":0,"happy":0,"money":50000,"health":0,"fans":700,"log":"Took cash for a startup endorsement."},{"label":"Decline","fame":0,"rep":1,"happy":0,"money":0,"health":0,"fans":0,"log":"Declined a startup endorsement."}],"min":35,"max":100,"jobs":[]},{"cat":"Health","title":"No Privacy","text":"You realize you haven't had a normal private day in months.","choices":[{"label":"Disappear for a weekend","fame":-2,"rep":1,"happy":7,"money":-4000,"health":4,"fans":-200,"log":"Took a private weekend away from public attention."},{"label":"Keep the schedule","fame":1,"rep":0,"happy":-5,"money":12000,"health":-3,"fans":400,"log":"Kept a relentless celebrity schedule."}],"min":35,"max":100,"jobs":[]},{"cat":"Career","title":"Fan Backlash to New Direction","text":"A major creative change divides your fanbase.","choices":[{"label":"Stick with the vision","fame":3,"rep":1,"happy":1,"money":0,"health":0,"fans":-1000,"log":"Stood by a controversial creative direction."},{"label":"Return to familiar style","fame":1,"rep":-1,"happy":0,"money":0,"health":0,"fans":1200,"log":"Returned to a familiar creative style after fan feedback."},{"label":"Explain the change","fame":2,"rep":3,"happy":1,"money":0,"health":0,"fans":400,"log":"Explained a new creative direction to fans."}],"min":25,"max":100,"jobs":[]},{"cat":"Scandal","title":"Misleading Headline","text":"A headline twists a harmless comment into a controversy.","choices":[{"label":"Post the full context","fame":0,"rep":4,"happy":-1,"money":0,"health":0,"fans":200,"log":"Shared full context after a misleading headline."},{"label":"Ignore it","fame":-1,"rep":0,"happy":-1,"money":0,"health":0,"fans":-200,"log":"Ignored a misleading headline."},{"label":"Attack the outlet","fame":2,"rep":-5,"happy":-1,"money":0,"health":0,"fans":500,"log":"Attacked a media outlet over a headline."}],"min":20,"max":100,"jobs":[]},{"cat":"Public","title":"VIP Treatment","text":"A venue moves other customers so you can have a private section.","choices":[{"label":"Accept it","fame":1,"rep":-2,"happy":2,"money":0,"health":0,"fans":200,"log":"Accepted special VIP treatment."},{"label":"Ask them not to move anyone","fame":0,"rep":5,"happy":2,"money":0,"health":0,"fans":700,"log":"Declined disruptive VIP treatment."}],"min":25,"max":100,"jobs":[]},{"cat":"Fans","title":"Crowd Outside Hotel","text":"Fans have gathered outside your hotel after your location leaked.","choices":[{"label":"Engage warmly","fame":2,"rep":3,"happy":4,"money":0,"health":0,"fans":1800,"log":"Spent time engaging with fans."},{"label":"Set boundaries","fame":0,"rep":2,"happy":1,"money":0,"health":0,"fans":100,"log":"Set respectful boundaries with fans."},{"label":"Avoid the situation","fame":-1,"rep":-1,"happy":-1,"money":0,"health":0,"fans":-300,"log":"Avoided a fan interaction."}],"min":15,"max":100,"jobs":[]},{"cat":"Fans","title":"Birthday Fan Project","text":"Fans organize a huge birthday project in your honor.","choices":[{"label":"Engage warmly","fame":2,"rep":3,"happy":4,"money":0,"health":0,"fans":1800,"log":"Spent time engaging with fans."},{"label":"Set boundaries","fame":0,"rep":2,"happy":1,"money":0,"health":0,"fans":100,"log":"Set respectful boundaries with fans."},{"label":"Avoid the situation","fame":-1,"rep":-1,"happy":-1,"money":0,"health":0,"fans":-300,"log":"Avoided a fan interaction."}],"min":15,"max":100,"jobs":[]},{"cat":"Fans","title":"Fan Account Feud","text":"Two large fan accounts are fighting over you online.","choices":[{"label":"Engage warmly","fame":2,"rep":3,"happy":4,"money":0,"health":0,"fans":1800,"log":"Spent time engaging with fans."},{"label":"Set boundaries","fame":0,"rep":2,"happy":1,"money":0,"health":0,"fans":100,"log":"Set respectful boundaries with fans."},{"label":"Avoid the situation","fame":-1,"rep":-1,"happy":-1,"money":0,"health":0,"fans":-300,"log":"Avoided a fan interaction."}],"min":15,"max":100,"jobs":[]},{"cat":"Fans","title":"Unexpected School Visit","text":"A school asks you to surprise students who admire your work.","choices":[{"label":"Engage warmly","fame":2,"rep":3,"happy":4,"money":0,"health":0,"fans":1800,"log":"Spent time engaging with fans."},{"label":"Set boundaries","fame":0,"rep":2,"happy":1,"money":0,"health":0,"fans":100,"log":"Set respectful boundaries with fans."},{"label":"Avoid the situation","fame":-1,"rep":-1,"happy":-1,"money":0,"health":0,"fans":-300,"log":"Avoided a fan interaction."}],"min":15,"max":100,"jobs":[]},{"cat":"Fans","title":"Fan Breaks Down Crying","text":"A fan becomes overwhelmed when meeting you.","choices":[{"label":"Engage warmly","fame":2,"rep":3,"happy":4,"money":0,"health":0,"fans":1800,"log":"Spent time engaging with fans."},{"label":"Set boundaries","fame":0,"rep":2,"happy":1,"money":0,"health":0,"fans":100,"log":"Set respectful boundaries with fans."},{"label":"Avoid the situation","fame":-1,"rep":-1,"happy":-1,"money":0,"health":0,"fans":-300,"log":"Avoided a fan interaction."}],"min":15,"max":100,"jobs":[]},{"cat":"Media","title":"Morning Show Booking","text":"A national morning show wants you live at 6 a.m.","choices":[{"label":"Do it","fame":3,"rep":2,"happy":2,"money":8000,"health":0,"fans":2500,"log":"Participated in a major media appearance."},{"label":"Set boundaries","fame":1,"rep":3,"happy":1,"money":4000,"health":0,"fans":700,"log":"Set boundaries with the media."},{"label":"Decline","fame":-1,"rep":0,"happy":0,"money":0,"health":0,"fans":-100,"log":"Declined a media request."}],"min":15,"max":100,"jobs":[]},{"cat":"Media","title":"Profile Piece","text":"A respected journalist requests several days of access.","choices":[{"label":"Do it","fame":3,"rep":2,"happy":2,"money":8000,"health":0,"fans":2500,"log":"Participated in a major media appearance."},{"label":"Set boundaries","fame":1,"rep":3,"happy":1,"money":4000,"health":0,"fans":700,"log":"Set boundaries with the media."},{"label":"Decline","fame":-1,"rep":0,"happy":0,"money":0,"health":0,"fans":-100,"log":"Declined a media request."}],"min":15,"max":100,"jobs":[]},{"cat":"Media","title":"Host Makes a Joke","text":"A talk-show host makes you the punchline of a joke.","choices":[{"label":"Do it","fame":3,"rep":2,"happy":2,"money":8000,"health":0,"fans":2500,"log":"Participated in a major media appearance."},{"label":"Set boundaries","fame":1,"rep":3,"happy":1,"money":4000,"health":0,"fans":700,"log":"Set boundaries with the media."},{"label":"Decline","fame":-1,"rep":0,"happy":0,"money":0,"health":0,"fans":-100,"log":"Declined a media request."}],"min":15,"max":100,"jobs":[]},{"cat":"Media","title":"Trending Interview Clip","text":"Ten seconds from your interview is suddenly everywhere.","choices":[{"label":"Do it","fame":3,"rep":2,"happy":2,"money":8000,"health":0,"fans":2500,"log":"Participated in a major media appearance."},{"label":"Set boundaries","fame":1,"rep":3,"happy":1,"money":4000,"health":0,"fans":700,"log":"Set boundaries with the media."},{"label":"Decline","fame":-1,"rep":0,"happy":0,"money":0,"health":0,"fans":-100,"log":"Declined a media request."}],"min":15,"max":100,"jobs":[]},{"cat":"Media","title":"Press Conference Ambush","text":"Reporters abandon the planned topic and ask about your private life.","choices":[{"label":"Do it","fame":3,"rep":2,"happy":2,"money":8000,"health":0,"fans":2500,"log":"Participated in a major media appearance."},{"label":"Set boundaries","fame":1,"rep":3,"happy":1,"money":4000,"health":0,"fans":700,"log":"Set boundaries with the media."},{"label":"Decline","fame":-1,"rep":0,"happy":0,"money":0,"health":0,"fans":-100,"log":"Declined a media request."}],"min":15,"max":100,"jobs":[]},{"cat":"Paparazzi","title":"Beach Photos","text":"Long-lens photos of your private beach day appear online.","choices":[{"label":"Use security","fame":0,"rep":1,"happy":-1,"money":-5000,"health":0,"fans":0,"log":"Used security to handle paparazzi."},{"label":"Stay calm","fame":1,"rep":2,"happy":0,"money":0,"health":0,"fans":300,"log":"Stayed calm around paparazzi."},{"label":"Confront them","fame":2,"rep":-3,"happy":-2,"money":0,"health":0,"fans":600,"log":"Confronted paparazzi."}],"min":25,"max":100,"jobs":[]},{"cat":"Paparazzi","title":"Car Chase","text":"Photographers follow your car after an event.","choices":[{"label":"Use security","fame":0,"rep":1,"happy":-1,"money":-5000,"health":0,"fans":0,"log":"Used security to handle paparazzi."},{"label":"Stay calm","fame":1,"rep":2,"happy":0,"money":0,"health":0,"fans":300,"log":"Stayed calm around paparazzi."},{"label":"Confront them","fame":2,"rep":-3,"happy":-2,"money":0,"health":0,"fans":600,"log":"Confronted paparazzi."}],"min":25,"max":100,"jobs":[]},{"cat":"Paparazzi","title":"Family Photographed","text":"Photographers begin taking pictures of your relatives.","choices":[{"label":"Use security","fame":0,"rep":1,"happy":-1,"money":-5000,"health":0,"fans":0,"log":"Used security to handle paparazzi."},{"label":"Stay calm","fame":1,"rep":2,"happy":0,"money":0,"health":0,"fans":300,"log":"Stayed calm around paparazzi."},{"label":"Confront them","fame":2,"rep":-3,"happy":-2,"money":0,"health":0,"fans":600,"log":"Confronted paparazzi."}],"min":25,"max":100,"jobs":[]},{"cat":"Paparazzi","title":"Wardrobe Photo Frenzy","text":"Paparazzi obsess over an unflattering photo of you.","choices":[{"label":"Use security","fame":0,"rep":1,"happy":-1,"money":-5000,"health":0,"fans":0,"log":"Used security to handle paparazzi."},{"label":"Stay calm","fame":1,"rep":2,"happy":0,"money":0,"health":0,"fans":300,"log":"Stayed calm around paparazzi."},{"label":"Confront them","fame":2,"rep":-3,"happy":-2,"money":0,"health":0,"fans":600,"log":"Confronted paparazzi."}],"min":25,"max":100,"jobs":[]},{"cat":"Paparazzi","title":"Secret Entrance Found","text":"Photographers discover the private entrance you normally use.","choices":[{"label":"Use security","fame":0,"rep":1,"happy":-1,"money":-5000,"health":0,"fans":0,"log":"Used security to handle paparazzi."},{"label":"Stay calm","fame":1,"rep":2,"happy":0,"money":0,"health":0,"fans":300,"log":"Stayed calm around paparazzi."},{"label":"Confront them","fame":2,"rep":-3,"happy":-2,"money":0,"health":0,"fans":600,"log":"Confronted paparazzi."}],"min":25,"max":100,"jobs":[]},{"cat":"Endorsement","title":"Phone Campaign","text":"A phone company wants you for a global advertising campaign.","choices":[{"label":"Accept","fame":3,"rep":0,"happy":2,"money":35000,"health":0,"fans":2000,"log":"Accepted a new endorsement campaign."},{"label":"Negotiate","fame":2,"rep":2,"happy":1,"money":50000,"health":0,"fans":1000,"log":"Negotiated a celebrity endorsement."},{"label":"Decline","fame":0,"rep":2,"happy":0,"money":0,"health":0,"fans":0,"log":"Declined an endorsement offer."}],"min":25,"max":100,"jobs":[]},{"cat":"Endorsement","title":"Fast Food Offer","text":"A fast-food chain offers a huge fee for your face on its campaign.","choices":[{"label":"Accept","fame":3,"rep":0,"happy":2,"money":53000,"health":0,"fans":2000,"log":"Accepted a new endorsement campaign."},{"label":"Negotiate","fame":2,"rep":2,"happy":1,"money":72000,"health":0,"fans":1000,"log":"Negotiated a celebrity endorsement."},{"label":"Decline","fame":0,"rep":2,"happy":0,"money":0,"health":0,"fans":0,"log":"Declined an endorsement offer."}],"min":25,"max":100,"jobs":[]},{"cat":"Endorsement","title":"Watch Ambassador","text":"A watchmaker offers you an ambassador contract.","choices":[{"label":"Accept","fame":3,"rep":0,"happy":2,"money":71000,"health":0,"fans":2000,"log":"Accepted a new endorsement campaign."},{"label":"Negotiate","fame":2,"rep":2,"happy":1,"money":94000,"health":0,"fans":1000,"log":"Negotiated a celebrity endorsement."},{"label":"Decline","fame":0,"rep":2,"happy":0,"money":0,"health":0,"fans":0,"log":"Declined an endorsement offer."}],"min":25,"max":100,"jobs":[]},{"cat":"Endorsement","title":"Gaming Partnership","text":"A game publisher wants you to promote a major launch.","choices":[{"label":"Accept","fame":3,"rep":0,"happy":2,"money":89000,"health":0,"fans":2000,"log":"Accepted a new endorsement campaign."},{"label":"Negotiate","fame":2,"rep":2,"happy":1,"money":116000,"health":0,"fans":1000,"log":"Negotiated a celebrity endorsement."},{"label":"Decline","fame":0,"rep":2,"happy":0,"money":0,"health":0,"fans":0,"log":"Declined an endorsement offer."}],"min":25,"max":100,"jobs":[]},{"cat":"Endorsement","title":"Beauty Campaign","text":"A beauty brand wants a year-long campaign with you.","choices":[{"label":"Accept","fame":3,"rep":0,"happy":2,"money":107000,"health":0,"fans":2000,"log":"Accepted a new endorsement campaign."},{"label":"Negotiate","fame":2,"rep":2,"happy":1,"money":138000,"health":0,"fans":1000,"log":"Negotiated a celebrity endorsement."},{"label":"Decline","fame":0,"rep":2,"happy":0,"money":0,"health":0,"fans":0,"log":"Declined an endorsement offer."}],"min":25,"max":100,"jobs":[]},{"cat":"Scandal","title":"Assistant Sells Story","text":"A former assistant claims they will sell stories about you.","choices":[{"label":"Address it directly","fame":-1,"rep":4,"happy":-2,"money":-2000,"health":0,"fans":-200,"log":"Addressed a public controversy directly."},{"label":"Let your team respond","fame":-1,"rep":2,"happy":-1,"money":-6000,"health":0,"fans":-100,"log":"Had management respond to a controversy."},{"label":"Ignore it","fame":-2,"rep":-2,"happy":-2,"money":0,"health":0,"fans":-500,"log":"Ignored a growing public controversy."}],"min":25,"max":100,"jobs":[]},{"cat":"Scandal","title":"Public Argument","text":"Someone records you arguing in public.","choices":[{"label":"Address it directly","fame":-1,"rep":4,"happy":-2,"money":-2000,"health":0,"fans":-200,"log":"Addressed a public controversy directly."},{"label":"Let your team respond","fame":-1,"rep":2,"happy":-1,"money":-6000,"health":0,"fans":-100,"log":"Had management respond to a controversy."},{"label":"Ignore it","fame":-2,"rep":-2,"happy":-2,"money":0,"health":0,"fans":-500,"log":"Ignored a growing public controversy."}],"min":25,"max":100,"jobs":[]},{"cat":"Scandal","title":"Edited Video","text":"A misleadingly edited video makes you look rude.","choices":[{"label":"Address it directly","fame":-1,"rep":4,"happy":-2,"money":-2000,"health":0,"fans":-200,"log":"Addressed a public controversy directly."},{"label":"Let your team respond","fame":-1,"rep":2,"happy":-1,"money":-6000,"health":0,"fans":-100,"log":"Had management respond to a controversy."},{"label":"Ignore it","fame":-2,"rep":-2,"happy":-2,"money":0,"health":0,"fans":-500,"log":"Ignored a growing public controversy."}],"min":25,"max":100,"jobs":[]},{"cat":"Scandal","title":"Event No-Show","text":"Your delayed arrival is reported as an intentional event no-show.","choices":[{"label":"Address it directly","fame":-1,"rep":4,"happy":-2,"money":-2000,"health":0,"fans":-200,"log":"Addressed a public controversy directly."},{"label":"Let your team respond","fame":-1,"rep":2,"happy":-1,"money":-6000,"health":0,"fans":-100,"log":"Had management respond to a controversy."},{"label":"Ignore it","fame":-2,"rep":-2,"happy":-2,"money":0,"health":0,"fans":-500,"log":"Ignored a growing public controversy."}],"min":25,"max":100,"jobs":[]},{"cat":"Scandal","title":"Brand Drops You","text":"A sponsor becomes nervous after online criticism.","choices":[{"label":"Address it directly","fame":-1,"rep":4,"happy":-2,"money":-2000,"health":0,"fans":-200,"log":"Addressed a public controversy directly."},{"label":"Let your team respond","fame":-1,"rep":2,"happy":-1,"money":-6000,"health":0,"fans":-100,"log":"Had management respond to a controversy."},{"label":"Ignore it","fame":-2,"rep":-2,"happy":-2,"money":0,"health":0,"fans":-500,"log":"Ignored a growing public controversy."}],"min":25,"max":100,"jobs":[]},{"cat":"Career","title":"Contract Renewal","text":"Your biggest contract is up for renewal.","choices":[{"label":"Take the ambitious option","fame":4,"rep":1,"happy":2,"money":50000,"health":0,"fans":3500,"log":"Made an ambitious celebrity career move."},{"label":"Negotiate carefully","fame":2,"rep":3,"happy":1,"money":30000,"health":0,"fans":1500,"log":"Negotiated a major career decision."},{"label":"Walk away","fame":-2,"rep":1,"happy":0,"money":0,"health":0,"fans":-300,"log":"Walked away from a celebrity career opportunity."}],"min":25,"max":100,"jobs":[]},{"cat":"Career","title":"New Agent Pitch","text":"A powerful agent tries to lure you away from your current team.","choices":[{"label":"Take the ambitious option","fame":4,"rep":1,"happy":2,"money":50000,"health":0,"fans":3500,"log":"Made an ambitious celebrity career move."},{"label":"Negotiate carefully","fame":2,"rep":3,"happy":1,"money":30000,"health":0,"fans":1500,"log":"Negotiated a major career decision."},{"label":"Walk away","fame":-2,"rep":1,"happy":0,"money":0,"health":0,"fans":-300,"log":"Walked away from a celebrity career opportunity."}],"min":25,"max":100,"jobs":[]},{"cat":"Career","title":"Creative Control","text":"A studio offers more money if you give up creative control.","choices":[{"label":"Take the ambitious option","fame":4,"rep":1,"happy":2,"money":50000,"health":0,"fans":3500,"log":"Made an ambitious celebrity career move."},{"label":"Negotiate carefully","fame":2,"rep":3,"happy":1,"money":30000,"health":0,"fans":1500,"log":"Negotiated a major career decision."},{"label":"Walk away","fame":-2,"rep":1,"happy":0,"money":0,"health":0,"fans":-300,"log":"Walked away from a celebrity career opportunity."}],"min":25,"max":100,"jobs":[]},{"cat":"Career","title":"Flop Project","text":"A heavily promoted project performs poorly.","choices":[{"label":"Take the ambitious option","fame":4,"rep":1,"happy":2,"money":50000,"health":0,"fans":3500,"log":"Made an ambitious celebrity career move."},{"label":"Negotiate carefully","fame":2,"rep":3,"happy":1,"money":30000,"health":0,"fans":1500,"log":"Negotiated a major career decision."},{"label":"Walk away","fame":-2,"rep":1,"happy":0,"money":0,"health":0,"fans":-300,"log":"Walked away from a celebrity career opportunity."}],"min":25,"max":100,"jobs":[]},{"cat":"Career","title":"Breakout Success","text":"Your latest project becomes much bigger than expected.","choices":[{"label":"Take the ambitious option","fame":4,"rep":1,"happy":2,"money":50000,"health":0,"fans":3500,"log":"Made an ambitious celebrity career move."},{"label":"Negotiate carefully","fame":2,"rep":3,"happy":1,"money":30000,"health":0,"fans":1500,"log":"Negotiated a major career decision."},{"label":"Walk away","fame":-2,"rep":1,"happy":0,"money":0,"health":0,"fans":-300,"log":"Walked away from a celebrity career opportunity."}],"min":25,"max":100,"jobs":[]},{"cat":"Awards","title":"Lifetime Tribute","text":"An organization wants to honor your career with a tribute.","choices":[{"label":"Embrace the moment","fame":4,"rep":3,"happy":5,"money":0,"health":0,"fans":4000,"log":"Made the most of an awards-season moment."},{"label":"Stay humble","fame":2,"rep":5,"happy":3,"money":0,"health":0,"fans":1800,"log":"Handled an awards event humbly."},{"label":"Skip it","fame":-1,"rep":-1,"happy":0,"money":0,"health":0,"fans":-200,"log":"Skipped an awards event."}],"min":25,"max":100,"jobs":[]},{"cat":"Awards","title":"Backstage Rivalry","text":"You run into a rival backstage at an awards show.","choices":[{"label":"Embrace the moment","fame":4,"rep":3,"happy":5,"money":0,"health":0,"fans":4000,"log":"Made the most of an awards-season moment."},{"label":"Stay humble","fame":2,"rep":5,"happy":3,"money":0,"health":0,"fans":1800,"log":"Handled an awards event humbly."},{"label":"Skip it","fame":-1,"rep":-1,"happy":0,"money":0,"health":0,"fans":-200,"log":"Skipped an awards event."}],"min":25,"max":100,"jobs":[]},{"cat":"Awards","title":"Present an Award","text":"You're invited to present a major award.","choices":[{"label":"Embrace the moment","fame":4,"rep":3,"happy":5,"money":0,"health":0,"fans":4000,"log":"Made the most of an awards-season moment."},{"label":"Stay humble","fame":2,"rep":5,"happy":3,"money":0,"health":0,"fans":1800,"log":"Handled an awards event humbly."},{"label":"Skip it","fame":-1,"rep":-1,"happy":0,"money":0,"health":0,"fans":-200,"log":"Skipped an awards event."}],"min":25,"max":100,"jobs":[]},{"cat":"Awards","title":"Unexpected Win","text":"You win a category you never expected to take.","choices":[{"label":"Embrace the moment","fame":4,"rep":3,"happy":5,"money":0,"health":0,"fans":4000,"log":"Made the most of an awards-season moment."},{"label":"Stay humble","fame":2,"rep":5,"happy":3,"money":0,"health":0,"fans":1800,"log":"Handled an awards event humbly."},{"label":"Skip it","fame":-1,"rep":-1,"happy":0,"money":0,"health":0,"fans":-200,"log":"Skipped an awards event."}],"min":25,"max":100,"jobs":[]},{"cat":"Awards","title":"Speech Goes Viral","text":"A short part of your awards speech starts trending.","choices":[{"label":"Embrace the moment","fame":4,"rep":3,"happy":5,"money":0,"health":0,"fans":4000,"log":"Made the most of an awards-season moment."},{"label":"Stay humble","fame":2,"rep":5,"happy":3,"money":0,"health":0,"fans":1800,"log":"Handled an awards event humbly."},{"label":"Skip it","fame":-1,"rep":-1,"happy":0,"money":0,"health":0,"fans":-200,"log":"Skipped an awards event."}],"min":25,"max":100,"jobs":[]},{"cat":"Relationship","title":"Partner Offered Interview","text":"A magazine offers your partner money to discuss your relationship.","choices":[{"label":"Protect the relationship","fame":-1,"rep":3,"happy":3,"money":0,"health":0,"fans":-100,"log":"Protected a relationship from public attention."},{"label":"Use the publicity","fame":3,"rep":-2,"happy":1,"money":25000,"health":0,"fans":1800,"log":"Used relationship publicity professionally."},{"label":"Say nothing","fame":0,"rep":1,"happy":0,"money":0,"health":0,"fans":0,"log":"Kept relationship matters private."}],"min":25,"max":100,"jobs":[]},{"cat":"Relationship","title":"Dating Rumor","text":"The press links you romantically to someone you barely know.","choices":[{"label":"Protect the relationship","fame":-1,"rep":3,"happy":3,"money":0,"health":0,"fans":-100,"log":"Protected a relationship from public attention."},{"label":"Use the publicity","fame":3,"rep":-2,"happy":1,"money":25000,"health":0,"fans":1800,"log":"Used relationship publicity professionally."},{"label":"Say nothing","fame":0,"rep":1,"happy":0,"money":0,"health":0,"fans":0,"log":"Kept relationship matters private."}],"min":25,"max":100,"jobs":[]},{"cat":"Relationship","title":"Anniversary Attention","text":"The media discovers your anniversary plans.","choices":[{"label":"Protect the relationship","fame":-1,"rep":3,"happy":3,"money":0,"health":0,"fans":-100,"log":"Protected a relationship from public attention."},{"label":"Use the publicity","fame":3,"rep":-2,"happy":1,"money":25000,"health":0,"fans":1800,"log":"Used relationship publicity professionally."},{"label":"Say nothing","fame":0,"rep":1,"happy":0,"money":0,"health":0,"fans":0,"log":"Kept relationship matters private."}],"min":25,"max":100,"jobs":[]},{"cat":"Relationship","title":"Ex Gives Interview","text":"An ex-partner speaks publicly about your past relationship.","choices":[{"label":"Protect the relationship","fame":-1,"rep":3,"happy":3,"money":0,"health":0,"fans":-100,"log":"Protected a relationship from public attention."},{"label":"Use the publicity","fame":3,"rep":-2,"happy":1,"money":25000,"health":0,"fans":1800,"log":"Used relationship publicity professionally."},{"label":"Say nothing","fame":0,"rep":1,"happy":0,"money":0,"health":0,"fans":0,"log":"Kept relationship matters private."}],"min":25,"max":100,"jobs":[]},{"cat":"Relationship","title":"Couple Brand Deal","text":"A brand offers you and your partner a joint campaign.","choices":[{"label":"Protect the relationship","fame":-1,"rep":3,"happy":3,"money":0,"health":0,"fans":-100,"log":"Protected a relationship from public attention."},{"label":"Use the publicity","fame":3,"rep":-2,"happy":1,"money":25000,"health":0,"fans":1800,"log":"Used relationship publicity professionally."},{"label":"Say nothing","fame":0,"rep":1,"happy":0,"money":0,"health":0,"fans":0,"log":"Kept relationship matters private."}],"min":25,"max":100,"jobs":[]},{"cat":"Public","title":"Restaurant Reservation Leak","text":"Your dinner reservation leaks and a crowd forms.","choices":[{"label":"Accept the attention","fame":2,"rep":0,"happy":2,"money":0,"health":0,"fans":800,"log":"Accepted a public celebrity moment."},{"label":"Keep it low-key","fame":0,"rep":2,"happy":1,"money":0,"health":0,"fans":100,"log":"Kept a public situation low-key."},{"label":"Leave","fame":-1,"rep":0,"happy":-1,"money":0,"health":0,"fans":-100,"log":"Left a public situation early."}],"min":25,"max":100,"jobs":[]},{"cat":"Public","title":"Front Row Invitation","text":"A fashion house gives you a front-row invitation.","choices":[{"label":"Accept the attention","fame":2,"rep":0,"happy":2,"money":0,"health":0,"fans":800,"log":"Accepted a public celebrity moment."},{"label":"Keep it low-key","fame":0,"rep":2,"happy":1,"money":0,"health":0,"fans":100,"log":"Kept a public situation low-key."},{"label":"Leave","fame":-1,"rep":0,"happy":-1,"money":0,"health":0,"fans":-100,"log":"Left a public situation early."}],"min":25,"max":100,"jobs":[]},{"cat":"Public","title":"Street Recognition","text":"A casual walk turns into an impromptu fan gathering.","choices":[{"label":"Accept the attention","fame":2,"rep":0,"happy":2,"money":0,"health":0,"fans":800,"log":"Accepted a public celebrity moment."},{"label":"Keep it low-key","fame":0,"rep":2,"happy":1,"money":0,"health":0,"fans":100,"log":"Kept a public situation low-key."},{"label":"Leave","fame":-1,"rep":0,"happy":-1,"money":0,"health":0,"fans":-100,"log":"Left a public situation early."}],"min":25,"max":100,"jobs":[]},{"cat":"Public","title":"Celebrity Neighbor","text":"A famous person moves into your neighborhood.","choices":[{"label":"Accept the attention","fame":2,"rep":0,"happy":2,"money":0,"health":0,"fans":800,"log":"Accepted a public celebrity moment."},{"label":"Keep it low-key","fame":0,"rep":2,"happy":1,"money":0,"health":0,"fans":100,"log":"Kept a public situation low-key."},{"label":"Leave","fame":-1,"rep":0,"happy":-1,"money":0,"health":0,"fans":-100,"log":"Left a public situation early."}],"min":25,"max":100,"jobs":[]},{"cat":"Public","title":"Free Luxury Gift","text":"A designer sends you an expensive item without asking.","choices":[{"label":"Accept the attention","fame":2,"rep":0,"happy":2,"money":0,"health":0,"fans":800,"log":"Accepted a public celebrity moment."},{"label":"Keep it low-key","fame":0,"rep":2,"happy":1,"money":0,"health":0,"fans":100,"log":"Kept a public situation low-key."},{"label":"Leave","fame":-1,"rep":0,"happy":-1,"money":0,"health":0,"fans":-100,"log":"Left a public situation early."}],"min":25,"max":100,"jobs":[]},{"cat":"Security","title":"Anonymous Threat","text":"Your management receives a concerning anonymous message.","choices":[{"label":"Increase security","fame":0,"rep":2,"happy":-2,"money":-12000,"health":2,"fans":0,"log":"Increased security because of a fame-related incident."},{"label":"Report it","fame":0,"rep":1,"happy":-1,"money":-2000,"health":0,"fans":0,"log":"Reported a fame-related security incident."},{"label":"Ignore it","fame":0,"rep":-2,"happy":-4,"money":0,"health":-2,"fans":0,"log":"Ignored a fame-related security concern."}],"min":25,"max":100,"jobs":[]},{"cat":"Security","title":"Home Address Leak","text":"Your home address is posted publicly online.","choices":[{"label":"Increase security","fame":0,"rep":2,"happy":-2,"money":-12000,"health":2,"fans":0,"log":"Increased security because of a fame-related incident."},{"label":"Report it","fame":0,"rep":1,"happy":-1,"money":-2000,"health":0,"fans":0,"log":"Reported a fame-related security incident."},{"label":"Ignore it","fame":0,"rep":-2,"happy":-4,"money":0,"health":-2,"fans":0,"log":"Ignored a fame-related security concern."}],"min":25,"max":100,"jobs":[]},{"cat":"Security","title":"Stage Intruder","text":"Someone attempts to rush onto the stage during your appearance.","choices":[{"label":"Increase security","fame":0,"rep":2,"happy":-2,"money":-12000,"health":2,"fans":0,"log":"Increased security because of a fame-related incident."},{"label":"Report it","fame":0,"rep":1,"happy":-1,"money":-2000,"health":0,"fans":0,"log":"Reported a fame-related security incident."},{"label":"Ignore it","fame":0,"rep":-2,"happy":-4,"money":0,"health":-2,"fans":0,"log":"Ignored a fame-related security concern."}],"min":25,"max":100,"jobs":[]},{"cat":"Health","title":"Voice and Body Fatigue","text":"Your schedule is beginning to affect your physical performance.","choices":[{"label":"Take time off","fame":-2,"rep":2,"happy":7,"money":-4000,"health":7,"fans":-200,"log":"Took time off to recover from fame-related exhaustion."},{"label":"Reduce the schedule","fame":-1,"rep":1,"happy":4,"money":0,"health":3,"fans":0,"log":"Reduced a demanding public schedule."},{"label":"Push through","fame":2,"rep":-1,"happy":-5,"money":12000,"health":-5,"fans":500,"log":"Pushed through exhaustion for work."}],"min":25,"max":100,"jobs":[]}];
+const R=()=>Math.random(),cl=(n,a=0,b=100)=>Math.max(a,Math.min(b,n)),fm=n=>typeof formatMoney==='function'?formatMoney(n):'$'+Math.round(n||0).toLocaleString();
+const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function S(){game.p28=game.p28||{fans:0,publicInterest:0,securityRisk:0,mediaHeat:0,eventHistory:[],yearCount:0,lastAge:-1};let p=game.p27?.career;if(p)p.fans=p.fans||0;game.p28.fans=Math.max(game.p28.fans||0,p?.fans||0);return game.p28}
+function rank(f){return f>=90?'Global Icon':f>=75?'A-List Celebrity':f>=60?'Major Star':f>=45?'Rising Star':f>=25?'Public Figure':f>=10?'Getting Noticed':'Not Famous'}
+function source(){let c=game.p27?.career;if(c)return ({athlete:'Professional Athlete',musician:'Musician',actor:'Actor',producer:'Music Producer',director:'Movie Director'})[c.id]||'Celebrity';if(game.creator?.followers>10000)return'Digital Creator';return game.job?.title||'Public Figure'}
+function status(){let f=cl(game.fame||0),s=S(),fans=Math.max(s.fans||0,game.p27?.career?.fans||0,game.creator?.followers||0),interest=cl(Math.round(f*.65+Math.min(35,Math.log10(fans+1)*6)));return{f,s,fans,interest,heat:cl(s.mediaHeat||Math.round(f*.35)),risk:cl(s.securityRisk||Math.round(f*.18)),rank:rank(f),source:source()}}
+function renderStatus(){document.getElementById('p28FameStatus')?.remove();if(!game?.alive)return;let z=status(),target=document.querySelector('.p22-life-status,#lifeStatus,#life-status,.life-status,[data-section="life-status"]');if(!target){let h=[...document.querySelectorAll('h2,h3,h4')].find(x=>/life status/i.test(x.textContent||''));target=h?.parentElement}if(!target)return;let d=document.createElement('div');d.id='p28FameStatus';d.innerHTML=`<div class="p28-head"><b>⭐ Fame Life Status</b><span class="p28-rank">${z.rank}</span></div><div class="p28-bar"><i style="width:${z.f}%"></i></div><div class="p28-grid"><div><b>${z.f}%</b><span>FAME</span></div><div><b>${z.fans.toLocaleString()}</b><span>FANS</span></div><div><b>${z.interest}%</b><span>PUBLIC INTEREST</span></div><div><b>${game.reputation??50}%</b><span>REPUTATION</span></div></div><div style="font-size:.61rem;opacity:.65;margin-top:6px">${esc(z.source)} · Media heat ${z.heat}% · Security attention ${z.risk}%</div>`;target.insertAdjacentElement('afterend',d)}
+function applyEvent(ev,i){let c=ev.choices[i],s=S();game.fame=cl((game.fame||0)+(c.fame||0));game.reputation=cl((game.reputation??50)+(c.rep||0));game.happiness=cl((game.happiness||0)+(c.happy||0));game.health=cl((game.health||0)+(c.health||0));game.money=(game.money||0)+(c.money||0);s.fans=Math.max(0,(s.fans||0)+(c.fans||0));if(game.p27?.career)game.p27.career.fans=Math.max(0,(game.p27.career.fans||0)+(c.fans||0));s.mediaHeat=cl((s.mediaHeat||0)+Math.max(-5,(c.fame||0)*2-(c.rep||0)));s.securityRisk=cl((s.securityRisk||0)+((game.fame||0)>50&&(c.fans||0)>1000?2:0));let msg=c.log||`${ev.title} — ${c.label}`;game.logs.push(`Age ${game.age}: ${msg}`);s.eventHistory.push({age:game.age,title:ev.title,choice:c.label});if(s.eventHistory.length>50)s.eventHistory.shift();try{P26?.autosave(false)}catch(e){}closeModal();updateUI();renderStatus();showToast(ev.title,'⭐')}
+function showEvent(ev){let ei=EVENTS.indexOf(ev);openModal(`<span class="p28-eventtag">⭐ ${esc(ev.cat)} · FAME EVENT</span><h3 class="text-xl font-black">${esc(ev.title)}</h3><p class="text-sm text-slate-400">${esc(ev.text)}</p><div class="p28-eventchoices">${ev.choices.map((c,i)=>`<button onclick="P28.choose(${ei},${i})">${esc(c.label)}<div style="font-size:.62rem;opacity:.65;margin-top:3px">${c.money?((c.money>0?'+':'')+fm(c.money))+' · ':''}${c.rep?`Reputation ${c.rep>0?'+':''}${c.rep} · `:''}${c.fame?`Fame ${c.fame>0?'+':''}${c.fame}`:''}</div></button>`).join('')}</div>`)}
+function eligible(){let f=game.fame||0,cid=game.p27?.career?.id||'',s=S(),recent=s.eventHistory.slice(-12).map(x=>x.title);return EVENTS.filter(e=>f>=e.min&&f<=e.max&&(!e.jobs.length||e.jobs.includes(cid))&&!recent.includes(e.title))}
+function maybeEvent(force=false){if(!game.alive||(game.fame||0)<8)return false;let s=S(),f=game.fame||0,chance=Math.min(.78,.14+f/145+(s.mediaHeat||0)/500);if(!force&&R()>chance)return false;let pool=eligible();if(!pool.length)return false;showEvent(pool[Math.floor(R()*pool.length)]);return true}
+function yearly(){let s=S();if(s.lastAge===game.age)return;s.lastAge=game.age;s.yearCount++;let f=game.fame||0;if(f>12&&R()<.42)game.fame=cl(f-1);s.mediaHeat=cl((s.mediaHeat||0)-Math.floor(R()*4));s.securityRisk=cl((s.securityRisk||0)-Math.floor(R()*3));setTimeout(()=>maybeEvent(false),280);renderStatus()}
+const oldAge=window.ageOneYear||ageOneYear;window.ageOneYear=ageOneYear=function(){let a=game.age,r=oldAge.apply(this,arguments);if(game.alive&&game.age>a)setTimeout(yearly,70);return r};
+const oldUI=window.updateUI||updateUI;window.updateUI=updateUI=function(){let r=oldUI.apply(this,arguments);setTimeout(renderStatus,0);return r};
+window.P28={events:EVENTS,choose:(e,c)=>applyEvent(EVENTS[e],c),randomEvent:()=>maybeEvent(true),status,renderStatus};
+new MutationObserver(()=>{if(game?.alive&&!document.getElementById('p28FameStatus'))renderStatus()}).observe(document.body,{childList:true,subtree:true});setTimeout(renderStatus,150);
+console.log(`[Patch 28] Fame Life Status active with ${EVENTS.length} celebrity events.`);
+})();
+</script>
+<!-- ===== MERGED PATCH END ===== -->
+
+
+
+<!-- ===== MERGED PATCH START ===== -->
+<!-- LIFE SIM PATCH 29: PREMIUM GAME MORE MENU OVERHAUL -->
+<style>
+/* =========================================================
+   DESTINY PATCH 29 — PREMIUM MOBILE-GAME MORE MENU
+   Presentation only. Existing actions are preserved.
+========================================================= */
+#modalContent.p29-more{
+  padding:0!important;
+  overflow:hidden!important;
+  background:#0d1118!important;
+  color:#f8fafc!important;
+}
+html[data-theme="light"] #modalContent.p29-more{
+  background:#f3f4f7!important;
+  color:#16181d!important;
+}
+.p29-more-shell{
+  min-height:100%;
+  max-height:min(82vh,760px);
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  padding:0 0 22px;
+  scrollbar-width:none;
+}
+.p29-more-shell::-webkit-scrollbar{display:none}
+.p29-hero{
+  position:relative;
+  overflow:hidden;
+  padding:20px 17px 16px;
+  background:
+    radial-gradient(circle at 90% -15%,rgba(255,255,255,.20),transparent 35%),
+    linear-gradient(135deg,#7c3aed,#5b21b6 55%,#3b167e);
+  color:#fff;
+}
+.p29-hero:after{
+  content:"";
+  position:absolute;
+  width:145px;height:145px;border-radius:50%;
+  right:-65px;bottom:-90px;
+  border:24px solid rgba(255,255,255,.055);
+}
+.p29-topline{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.p29-title{font-size:1.34rem;font-weight:950;letter-spacing:-.03em;line-height:1}
+.p29-sub{font-size:.67rem;opacity:.72;margin-top:5px;font-weight:650}
+.p29-close{
+  width:35px;height:35px;border:0!important;border-radius:50%!important;
+  display:grid!important;place-items:center!important;
+  background:rgba(255,255,255,.14)!important;color:#fff!important;
+  font-size:19px!important;padding:0!important;margin:0!important;
+}
+.p29-profile{
+  display:flex;align-items:center;gap:11px;
+  margin-top:17px;padding:11px 12px;
+  background:rgba(255,255,255,.11);
+  border:1px solid rgba(255,255,255,.13);
+  border-radius:16px;
+  backdrop-filter:blur(10px);
+}
+.p29-avatar{
+  width:45px;height:45px;min-width:45px;border-radius:50%;
+  display:grid;place-items:center;
+  background:rgba(255,255,255,.16);
+  border:2px solid rgba(255,255,255,.32);
+  font-size:1.45rem;
+}
+.p29-profile-main{min-width:0;flex:1}
+.p29-profile-name{font-size:.86rem;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.p29-profile-meta{font-size:.62rem;opacity:.72;margin-top:2px}
+.p29-mini-stats{display:flex;gap:5px}
+.p29-mini{
+  min-width:47px;padding:5px 6px;border-radius:9px;
+  background:rgba(0,0,0,.12);text-align:center
+}
+.p29-mini b{display:block;font-size:.68rem}
+.p29-mini span{display:block;font-size:.48rem;opacity:.65;margin-top:1px}
+
+.p29-content{padding:12px 12px 2px}
+.p29-section{margin:0 0 14px}
+.p29-section-title{
+  padding:0 5px 6px;
+  color:#7f8a9b;
+  font-size:.58rem;
+  font-weight:950;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+.p29-group{
+  overflow:hidden;
+  border:1px solid #252b35;
+  border-radius:17px;
+  background:#151a22;
+  box-shadow:0 5px 18px rgba(0,0,0,.12);
+}
+html[data-theme="light"] .p29-group{
+  background:#fff;border-color:#e4e6eb;
+  box-shadow:0 5px 18px rgba(31,41,55,.055);
+}
+.p29-row{
+  position:relative;
+  width:100%!important;
+  min-height:58px!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:11px!important;
+  padding:9px 42px 9px 11px!important;
+  margin:0!important;
+  border:0!important;
+  border-radius:0!important;
+  border-bottom:1px solid #252b35!important;
+  background:transparent!important;
+  color:#f7f8fb!important;
+  text-align:left!important;
+  box-shadow:none!important;
+  font:inherit!important;
+  cursor:pointer;
+}
+.p29-row:last-child{border-bottom:0!important}
+html[data-theme="light"] .p29-row{
+  color:#16181d!important;border-bottom-color:#eceef2!important;
+}
+.p29-row:active{background:rgba(139,92,246,.10)!important}
+.p29-icon{
+  width:38px;height:38px;min-width:38px;
+  border-radius:12px;
+  display:grid;place-items:center;
+  font-size:1.12rem;
+  background:#242b38;
+}
+html[data-theme="light"] .p29-icon{background:#f0f1f5}
+.p29-copy{min-width:0;flex:1}
+.p29-label{font-size:.79rem;font-weight:900;line-height:1.15}
+.p29-desc{font-size:.59rem;color:#8993a3;margin-top:3px;line-height:1.2}
+.p29-chevron{
+  position:absolute;right:14px;top:50%;transform:translateY(-50%);
+  font-size:1.25rem;font-weight:400;color:#687386
+}
+.p29-badge{
+  display:inline-flex;align-items:center;
+  margin-left:6px;padding:2px 5px;
+  border-radius:99px;background:#7c3aed22;color:#a78bfa;
+  font-size:.47rem;font-weight:950;vertical-align:2px;
+}
+.p29-footer{
+  text-align:center;color:#657083;
+  font-size:.54rem;font-weight:700;
+  padding:3px 15px 0;
+}
+.p29-more .p29-source{display:none!important}
+
+@media(max-width:390px){
+  .p29-hero{padding:17px 13px 14px}
+  .p29-content{padding:10px 9px 2px}
+  .p29-profile{padding:9px 10px}
+  .p29-mini{min-width:42px}
+  .p29-row{min-height:55px!important}
+}
+</style>
+
+<script>
+/* LIFE SIM PATCH 29: PREMIUM GAME MORE MENU OVERHAUL */
+(function(){
+'use strict';
+if(window.__DESTINY29__)return;
+window.__DESTINY29__=1;
+
+const MARK='LIFE SIM PATCH 29: PREMIUM GAME MORE MENU OVERHAUL';
+
+const META=[
+ {match:/stats/i, icon:'📊', title:'Stats', desc:'View your complete life statistics', group:'Life'},
+ {match:/activities/i, icon:'🎯', title:'Activities', desc:'Things to do, play and explore', group:'Life'},
+ {match:/goals|achievements/i, icon:'🏆', title:'Achievements', desc:'Goals, milestones and accomplishments', group:'Life'},
+ {match:/asset management|assets/i, icon:'🏠', title:'Asset Management', desc:'Manage property, vehicles and valuables', group:'Life'},
+ {match:/fame/i, icon:'⭐', title:'Fame', desc:'Celebrity status and public life', group:'Life'},
+ {match:/legacy/i, icon:'🌳', title:'Legacy', desc:'Family history and generations', group:'Life'},
+ {match:/lottery/i, icon:'🎟️', title:'Lottery', desc:'Try your luck with lottery draws', group:'Activities'},
+ {match:/casino/i, icon:'🎰', title:'Casino', desc:'Games and sports betting for adults', group:'Activities'},
+ {match:/vacation|travel/i, icon:'✈️', title:'Travel', desc:'Vacations and destinations', group:'Activities'},
+ {match:/saved|save life|lives/i, icon:'💾', title:'Saved Lives', desc:'Manage your saved characters', group:'Game'},
+ {match:/settings/i, icon:'⚙️', title:'Settings', desc:'Theme, audio and game preferences', group:'Game'},
+ {match:/help|about/i, icon:'❔', title:'Help & About', desc:'Information about Destiny', group:'Game'},
+ {match:/premium store|marketplace|store/i, icon:'💎', title:'Premium Store', desc:'Gems and premium game content', group:'Game'}
+];
+
+function cleanText(btn){
+ const c=btn.cloneNode(true);
+ c.querySelectorAll('span.text-xs,.text-xs,.badge').forEach(x=>x.remove());
+ return (c.textContent||'').replace(/[›❯>]/g,'').replace(/\s+/g,' ').trim();
+}
+function info(btn){
+ const raw=cleanText(btn);
+ const m=META.find(x=>x.match.test(raw));
+ if(m)return {...m};
+ const noEmoji=raw.replace(/^[^\p{L}\p{N}]+/u,'').trim()||'More';
+ const emoji=(raw.match(/^\s*(\p{Extended_Pictographic}(?:\uFE0F)?)/u)||[])[1]||'◆';
+ return {icon:emoji,title:noEmoji,desc:'Open '+noEmoji,group:'More'};
+}
+function avatar(){
+ try{
+   if(game.age<3)return'👶';
+   if(game.age<13)return'🧒';
+   if(game.age<20)return'🧑';
+   if(game.age<60)return game.gender==='Female'?'👩':'👨';
+   return game.gender==='Female'?'👵':'👴';
+ }catch(e){return'🙂'}
+}
+function fameRank(){
+ let f=Number(game.fame||0);
+ return f>=90?'Global Icon':f>=75?'A-List':f>=60?'Major Star':f>=45?'Rising Star':f>=25?'Public Figure':'Private Citizen';
+}
+function build(){
+ const modal=document.getElementById('modalContent');
+ if(!modal||modal.dataset.p29Building==='1')return;
+
+ /* Only touch the actual More modal. */
+ const heading=[...modal.querySelectorAll('h1,h2,h3,h4')].find(h=>/^\s*(☰\s*)?more\s*$/i.test(h.textContent||''));
+ const likely=heading || [...modal.querySelectorAll('button')].some(b=>/stats|activities|achievements/i.test(b.textContent||''));
+ if(!likely)return;
+
+ const buttons=[...modal.querySelectorAll('button')].filter(b=>{
+   const t=(b.textContent||'').trim();
+   if(!t)return false;
+   if(/^(close|back)$/i.test(t))return false;
+   if(b.classList.contains('p29-close'))return false;
+   return !!(b.getAttribute('onclick')||b.onclick);
+ });
+
+ if(!buttons.length)return;
+ modal.dataset.p29Building='1';
+
+ /* Preserve the live button nodes, including all existing onclick handlers. */
+ const items=buttons.map(btn=>({btn,meta:info(btn)}));
+
+ const closeExisting=[...modal.querySelectorAll('button')].find(b=>/^\s*(close|×|✕)\s*$/i.test(b.textContent||''));
+ const groups=['Life','Activities','Game','More'];
+
+ const shell=document.createElement('div');
+ shell.className='p29-more-shell';
+
+ let name='Current Life', age='—', country='', gems=0, fame=0;
+ try{
+   name=((game.firstName||'')+' '+(game.lastName||'')).trim()||'Current Life';
+   age=game.age??'—';country=game.country||'';gems=game.gems||0;fame=game.fame||0;
+ }catch(e){}
+
+ const hero=document.createElement('div');
+ hero.className='p29-hero';
+ hero.innerHTML=`
+   <div class="p29-topline">
+     <div><div class="p29-title">More</div><div class="p29-sub">Your life, activities and game options</div></div>
+     <button class="p29-close" type="button" aria-label="Close">×</button>
+   </div>
+   <div class="p29-profile">
+     <div class="p29-avatar">${avatar()}</div>
+     <div class="p29-profile-main">
+       <div class="p29-profile-name">${escapeHtml(name)}</div>
+       <div class="p29-profile-meta">Age ${age}${country?' · '+escapeHtml(country):''} · ${fameRank()}</div>
+     </div>
+     <div class="p29-mini-stats">
+       <div class="p29-mini"><b>${fame}%</b><span>FAME</span></div>
+       <div class="p29-mini"><b>💎 ${Number(gems).toLocaleString()}</b><span>GEMS</span></div>
+     </div>
+   </div>`;
+ hero.querySelector('.p29-close').onclick=()=>{
+   if(closeExisting)closeExisting.click();
+   else if(typeof closeModal==='function')closeModal();
+ };
+ shell.appendChild(hero);
+
+ const content=document.createElement('div');
+ content.className='p29-content';
+
+ groups.forEach(group=>{
+   const set=items.filter(x=>x.meta.group===group);
+   if(!set.length)return;
+   const sec=document.createElement('section');
+   sec.className='p29-section';
+   sec.innerHTML=`<div class="p29-section-title">${group}</div>`;
+   const box=document.createElement('div');
+   box.className='p29-group';
+
+   set.forEach(({btn,meta})=>{
+     /* Strip old web-app visual classes but keep the same DOM node/action. */
+     btn.className='p29-row';
+     btn.removeAttribute('style');
+     const badge=/casino|lottery/i.test(meta.title)?'<span class="p29-badge">18+</span>':'';
+     btn.innerHTML=`<span class="p29-icon">${meta.icon}</span><span class="p29-copy"><span class="p29-label">${escapeHtml(meta.title)}${badge}</span><span class="p29-desc">${escapeHtml(meta.desc)}</span></span><span class="p29-chevron">›</span>`;
+     box.appendChild(btn);
+   });
+   sec.appendChild(box);
+   content.appendChild(sec);
+ });
+
+ const footer=document.createElement('div');
+ footer.className='p29-footer';
+ footer.textContent='DESTINY · LIVE YOUR STORY';
+ content.appendChild(footer);
+ shell.appendChild(content);
+
+ modal.innerHTML='';
+ modal.appendChild(shell);
+ modal.classList.add('p29-more');
+ modal.dataset.p29Building='0';
+}
+function escapeHtml(v){
+ return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* Run after every older renderMoreTab wrapper has finished injecting its items. */
+const previous=window.renderMoreTab;
+if(typeof previous==='function'){
+ window.renderMoreTab=function(){
+   const r=previous.apply(this,arguments);
+   setTimeout(build,0);
+   return r;
+ };
+}
+
+/* Extra safety for late patch injections. */
+const obs=new MutationObserver(()=>{
+ const m=document.getElementById('modalContent');
+ if(m&&!m.classList.contains('p29-more')){
+   const h=[...m.querySelectorAll('h1,h2,h3,h4')].find(x=>/^\s*(☰\s*)?more\s*$/i.test(x.textContent||''));
+   if(h)setTimeout(build,0);
+ }
+});
+obs.observe(document.body,{childList:true,subtree:true});
+
+window.P29={refresh:build,marker:MARK};
+console.log('[Patch 29] Premium game-style More menu active.');
+})();
+</script>
+<!-- ===== MERGED PATCH END ===== -->
+
+
+
+<!-- ===== MERGED PATCH START ===== -->
+<!-- LIFE SIM PATCH 30: UNIFIED PREMIUM GAME MENU UI -->
+<style>
+/* ==========================================================
+   DESTINY PATCH 30 — UNIFIED PREMIUM GAME MENU UI
+   Applies Patch 29's mobile-game visual language to existing
+   menus and modals without replacing their functionality.
+========================================================== */
+:root{
+ --p30-bg:#0d1118;--p30-card:#151a22;--p30-card2:#1b212b;
+ --p30-border:#272e39;--p30-text:#f7f8fb;--p30-muted:#8993a3;
+ --p30-purple:#7c3aed;--p30-purple2:#5b21b6;
+}
+html[data-theme="light"]{
+ --p30-bg:#f3f4f7;--p30-card:#fff;--p30-card2:#f6f7f9;
+ --p30-border:#e4e6eb;--p30-text:#17191e;--p30-muted:#747d8b;
+}
+#modalContent.p30-game-menu{
+ background:var(--p30-bg)!important;color:var(--p30-text)!important;
+ padding:0!important;overflow:hidden!important;
+}
+.p30-shell{max-height:min(84vh,780px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;padding-bottom:18px}
+.p30-shell::-webkit-scrollbar{display:none}
+.p30-head{
+ position:sticky;top:0;z-index:20;
+ display:flex;align-items:center;gap:10px;
+ padding:14px 14px 12px;
+ background:linear-gradient(135deg,#7c3aed,#5b21b6);
+ color:#fff;box-shadow:0 5px 18px rgba(0,0,0,.18)
+}
+.p30-head-icon{width:40px;height:40px;min-width:40px;border-radius:13px;display:grid;place-items:center;background:rgba(255,255,255,.14);font-size:1.2rem}
+.p30-head-copy{min-width:0;flex:1}.p30-head-copy b{display:block;font-size:1rem;font-weight:950;letter-spacing:-.02em}.p30-head-copy span{display:block;font-size:.59rem;opacity:.72;margin-top:2px}
+.p30-head-close{width:34px!important;height:34px!important;padding:0!important;margin:0!important;border:0!important;border-radius:50%!important;background:rgba(255,255,255,.14)!important;color:#fff!important;display:grid!important;place-items:center!important;font-size:18px!important}
+.p30-body{padding:12px}
+.p30-game-menu h1,.p30-game-menu h2,.p30-game-menu h3,.p30-game-menu h4{color:var(--p30-text)!important}
+.p30-game-menu p,.p30-game-menu small{color:var(--p30-muted)}
+.p30-game-menu .text-slate-400,.p30-game-menu .text-gray-400,.p30-game-menu .text-slate-500{color:var(--p30-muted)!important}
+
+/* Existing blocks become game cards */
+.p30-game-menu .p30-card,
+.p30-game-menu .rounded-xl:not(button):not(input):not(select),
+.p30-game-menu .rounded-2xl:not(button):not(input):not(select){
+ background:var(--p30-card)!important;
+ border-color:var(--p30-border)!important;
+ box-shadow:0 4px 15px rgba(0,0,0,.08);
+}
+.p30-game-menu .bg-slate-900:not(button),
+.p30-game-menu .bg-slate-800:not(button),
+.p30-game-menu .bg-gray-900:not(button),
+.p30-game-menu .bg-gray-800:not(button){
+ background:var(--p30-card)!important;
+ border-color:var(--p30-border)!important;
+}
+
+/* Buttons: tactile game controls */
+.p30-game-menu button:not(.p30-head-close):not(.p29-row){
+ min-height:44px;
+ border-radius:12px!important;
+ font-weight:850!important;
+ transition:transform .08s ease,filter .12s ease,background .12s ease;
+}
+.p30-game-menu button:not(.p30-head-close):active{transform:scale(.985)}
+.p30-game-menu button.bg-slate-900,
+.p30-game-menu button.bg-slate-800,
+.p30-game-menu button.bg-gray-900,
+.p30-game-menu button.bg-gray-800{
+ background:var(--p30-card2)!important;
+ color:var(--p30-text)!important;
+ border:1px solid var(--p30-border)!important;
+ box-shadow:none!important;
+}
+.p30-game-menu button.bg-purple-600,
+.p30-game-menu button.bg-purple-700,
+.p30-game-menu button[class*="from-purple"]{
+ background:linear-gradient(135deg,#8b5cf6,#6d28d9)!important;
+ color:#fff!important;border:0!important;
+ box-shadow:0 5px 14px rgba(124,58,237,.22)!important;
+}
+
+/* Inputs / selectors */
+.p30-game-menu input,.p30-game-menu select,.p30-game-menu textarea{
+ background:var(--p30-card2)!important;color:var(--p30-text)!important;
+ border:1px solid var(--p30-border)!important;border-radius:11px!important;
+ min-height:42px;outline:none!important
+}
+.p30-game-menu input:focus,.p30-game-menu select:focus,.p30-game-menu textarea:focus{
+ border-color:#8b5cf6!important;box-shadow:0 0 0 3px rgba(139,92,246,.13)!important
+}
+
+/* Lists and separators */
+.p30-game-menu hr{border-color:var(--p30-border)!important}
+.p30-game-menu .border-slate-700,.p30-game-menu .border-slate-800,
+.p30-game-menu .border-gray-700,.p30-game-menu .border-gray-800{border-color:var(--p30-border)!important}
+.p30-game-menu .space-y-2>*,.p30-game-menu .space-y-3>*{margin-top:7px!important}
+.p30-game-menu .grid{gap:8px!important}
+
+/* Game-style native menu rows detected by JS */
+.p30-menu-list{display:grid;gap:0;border:1px solid var(--p30-border);border-radius:16px;overflow:hidden;background:var(--p30-card);margin:8px 0}
+.p30-menu-list>.p30-menu-row{
+ width:100%!important;min-height:56px!important;margin:0!important;padding:8px 38px 8px 10px!important;
+ display:flex!important;align-items:center!important;gap:10px!important;position:relative;
+ border:0!important;border-bottom:1px solid var(--p30-border)!important;border-radius:0!important;
+ background:transparent!important;color:var(--p30-text)!important;text-align:left!important;box-shadow:none!important
+}
+.p30-menu-list>.p30-menu-row:last-child{border-bottom:0!important}
+.p30-menu-row:after{content:"›";position:absolute;right:13px;top:50%;transform:translateY(-50%);font-size:1.25rem;color:#697486}
+.p30-auto-icon{width:37px;height:37px;min-width:37px;border-radius:11px;background:var(--p30-card2);display:grid;place-items:center;font-size:1.05rem}
+.p30-auto-copy{min-width:0;flex:1}.p30-auto-copy b{display:block;font-size:.77rem;color:var(--p30-text)!important}.p30-auto-copy small{display:block;font-size:.56rem;color:var(--p30-muted)!important;margin-top:2px}
+
+/* Stats get compact game dashboard treatment */
+.p30-game-menu .p15-stat{overflow:hidden;border:1px solid var(--p30-border)!important;border-radius:16px!important;background:var(--p30-card)!important}
+.p30-game-menu .p15-stat-row{padding:10px 12px!important;border-color:var(--p30-border)!important;color:var(--p30-text)!important;background:transparent!important}
+.p30-game-menu .p15-stat-row span{color:var(--p30-muted)!important}.p30-game-menu .p15-stat-row b{color:var(--p30-text)!important}
+
+/* Settings */
+.p30-game-menu label{color:var(--p30-text)!important}
+.p30-game-menu input[type="checkbox"]{min-height:auto}
+
+/* Casino / sportsbook / lottery cards */
+.p30-game-menu [class*="casino"],.p30-game-menu [class*="sportsbook"],
+.p30-game-menu [class*="lottery"],.p30-game-menu [class*="luxury"],
+.p30-game-menu [class*="asset"]{
+ border-color:var(--p30-border)!important;
+}
+
+/* Preserve Patch 29 More itself */
+#modalContent.p29-more{background:#0d1118!important}
+html[data-theme="light"] #modalContent.p29-more{background:#f3f4f7!important}
+
+@media(max-width:390px){
+ .p30-head{padding:12px 11px 10px}.p30-body{padding:9px}
+ .p30-menu-list>.p30-menu-row{min-height:53px!important}
+}
+</style>
+
+<script>
+/* LIFE SIM PATCH 30: UNIFIED PREMIUM GAME MENU UI */
+(function(){
+'use strict';
+if(window.__DESTINY30__)return;
+window.__DESTINY30__=1;
+const MARK='LIFE SIM PATCH 30: UNIFIED PREMIUM GAME MENU UI';
+
+const TYPES=[
+ [/relationship|people|partner|family|friend/i,'❤️','Relationships','Your people, family and love life'],
+ [/career|job|work|occupation/i,'💼','Career','Jobs, opportunities and professional life'],
+ [/market|stock|crypto|portfolio|invest/i,'📈','Markets','Investments, holdings and financial markets'],
+ [/activit/i,'🎯','Activities','Things to do in your life'],
+ [/asset management|assets/i,'🏠','Asset Management','Property, vehicles and valuables'],
+ [/casino|sportsbook|betting/i,'🎰','Casino','Games, racing and sports betting'],
+ [/lottery/i,'🎟️','Lottery','Tickets, draws and jackpots'],
+ [/fame|celebrity/i,'⭐','Fame','Your public life and celebrity career'],
+ [/luxury|shopping/i,'💎','Luxury','Premium cars, homes, yachts and jets'],
+ [/bank|loan|finance/i,'🏦','Bank & Finance','Accounts, borrowing and repayments'],
+ [/setting/i,'⚙️','Settings','Game, theme and audio preferences'],
+ [/stats|statistics/i,'📊','Stats','Your complete life statistics'],
+ [/achievement|goal/i,'🏆','Achievements','Goals and milestones'],
+ [/travel|vacation/i,'✈️','Travel','Trips, holidays and destinations'],
+ [/saved|save life/i,'💾','Saved Lives','Manage your saved characters'],
+ [/business|startup|company/i,'🏢','Business','Companies and entrepreneurship'],
+ [/education|school|university/i,'🎓','Education','School and qualifications'],
+ [/health|doctor|medical/i,'❤️‍🩹','Health','Health, wellness and treatment'],
+ [/crime|criminal/i,'🕶️','Crime','Risky and illegal activities'],
+ [/more/i,'☰','More','More ways to manage your life']
+];
+
+const ROW_META=[
+ [/propose|marry|wedding/i,'💍','Marriage and commitment'],
+ [/make love|intimacy/i,'❤️','Private relationship interaction'],
+ [/child|baby|pregnan/i,'👶','Family and children'],
+ [/divorc/i,'💔','Marriage and separation'],
+ [/prenup/i,'📜','Marriage finances and protection'],
+ [/date/i,'🌹','Spend time together'],
+ [/gift/i,'🎁','Give a gift'],
+ [/blackjack/i,'🃏','Play to 21'],
+ [/roulette/i,'🎡','Place a roulette wager'],
+ [/slot/i,'🎰','Play the slots'],
+ [/sport/i,'🏟️','Sports betting'],
+ [/horse/i,'🏇','Horse racing'],
+ [/car|vehicle/i,'🚗','Vehicles and ownership'],
+ [/house|home|property|real estate/i,'🏠','Property and real estate'],
+ [/yacht/i,'🛥️','Luxury yachts'],
+ [/jet/i,'✈️','Private aircraft'],
+ [/loan|borrow/i,'💳','Borrowing and repayments'],
+ [/deposit|bank/i,'🏦','Banking'],
+ [/stock|share/i,'📈','Stocks and investments'],
+ [/crypto|coin/i,'🪙','Digital assets'],
+ [/settings|theme/i,'⚙️','Preferences'],
+ [/stats/i,'📊','Life statistics'],
+ [/fame/i,'⭐','Celebrity life'],
+ [/lottery/i,'🎟️','Lottery'],
+ [/career|job/i,'💼','Career'],
+ [/activity/i,'🎯','Activities']
+];
+
+function textOf(el){return (el.textContent||'').replace(/\s+/g,' ').trim()}
+function detect(modal){
+ const txt=textOf(modal).slice(0,1200);
+ for(const [re,icon,title,sub] of TYPES)if(re.test(txt))return{icon,title,sub};
+ return{icon:'◆',title:'Destiny',sub:'Choose what you want to do'};
+}
+function closeAction(){
+ if(typeof closeModal==='function')closeModal();
+ else document.getElementById('modal')?.classList.add('hidden');
+}
+function iconFor(t){
+ for(const [re,ic,desc] of ROW_META)if(re.test(t))return[ic,desc];
+ const m=t.match(/^\s*(\p{Extended_Pictographic}(?:\uFE0F)?)/u);
+ return[m?.[1]||'◆','Open option'];
+}
+function beautifyRows(root){
+ const containers=[...root.querySelectorAll('.space-y-2,.space-y-3')];
+ containers.forEach(box=>{
+   const kids=[...box.children];
+   if(kids.length<2)return;
+   const btns=kids.filter(x=>x.tagName==='BUTTON');
+   if(btns.length<2||btns.length/kids.length<.65)return;
+   box.classList.add('p30-menu-list');
+   btns.forEach(btn=>{
+     if(btn.classList.contains('p30-menu-row'))return;
+     let raw=textOf(btn);
+     if(!raw||/back|close/i.test(raw)&&raw.length<12)return;
+     const [ic,desc]=iconFor(raw);
+     let label=raw.replace(/^[^\p{L}\p{N}]+/u,'').replace(/[›❯>]$/,'').trim()||raw;
+     btn.className='p30-menu-row';
+     btn.removeAttribute('style');
+     btn.innerHTML=`<span class="p30-auto-icon">${ic}</span><span class="p30-auto-copy"><b>${esc(label)}</b><small>${esc(desc)}</small></span>`;
+   });
+ });
+}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+
+function skin(){
+ const modal=document.getElementById('modalContent');
+ if(!modal||modal.classList.contains('p29-more')||modal.dataset.p30Busy==='1')return;
+ if(!modal.children.length)return;
+ /* Ignore start-game / character creation screens. */
+ const whole=textOf(modal);
+ if(/start life|create (a )?life|new life/i.test(whole)&&whole.length<900)return;
+
+ modal.dataset.p30Busy='1';
+ modal.classList.add('p30-game-menu');
+
+ /* Don't repeatedly wrap an already-skinned modal. */
+ if(!modal.querySelector(':scope > .p30-shell')){
+   const type=detect(modal);
+   const existingClose=[...modal.querySelectorAll('button')].find(b=>/^\s*(×|✕|close)\s*$/i.test(textOf(b)));
+   const shell=document.createElement('div');shell.className='p30-shell';
+   const head=document.createElement('div');head.className='p30-head';
+   head.innerHTML=`<span class="p30-head-icon">${type.icon}</span><span class="p30-head-copy"><b>${esc(type.title)}</b><span>${esc(type.sub)}</span></span><button class="p30-head-close" aria-label="Close">×</button>`;
+   head.querySelector('.p30-head-close').onclick=()=>existingClose?existingClose.click():closeAction();
+
+   const body=document.createElement('div');body.className='p30-body';
+   const nodes=[...modal.childNodes];
+   nodes.forEach(n=>{
+     if(n===existingClose)return;
+     /* Hide duplicate original top headings; header now owns the title. */
+     if(n.nodeType===1 && /^H[1-4]$/.test(n.tagName) && textOf(n).length<80)return;
+     body.appendChild(n);
+   });
+   shell.append(head,body);modal.innerHTML='';modal.appendChild(shell);
+   beautifyRows(body);
+ }else{
+   beautifyRows(modal.querySelector('.p30-body')||modal);
+ }
+ modal.dataset.p30Busy='0';
+}
+
+/* Skin any modal after existing game functions finish rendering it. */
+const observer=new MutationObserver(()=>{
+ const modal=document.getElementById('modalContent');
+ if(!modal)return;
+ if(modal.classList.contains('p29-more'))return;
+ clearTimeout(window.__p30Timer);
+ window.__p30Timer=setTimeout(skin,20);
+});
+observer.observe(document.body,{childList:true,subtree:true});
+
+/* Wrap openModal so even dynamically-created screens are normalized. */
+if(typeof window.openModal==='function'){
+ const oldOpen=window.openModal;
+ window.openModal=function(){
+   const r=oldOpen.apply(this,arguments);
+   setTimeout(skin,0);
+   return r;
+ };
+}
+
+/* Bottom-tab renders often call openModal indirectly; this catches direct renders too. */
+document.addEventListener('click',()=>setTimeout(skin,35),{passive:true});
+
+window.P30={refresh:skin,marker:MARK};
+console.log('[Patch 30] Unified premium game menu styling active.');
+})();
+</script>
+<!-- ===== MERGED PATCH END ===== -->
+
+
+
+<!-- ===== MERGED PATCH START ===== -->
+<!-- LIFE SIM PATCH 31: DEEP RELATIONSHIPS + 100 SOCIAL EVENTS -->
+<style>
+/* Destiny 31 relationship UI */
+.p31-wrap{display:grid;gap:10px}.p31-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.p31-summary>div,.p31-person{background:var(--p30-card,#151a22);border:1px solid var(--p30-border,#272e39);border-radius:15px}
+.p31-summary>div{text-align:center;padding:9px 4px}.p31-summary b{display:block;font-size:.8rem}.p31-summary span{font-size:.52rem;color:var(--p30-muted,#8993a3)}
+.p31-section-title{font-size:.59rem;font-weight:950;letter-spacing:.1em;text-transform:uppercase;color:var(--p30-muted,#8993a3);padding:4px 4px 0}
+.p31-person{overflow:hidden}.p31-person-main{display:flex;align-items:center;gap:10px;padding:11px;cursor:pointer}
+.p31-avatar{width:43px;height:43px;min-width:43px;border-radius:50%;display:grid;place-items:center;background:#7c3aed20;font-size:1.3rem}
+.p31-info{min-width:0;flex:1}.p31-name{font-size:.8rem;font-weight:900}.p31-meta{font-size:.57rem;color:var(--p30-muted,#8993a3);margin-top:2px}
+.p31-bond{width:64px}.p31-bond small{font-size:.49rem;color:var(--p30-muted,#8993a3)}.p31-meter{height:5px;background:#94a3b82a;border-radius:9px;overflow:hidden;margin-top:3px}.p31-meter i{display:block;height:100%;background:linear-gradient(90deg,#8b5cf6,#ec4899)}
+.p31-detail{padding:0 11px 11px;border-top:1px solid var(--p30-border,#272e39)}.p31-traits{display:flex;flex-wrap:wrap;gap:5px;padding:9px 0}.p31-chip{font-size:.52rem;padding:4px 7px;border-radius:99px;background:#94a3b817;color:var(--p30-muted,#8993a3)}
+.p31-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:8px}.p31-stats div{text-align:center;padding:6px;background:#94a3b810;border-radius:9px}.p31-stats b{display:block;font-size:.65rem}.p31-stats span{font-size:.47rem;color:var(--p30-muted,#8993a3)}
+.p31-actions{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}.p31-actions button{min-height:39px!important;font-size:.62rem!important;padding:7px!important}
+.p31-gifts{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}.p31-gift{padding:10px!important;text-align:left!important}.p31-gift b{display:block;font-size:.67rem}.p31-gift span{font-size:.52rem;opacity:.65}
+.p31-memory{font-size:.56rem;color:var(--p30-muted,#8993a3);padding:5px 0;border-top:1px solid var(--p30-border,#272e39)}
+.p31-event button{width:100%;margin-top:7px;text-align:left!important;padding:10px!important}
+</style>
+<script>
+/* LIFE SIM PATCH 31: DEEP RELATIONSHIPS + 100 SOCIAL EVENTS */
+(function(){
+'use strict';if(window.__DESTINY31__)return;window.__DESTINY31__=1;
+const EVENTS=[{"id":1,"rel":"parent","title":"Parent: Needs Advice","text":"{name} asks you for advice about an important decision.","choices":[{"label":"Listen carefully","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Brush it off","bond":-5,"respect":-3,"conflict":3,"happy":-1,"money":0}]},{"id":2,"rel":"sibling","title":"Sibling: Needs Advice","text":"{name} asks you for advice about an important decision.","choices":[{"label":"Listen carefully","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Brush it off","bond":-5,"respect":-3,"conflict":3,"happy":-1,"money":0}]},{"id":3,"rel":"child","title":"Child: Needs Advice","text":"{name} asks you for advice about an important decision.","choices":[{"label":"Listen carefully","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Brush it off","bond":-5,"respect":-3,"conflict":3,"happy":-1,"money":0}]},{"id":4,"rel":"friend","title":"Friend: Needs Advice","text":"{name} asks you for advice about an important decision.","choices":[{"label":"Listen carefully","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Brush it off","bond":-5,"respect":-3,"conflict":3,"happy":-1,"money":0}]},{"id":5,"rel":"partner","title":"Partner: Needs Advice","text":"{name} asks you for advice about an important decision.","choices":[{"label":"Listen carefully","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Brush it off","bond":-5,"respect":-3,"conflict":3,"happy":-1,"money":0}]},{"id":6,"rel":"parent","title":"Parent: Bad Day","text":"{name} has had a terrible day and wants someone to talk to.","choices":[{"label":"Be there for them","bond":5,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Say you're busy","bond":-6,"respect":-3,"conflict":3,"happy":-1,"money":0}]},{"id":7,"rel":"sibling","title":"Sibling: Bad Day","text":"{name} has had a terrible day and wants someone to talk to.","choices":[{"label":"Be there for them","bond":5,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Say you're busy","bond":-6,"respect":-3,"conflict":3,"happy":-1,"money":0}]},{"id":8,"rel":"child","title":"Child: Bad Day","text":"{name} has had a terrible day and wants someone to talk to.","choices":[{"label":"Be there for them","bond":5,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Say you're busy","bond":-6,"respect":-3,"conflict":3,"happy":-1,"money":0}]},{"id":9,"rel":"friend","title":"Friend: Bad Day","text":"{name} has had a terrible day and wants someone to talk to.","choices":[{"label":"Be there for them","bond":5,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Say you're busy","bond":-6,"respect":-3,"conflict":3,"happy":-1,"money":0}]},{"id":10,"rel":"partner","title":"Partner: Bad Day","text":"{name} has had a terrible day and wants someone to talk to.","choices":[{"label":"Be there for them","bond":5,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Say you're busy","bond":-6,"respect":-3,"conflict":3,"happy":-1,"money":0}]},{"id":11,"rel":"parent","title":"Parent: Forgotten Birthday","text":"You realize you nearly forgot {name}'s birthday.","choices":[{"label":"Make it up to them","bond":3,"respect":1,"conflict":-2,"happy":2,"money":0},{"label":"Pretend you remembered","bond":-4,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":12,"rel":"sibling","title":"Sibling: Forgotten Birthday","text":"You realize you nearly forgot {name}'s birthday.","choices":[{"label":"Make it up to them","bond":3,"respect":1,"conflict":-2,"happy":2,"money":0},{"label":"Pretend you remembered","bond":-4,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":13,"rel":"child","title":"Child: Forgotten Birthday","text":"You realize you nearly forgot {name}'s birthday.","choices":[{"label":"Make it up to them","bond":3,"respect":1,"conflict":-2,"happy":2,"money":0},{"label":"Pretend you remembered","bond":-4,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":14,"rel":"friend","title":"Friend: Forgotten Birthday","text":"You realize you nearly forgot {name}'s birthday.","choices":[{"label":"Make it up to them","bond":3,"respect":1,"conflict":-2,"happy":2,"money":0},{"label":"Pretend you remembered","bond":-4,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":15,"rel":"partner","title":"Partner: Forgotten Birthday","text":"You realize you nearly forgot {name}'s birthday.","choices":[{"label":"Make it up to them","bond":3,"respect":1,"conflict":-2,"happy":2,"money":0},{"label":"Pretend you remembered","bond":-4,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":16,"rel":"parent","title":"Parent: Unexpected Visit","text":"{name} shows up unexpectedly hoping to spend time together.","choices":[{"label":"Welcome them in","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Say it's a bad time","bond":-3,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":17,"rel":"sibling","title":"Sibling: Unexpected Visit","text":"{name} shows up unexpectedly hoping to spend time together.","choices":[{"label":"Welcome them in","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Say it's a bad time","bond":-3,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":18,"rel":"child","title":"Child: Unexpected Visit","text":"{name} shows up unexpectedly hoping to spend time together.","choices":[{"label":"Welcome them in","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Say it's a bad time","bond":-3,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":19,"rel":"friend","title":"Friend: Unexpected Visit","text":"{name} shows up unexpectedly hoping to spend time together.","choices":[{"label":"Welcome them in","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Say it's a bad time","bond":-3,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":20,"rel":"partner","title":"Partner: Unexpected Visit","text":"{name} shows up unexpectedly hoping to spend time together.","choices":[{"label":"Welcome them in","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Say it's a bad time","bond":-3,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":21,"rel":"parent","title":"Parent: Money Request","text":"{name} asks to borrow some money.","choices":[{"label":"Help them out","bond":3,"respect":1,"conflict":-2,"happy":2,"money":-100},{"label":"Refuse","bond":-2,"respect":-1,"conflict":3,"happy":-1,"money":0}]},{"id":22,"rel":"sibling","title":"Sibling: Money Request","text":"{name} asks to borrow some money.","choices":[{"label":"Help them out","bond":3,"respect":1,"conflict":-2,"happy":2,"money":-100},{"label":"Refuse","bond":-2,"respect":-1,"conflict":3,"happy":-1,"money":0}]},{"id":23,"rel":"child","title":"Child: Money Request","text":"{name} asks to borrow some money.","choices":[{"label":"Help them out","bond":3,"respect":1,"conflict":-2,"happy":2,"money":-100},{"label":"Refuse","bond":-2,"respect":-1,"conflict":3,"happy":-1,"money":0}]},{"id":24,"rel":"friend","title":"Friend: Money Request","text":"{name} asks to borrow some money.","choices":[{"label":"Help them out","bond":3,"respect":1,"conflict":-2,"happy":2,"money":-100},{"label":"Refuse","bond":-2,"respect":-1,"conflict":3,"happy":-1,"money":0}]},{"id":25,"rel":"partner","title":"Partner: Money Request","text":"{name} asks to borrow some money.","choices":[{"label":"Help them out","bond":3,"respect":1,"conflict":-2,"happy":2,"money":-100},{"label":"Refuse","bond":-2,"respect":-1,"conflict":3,"happy":-1,"money":0}]},{"id":26,"rel":"parent","title":"Parent: Old Argument","text":"An old disagreement with {name} comes up again.","choices":[{"label":"Talk it through","bond":5,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Reopen the fight","bond":-7,"respect":-4,"conflict":3,"happy":-1,"money":0}]},{"id":27,"rel":"sibling","title":"Sibling: Old Argument","text":"An old disagreement with {name} comes up again.","choices":[{"label":"Talk it through","bond":5,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Reopen the fight","bond":-7,"respect":-4,"conflict":3,"happy":-1,"money":0}]},{"id":28,"rel":"child","title":"Child: Old Argument","text":"An old disagreement with {name} comes up again.","choices":[{"label":"Talk it through","bond":5,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Reopen the fight","bond":-7,"respect":-4,"conflict":3,"happy":-1,"money":0}]},{"id":29,"rel":"friend","title":"Friend: Old Argument","text":"An old disagreement with {name} comes up again.","choices":[{"label":"Talk it through","bond":5,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Reopen the fight","bond":-7,"respect":-4,"conflict":3,"happy":-1,"money":0}]},{"id":30,"rel":"partner","title":"Partner: Old Argument","text":"An old disagreement with {name} comes up again.","choices":[{"label":"Talk it through","bond":5,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Reopen the fight","bond":-7,"respect":-4,"conflict":3,"happy":-1,"money":0}]},{"id":31,"rel":"parent","title":"Parent: Big News","text":"{name} has exciting news and wants to celebrate with you.","choices":[{"label":"Celebrate together","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Give a quick congratulations","bond":-1,"respect":-1,"conflict":3,"happy":-1,"money":0}]},{"id":32,"rel":"sibling","title":"Sibling: Big News","text":"{name} has exciting news and wants to celebrate with you.","choices":[{"label":"Celebrate together","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Give a quick congratulations","bond":-1,"respect":-1,"conflict":3,"happy":-1,"money":0}]},{"id":33,"rel":"child","title":"Child: Big News","text":"{name} has exciting news and wants to celebrate with you.","choices":[{"label":"Celebrate together","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Give a quick congratulations","bond":-1,"respect":-1,"conflict":3,"happy":-1,"money":0}]},{"id":34,"rel":"friend","title":"Friend: Big News","text":"{name} has exciting news and wants to celebrate with you.","choices":[{"label":"Celebrate together","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Give a quick congratulations","bond":-1,"respect":-1,"conflict":3,"happy":-1,"money":0}]},{"id":35,"rel":"partner","title":"Partner: Big News","text":"{name} has exciting news and wants to celebrate with you.","choices":[{"label":"Celebrate together","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Give a quick congratulations","bond":-1,"respect":-1,"conflict":3,"happy":-1,"money":0}]},{"id":36,"rel":"parent","title":"Parent: Feeling Ignored","text":"{name} says you have not been making enough time for them.","choices":[{"label":"Apologize and reconnect","bond":5,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Get defensive","bond":-6,"respect":-3,"conflict":3,"happy":-1,"money":0}]},{"id":37,"rel":"sibling","title":"Sibling: Feeling Ignored","text":"{name} says you have not been making enough time for them.","choices":[{"label":"Apologize and reconnect","bond":5,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Get defensive","bond":-6,"respect":-3,"conflict":3,"happy":-1,"money":0}]},{"id":38,"rel":"child","title":"Child: Feeling Ignored","text":"{name} says you have not been making enough time for them.","choices":[{"label":"Apologize and reconnect","bond":5,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Get defensive","bond":-6,"respect":-3,"conflict":3,"happy":-1,"money":0}]},{"id":39,"rel":"friend","title":"Friend: Feeling Ignored","text":"{name} says you have not been making enough time for them.","choices":[{"label":"Apologize and reconnect","bond":5,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Get defensive","bond":-6,"respect":-3,"conflict":3,"happy":-1,"money":0}]},{"id":40,"rel":"partner","title":"Partner: Feeling Ignored","text":"{name} says you have not been making enough time for them.","choices":[{"label":"Apologize and reconnect","bond":5,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Get defensive","bond":-6,"respect":-3,"conflict":3,"happy":-1,"money":0}]},{"id":41,"rel":"parent","title":"Parent: Family Gathering","text":"{name} wants you to attend an important gathering.","choices":[{"label":"Go with them","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Skip it","bond":-4,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":42,"rel":"sibling","title":"Sibling: Family Gathering","text":"{name} wants you to attend an important gathering.","choices":[{"label":"Go with them","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Skip it","bond":-4,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":43,"rel":"child","title":"Child: Family Gathering","text":"{name} wants you to attend an important gathering.","choices":[{"label":"Go with them","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Skip it","bond":-4,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":44,"rel":"friend","title":"Friend: Family Gathering","text":"{name} wants you to attend an important gathering.","choices":[{"label":"Go with them","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Skip it","bond":-4,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":45,"rel":"partner","title":"Partner: Family Gathering","text":"{name} wants you to attend an important gathering.","choices":[{"label":"Go with them","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Skip it","bond":-4,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":46,"rel":"parent","title":"Parent: Personal Secret","text":"{name} trusts you with something very personal.","choices":[{"label":"Keep their confidence","bond":6,"respect":3,"conflict":-2,"happy":2,"money":0},{"label":"Tell someone else","bond":-10,"respect":-5,"conflict":3,"happy":-1,"money":0}]},{"id":47,"rel":"sibling","title":"Sibling: Personal Secret","text":"{name} trusts you with something very personal.","choices":[{"label":"Keep their confidence","bond":6,"respect":3,"conflict":-2,"happy":2,"money":0},{"label":"Tell someone else","bond":-10,"respect":-5,"conflict":3,"happy":-1,"money":0}]},{"id":48,"rel":"child","title":"Child: Personal Secret","text":"{name} trusts you with something very personal.","choices":[{"label":"Keep their confidence","bond":6,"respect":3,"conflict":-2,"happy":2,"money":0},{"label":"Tell someone else","bond":-10,"respect":-5,"conflict":3,"happy":-1,"money":0}]},{"id":49,"rel":"friend","title":"Friend: Personal Secret","text":"{name} trusts you with something very personal.","choices":[{"label":"Keep their confidence","bond":6,"respect":3,"conflict":-2,"happy":2,"money":0},{"label":"Tell someone else","bond":-10,"respect":-5,"conflict":3,"happy":-1,"money":0}]},{"id":50,"rel":"partner","title":"Partner: Personal Secret","text":"{name} trusts you with something very personal.","choices":[{"label":"Keep their confidence","bond":6,"respect":3,"conflict":-2,"happy":2,"money":0},{"label":"Tell someone else","bond":-10,"respect":-5,"conflict":3,"happy":-1,"money":0}]},{"id":51,"rel":"parent","title":"Parent: Need a Ride","text":"{name} is stranded and asks you for help getting home.","choices":[{"label":"Go help","bond":3,"respect":1,"conflict":-2,"happy":2,"money":0},{"label":"Make an excuse","bond":-3,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":52,"rel":"sibling","title":"Sibling: Need a Ride","text":"{name} is stranded and asks you for help getting home.","choices":[{"label":"Go help","bond":3,"respect":1,"conflict":-2,"happy":2,"money":0},{"label":"Make an excuse","bond":-3,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":53,"rel":"child","title":"Child: Need a Ride","text":"{name} is stranded and asks you for help getting home.","choices":[{"label":"Go help","bond":3,"respect":1,"conflict":-2,"happy":2,"money":0},{"label":"Make an excuse","bond":-3,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":54,"rel":"friend","title":"Friend: Need a Ride","text":"{name} is stranded and asks you for help getting home.","choices":[{"label":"Go help","bond":3,"respect":1,"conflict":-2,"happy":2,"money":0},{"label":"Make an excuse","bond":-3,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":55,"rel":"partner","title":"Partner: Need a Ride","text":"{name} is stranded and asks you for help getting home.","choices":[{"label":"Go help","bond":3,"respect":1,"conflict":-2,"happy":2,"money":0},{"label":"Make an excuse","bond":-3,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":56,"rel":"parent","title":"Parent: Career Celebration","text":"{name} reaches an important career milestone.","choices":[{"label":"Celebrate them","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Act uninterested","bond":-4,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":57,"rel":"sibling","title":"Sibling: Career Celebration","text":"{name} reaches an important career milestone.","choices":[{"label":"Celebrate them","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Act uninterested","bond":-4,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":58,"rel":"child","title":"Child: Career Celebration","text":"{name} reaches an important career milestone.","choices":[{"label":"Celebrate them","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Act uninterested","bond":-4,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":59,"rel":"friend","title":"Friend: Career Celebration","text":"{name} reaches an important career milestone.","choices":[{"label":"Celebrate them","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Act uninterested","bond":-4,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":60,"rel":"partner","title":"Partner: Career Celebration","text":"{name} reaches an important career milestone.","choices":[{"label":"Celebrate them","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Act uninterested","bond":-4,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":61,"rel":"parent","title":"Parent: Misunderstood Text","text":"A message from {name} sounds rude, but it may be a misunderstanding.","choices":[{"label":"Ask what they meant","bond":3,"respect":1,"conflict":-2,"happy":2,"money":0},{"label":"Reply angrily","bond":-6,"respect":-3,"conflict":3,"happy":-1,"money":0}]},{"id":62,"rel":"sibling","title":"Sibling: Misunderstood Text","text":"A message from {name} sounds rude, but it may be a misunderstanding.","choices":[{"label":"Ask what they meant","bond":3,"respect":1,"conflict":-2,"happy":2,"money":0},{"label":"Reply angrily","bond":-6,"respect":-3,"conflict":3,"happy":-1,"money":0}]},{"id":63,"rel":"child","title":"Child: Misunderstood Text","text":"A message from {name} sounds rude, but it may be a misunderstanding.","choices":[{"label":"Ask what they meant","bond":3,"respect":1,"conflict":-2,"happy":2,"money":0},{"label":"Reply angrily","bond":-6,"respect":-3,"conflict":3,"happy":-1,"money":0}]},{"id":64,"rel":"friend","title":"Friend: Misunderstood Text","text":"A message from {name} sounds rude, but it may be a misunderstanding.","choices":[{"label":"Ask what they meant","bond":3,"respect":1,"conflict":-2,"happy":2,"money":0},{"label":"Reply angrily","bond":-6,"respect":-3,"conflict":3,"happy":-1,"money":0}]},{"id":65,"rel":"partner","title":"Partner: Misunderstood Text","text":"A message from {name} sounds rude, but it may be a misunderstanding.","choices":[{"label":"Ask what they meant","bond":3,"respect":1,"conflict":-2,"happy":2,"money":0},{"label":"Reply angrily","bond":-6,"respect":-3,"conflict":3,"happy":-1,"money":0}]},{"id":66,"rel":"parent","title":"Parent: Holiday Plans","text":"{name} wants to make holiday plans with you.","choices":[{"label":"Make time for them","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Choose other plans","bond":-3,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":67,"rel":"sibling","title":"Sibling: Holiday Plans","text":"{name} wants to make holiday plans with you.","choices":[{"label":"Make time for them","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Choose other plans","bond":-3,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":68,"rel":"child","title":"Child: Holiday Plans","text":"{name} wants to make holiday plans with you.","choices":[{"label":"Make time for them","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Choose other plans","bond":-3,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":69,"rel":"friend","title":"Friend: Holiday Plans","text":"{name} wants to make holiday plans with you.","choices":[{"label":"Make time for them","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Choose other plans","bond":-3,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":70,"rel":"partner","title":"Partner: Holiday Plans","text":"{name} wants to make holiday plans with you.","choices":[{"label":"Make time for them","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Choose other plans","bond":-3,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":71,"rel":"parent","title":"Parent: Health Scare","text":"{name} is worried about a health issue and wants support.","choices":[{"label":"Stay close and supportive","bond":6,"respect":3,"conflict":-2,"happy":2,"money":0},{"label":"Avoid the situation","bond":-7,"respect":-4,"conflict":3,"happy":-1,"money":0}]},{"id":72,"rel":"sibling","title":"Sibling: Health Scare","text":"{name} is worried about a health issue and wants support.","choices":[{"label":"Stay close and supportive","bond":6,"respect":3,"conflict":-2,"happy":2,"money":0},{"label":"Avoid the situation","bond":-7,"respect":-4,"conflict":3,"happy":-1,"money":0}]},{"id":73,"rel":"child","title":"Child: Health Scare","text":"{name} is worried about a health issue and wants support.","choices":[{"label":"Stay close and supportive","bond":6,"respect":3,"conflict":-2,"happy":2,"money":0},{"label":"Avoid the situation","bond":-7,"respect":-4,"conflict":3,"happy":-1,"money":0}]},{"id":74,"rel":"friend","title":"Friend: Health Scare","text":"{name} is worried about a health issue and wants support.","choices":[{"label":"Stay close and supportive","bond":6,"respect":3,"conflict":-2,"happy":2,"money":0},{"label":"Avoid the situation","bond":-7,"respect":-4,"conflict":3,"happy":-1,"money":0}]},{"id":75,"rel":"partner","title":"Partner: Health Scare","text":"{name} is worried about a health issue and wants support.","choices":[{"label":"Stay close and supportive","bond":6,"respect":3,"conflict":-2,"happy":2,"money":0},{"label":"Avoid the situation","bond":-7,"respect":-4,"conflict":3,"happy":-1,"money":0}]},{"id":76,"rel":"parent","title":"Parent: Public Embarrassment","text":"{name} embarrasses you in front of other people.","choices":[{"label":"Handle it privately","bond":2,"respect":1,"conflict":-2,"happy":2,"money":0},{"label":"Humiliate them back","bond":-8,"respect":-4,"conflict":3,"happy":-1,"money":0}]},{"id":77,"rel":"sibling","title":"Sibling: Public Embarrassment","text":"{name} embarrasses you in front of other people.","choices":[{"label":"Handle it privately","bond":2,"respect":1,"conflict":-2,"happy":2,"money":0},{"label":"Humiliate them back","bond":-8,"respect":-4,"conflict":3,"happy":-1,"money":0}]},{"id":78,"rel":"child","title":"Child: Public Embarrassment","text":"{name} embarrasses you in front of other people.","choices":[{"label":"Handle it privately","bond":2,"respect":1,"conflict":-2,"happy":2,"money":0},{"label":"Humiliate them back","bond":-8,"respect":-4,"conflict":3,"happy":-1,"money":0}]},{"id":79,"rel":"friend","title":"Friend: Public Embarrassment","text":"{name} embarrasses you in front of other people.","choices":[{"label":"Handle it privately","bond":2,"respect":1,"conflict":-2,"happy":2,"money":0},{"label":"Humiliate them back","bond":-8,"respect":-4,"conflict":3,"happy":-1,"money":0}]},{"id":80,"rel":"partner","title":"Partner: Public Embarrassment","text":"{name} embarrasses you in front of other people.","choices":[{"label":"Handle it privately","bond":2,"respect":1,"conflict":-2,"happy":2,"money":0},{"label":"Humiliate them back","bond":-8,"respect":-4,"conflict":3,"happy":-1,"money":0}]},{"id":81,"rel":"parent","title":"Parent: Important Favor","text":"{name} asks for a favor that will take up your time.","choices":[{"label":"Do the favor","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Say no","bond":-2,"respect":-1,"conflict":3,"happy":-1,"money":0}]},{"id":82,"rel":"sibling","title":"Sibling: Important Favor","text":"{name} asks for a favor that will take up your time.","choices":[{"label":"Do the favor","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Say no","bond":-2,"respect":-1,"conflict":3,"happy":-1,"money":0}]},{"id":83,"rel":"child","title":"Child: Important Favor","text":"{name} asks for a favor that will take up your time.","choices":[{"label":"Do the favor","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Say no","bond":-2,"respect":-1,"conflict":3,"happy":-1,"money":0}]},{"id":84,"rel":"friend","title":"Friend: Important Favor","text":"{name} asks for a favor that will take up your time.","choices":[{"label":"Do the favor","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Say no","bond":-2,"respect":-1,"conflict":3,"happy":-1,"money":0}]},{"id":85,"rel":"partner","title":"Partner: Important Favor","text":"{name} asks for a favor that will take up your time.","choices":[{"label":"Do the favor","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Say no","bond":-2,"respect":-1,"conflict":3,"happy":-1,"money":0}]},{"id":86,"rel":"parent","title":"Parent: Shared Memory","text":"{name} brings up a funny memory from your past.","choices":[{"label":"Reminisce together","bond":3,"respect":1,"conflict":-2,"happy":2,"money":0},{"label":"Change the subject","bond":-1,"respect":-1,"conflict":3,"happy":-1,"money":0}]},{"id":87,"rel":"sibling","title":"Sibling: Shared Memory","text":"{name} brings up a funny memory from your past.","choices":[{"label":"Reminisce together","bond":3,"respect":1,"conflict":-2,"happy":2,"money":0},{"label":"Change the subject","bond":-1,"respect":-1,"conflict":3,"happy":-1,"money":0}]},{"id":88,"rel":"child","title":"Child: Shared Memory","text":"{name} brings up a funny memory from your past.","choices":[{"label":"Reminisce together","bond":3,"respect":1,"conflict":-2,"happy":2,"money":0},{"label":"Change the subject","bond":-1,"respect":-1,"conflict":3,"happy":-1,"money":0}]},{"id":89,"rel":"friend","title":"Friend: Shared Memory","text":"{name} brings up a funny memory from your past.","choices":[{"label":"Reminisce together","bond":3,"respect":1,"conflict":-2,"happy":2,"money":0},{"label":"Change the subject","bond":-1,"respect":-1,"conflict":3,"happy":-1,"money":0}]},{"id":90,"rel":"partner","title":"Partner: Shared Memory","text":"{name} brings up a funny memory from your past.","choices":[{"label":"Reminisce together","bond":3,"respect":1,"conflict":-2,"happy":2,"money":0},{"label":"Change the subject","bond":-1,"respect":-1,"conflict":3,"happy":-1,"money":0}]},{"id":91,"rel":"parent","title":"Parent: Boundary Conflict","text":"You and {name} disagree about a personal boundary.","choices":[{"label":"Respect their boundary","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Ignore the boundary","bond":-8,"respect":-4,"conflict":3,"happy":-1,"money":0}]},{"id":92,"rel":"sibling","title":"Sibling: Boundary Conflict","text":"You and {name} disagree about a personal boundary.","choices":[{"label":"Respect their boundary","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Ignore the boundary","bond":-8,"respect":-4,"conflict":3,"happy":-1,"money":0}]},{"id":93,"rel":"child","title":"Child: Boundary Conflict","text":"You and {name} disagree about a personal boundary.","choices":[{"label":"Respect their boundary","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Ignore the boundary","bond":-8,"respect":-4,"conflict":3,"happy":-1,"money":0}]},{"id":94,"rel":"friend","title":"Friend: Boundary Conflict","text":"You and {name} disagree about a personal boundary.","choices":[{"label":"Respect their boundary","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Ignore the boundary","bond":-8,"respect":-4,"conflict":3,"happy":-1,"money":0}]},{"id":95,"rel":"partner","title":"Partner: Boundary Conflict","text":"You and {name} disagree about a personal boundary.","choices":[{"label":"Respect their boundary","bond":4,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Ignore the boundary","bond":-8,"respect":-4,"conflict":3,"happy":-1,"money":0}]},{"id":96,"rel":"parent","title":"Parent: Apology","text":"{name} apologizes for something that hurt you.","choices":[{"label":"Accept the apology","bond":5,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Hold a grudge","bond":-4,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":97,"rel":"sibling","title":"Sibling: Apology","text":"{name} apologizes for something that hurt you.","choices":[{"label":"Accept the apology","bond":5,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Hold a grudge","bond":-4,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":98,"rel":"child","title":"Child: Apology","text":"{name} apologizes for something that hurt you.","choices":[{"label":"Accept the apology","bond":5,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Hold a grudge","bond":-4,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":99,"rel":"friend","title":"Friend: Apology","text":"{name} apologizes for something that hurt you.","choices":[{"label":"Accept the apology","bond":5,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Hold a grudge","bond":-4,"respect":-2,"conflict":3,"happy":-1,"money":0}]},{"id":100,"rel":"partner","title":"Partner: Apology","text":"{name} apologizes for something that hurt you.","choices":[{"label":"Accept the apology","bond":5,"respect":2,"conflict":-2,"happy":2,"money":0},{"label":"Hold a grudge","bond":-4,"respect":-2,"conflict":3,"happy":-1,"money":0}]}];
+const cl=n=>Math.max(0,Math.min(100,Math.round(Number(n)||0)));
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=n=>typeof formatMoney==='function'?formatMoney(n):'$'+Number(n||0).toLocaleString();
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const TRAITS=['Warm','Funny','Generous','Ambitious','Sensitive','Loyal','Independent','Stubborn','Protective','Outgoing','Quiet','Practical','Adventurous','Competitive','Patient'];
+const GIFTS=[
+ ['🍫','Chocolate',25,2],['💐','Flowers',45,3],['📚','Book',35,3],['🧸','Personal Gift',75,4],
+ ['👕','Clothing',120,4],['🎧','Headphones',250,5],['⌚','Watch',700,6],['📱','Phone',1200,7],
+ ['💍','Jewelry',2500,9],['✈️','Weekend Trip',4000,10],['🚗','Car',25000,14],['💎','Luxury Gift',50000,16]
+];
+function state(){game.p31=game.p31||{people:{},friends:[],lastAge:-1,eventHistory:[]};return game.p31}
+function idFor(p,prefix,i){return p._p31id||(p._p31id=prefix+'_'+i+'_'+String(p.name||'person').replace(/\W/g,'').slice(0,12))}
+function relType(p){
+ let r=String(p.relation||'').toLowerCase();
+ if(/mother|father|parent|grand/.test(r))return'parent';
+ if(/brother|sister|sibling/.test(r))return'sibling';
+ if(/son|daughter|child/.test(r))return'child';
+ if(/wife|husband|spouse|partner|fianc/.test(r))return'partner';
+ return'friend'
+}
+function profile(p,id){
+ let s=state(),x=s.people[id];
+ if(!x)x=s.people[id]={respect:65,closeness:55,conflict:5,lastContact:game.age||0,interactions:0,gifts:0,memories:[],traits:[pick(TRAITS),pick(TRAITS)].filter((v,i,a)=>a.indexOf(v)===i)};
+ p.relationship=cl(p.relationship??65);return x
+}
+function people(){
+ let out=[];
+ (game.family||[]).forEach((p,i)=>out.push({p,id:idFor(p,'family',i),type:relType(p),source:'family',index:i}));
+ if(game.partner){
+   game.partner.relation=game.partner.married?'Spouse':(game.partner.engaged?'Fiancé':'Partner');
+   out.push({p:game.partner,id:idFor(game.partner,'partner',0),type:'partner',source:'partner',index:0});
+ }
+ (state().friends||[]).forEach((p,i)=>out.push({p,id:idFor(p,'friend',i),type:'friend',source:'friend',index:i}));
+ return out
+}
+function icon(type){return({parent:'👨‍👩‍👧',sibling:'🧑‍🤝‍🧑',child:'👶',partner:'❤️',friend:'🙂'})[type]||'🙂'}
+function addMemory(x,text){x.memories.unshift('Age '+game.age+': '+text);x.memories=x.memories.slice(0,6)}
+function log(text){game.logs=game.logs||[];game.logs.push('Age '+game.age+': '+text);try{P26?.autosave(false)}catch(e){}}
+function modify(o,bond=0,respect=0,close=0,conflict=0,happy=0){
+ let x=profile(o.p,o.id);o.p.relationship=cl((o.p.relationship||0)+bond);x.respect=cl(x.respect+respect);x.closeness=cl(x.closeness+close);x.conflict=cl(x.conflict+conflict);x.lastContact=game.age;x.interactions++;game.happiness=cl((game.happiness||0)+happy)
+}
+const ACTIONS={
+ talk:['💬','Have a Conversation',2,2,2,-1,1],
+ compliment:['😊','Give a Compliment',3,2,1,-1,1],
+ time:['🎮','Spend Time Together',4,2,4,-2,2],
+ heart:['🤗','Heart-to-Heart',4,4,5,-3,2],
+ advice:['🧠','Ask for Advice',2,3,3,0,1],
+ support:['🫂','Offer Support',5,4,4,-2,2],
+ joke:['😂','Tell a Joke',2,1,2,-1,2],
+ call:['📞','Call / Check In',3,2,3,-1,1],
+ meal:['🍽️','Have a Meal Together',4,2,4,-2,2],
+ outing:['🎟️','Go Out Together',5,2,5,-2,3],
+ apologize:['🙏','Apologize',3,4,2,-7,1],
+ argue:['😠','Argue',-6,-5,-4,10,-3]
+};
+function interact(id,key){
+ let o=people().find(z=>z.id===id);if(!o)return;let a=ACTIONS[key];if(!a)return;
+ modify(o,a[2],a[3],a[4],a[5],a[6]);let x=profile(o.p,o.id);addMemory(x,a[1]);log(a[1]+' with '+o.p.name+'.');showToast(a[1]+' with '+o.p.name, a[0]);render()
+}
+function gift(id,gi){
+ let o=people().find(z=>z.id===id),g=GIFTS[gi];if(!o||!g)return;
+ if((game.money||0)<g[2])return showToast('You cannot afford this gift.','💸');
+ game.money-=g[2];let x=profile(o.p,o.id),bonus=g[3]+(x.traits.includes('Generous')?2:0);modify(o,bonus,Math.ceil(bonus/2),bonus, -1,2);x.gifts++;addMemory(x,'Received '+g[1]+' from you');log('Gave '+o.p.name+' '+g[1]+' as a gift for '+money(g[2])+'.');showToast(o.p.name+' appreciated your gift.','🎁');render()
+}
+function giftMenu(id){
+ let o=people().find(z=>z.id===id);if(!o)return;
+ openModal(`<h3 class="text-xl font-bold">🎁 Gift ${esc(o.p.name)}</h3><p class="text-xs text-slate-400">Choose a gift. Expensive gifts can help, but a strong relationship still requires time and attention.</p><div class="p31-gifts">${GIFTS.map((g,i)=>`<button class="p31-gift bg-slate-800" onclick="P31.gift('${id}',${i})"><b>${g[0]} ${esc(g[1])}</b><span>${money(g[2])}</span></button>`).join('')}</div><button onclick="P31.render()" class="w-full bg-slate-700 mt-3">Back</button>`)
+}
+function actions(o){
+ let base=['talk','compliment','time','heart','advice','support','joke','call','meal','outing'];
+ if(profile(o.p,o.id).conflict>20)base.push('apologize');base.push('argue');
+ let html=base.map(k=>`<button class="bg-slate-800" onclick="P31.interact('${o.id}','${k}')">${ACTIONS[k][0]} ${ACTIONS[k][1]}</button>`).join('');
+ html+=`<button class="bg-purple-700" onclick="P31.giftMenu('${o.id}')">🎁 Give Gift</button>`;
+ if(o.type==='partner'){
+   if(typeof window.P27!=='undefined') html+=`<button class="bg-pink-700" onclick="P31.partnerActions()">❤️ Romance & Family</button>`;
+   else if(typeof proposeMarriage==='function') html+=`<button class="bg-pink-700" onclick="proposeMarriage()">💍 Propose</button>`;
+ }
+ return html
+}
+function card(o){
+ let x=profile(o.p,o.id),bond=cl(o.p.relationship),mem=x.memories.slice(0,3).map(m=>`<div class="p31-memory">${esc(m)}</div>`).join('');
+ return `<div class="p31-person"><div class="p31-person-main" onclick="P31.toggle('${o.id}')"><div class="p31-avatar">${icon(o.type)}</div><div class="p31-info"><div class="p31-name">${esc(o.p.name||'Unknown')}</div><div class="p31-meta">${esc(o.p.relation||o.type)} · Age ${o.p.age??'—'} · ${x.traits.join(' · ')}</div></div><div class="p31-bond"><small>Bond ${bond}%</small><div class="p31-meter"><i style="width:${bond}%"></i></div></div></div><div class="p31-detail" id="p31_${o.id}" style="display:none"><div class="p31-traits">${x.traits.map(t=>`<span class="p31-chip">${t}</span>`).join('')}<span class="p31-chip">${x.interactions} interactions</span><span class="p31-chip">${x.gifts} gifts</span></div><div class="p31-stats"><div><b>${x.respect}%</b><span>RESPECT</span></div><div><b>${x.closeness}%</b><span>CLOSENESS</span></div><div><b>${x.conflict}%</b><span>CONFLICT</span></div></div><div class="p31-actions">${actions(o)}</div>${mem?`<div style="margin-top:9px">${mem}</div>`:''}</div></div>`
+}
+function render(){
+ let ps=people(),fam=ps.filter(x=>x.type!=='friend'&&x.type!=='partner'),friends=ps.filter(x=>x.type==='friend'),partner=ps.filter(x=>x.type==='partner');
+ let avg=ps.length?Math.round(ps.reduce((a,o)=>a+(o.p.relationship||0),0)/ps.length):0;
+ openModal(`<h3 class="text-xl font-bold">❤️ Relationships</h3><div class="p31-wrap"><div class="p31-summary"><div><b>${ps.length}</b><span>PEOPLE</span></div><div><b>${avg}%</b><span>AVG BOND</span></div><div><b>${state().eventHistory.length}</b><span>MEMORIES</span></div></div>${partner.length?`<div class="p31-section-title">Love</div>${partner.map(card).join('')}`:''}<div class="p31-section-title">Family</div>${fam.length?fam.map(card).join(''):'<div class="p31-person" style="padding:12px;color:var(--p30-muted)">No family relationships available.</div>'}<div class="p31-section-title">Friends</div>${friends.length?friends.map(card).join(''):'<button class="bg-purple-700" onclick="P31.makeFriend()">🤝 Meet Someone New</button>'}${friends.length?'<button class="bg-purple-700" onclick="P31.makeFriend()">🤝 Meet Someone New</button>':''}</div><button onclick="closeModal()" class="w-full bg-slate-700 mt-3">Close</button>`)
+}
+function toggle(id){let e=document.getElementById('p31_'+id);if(e)e.style.display=e.style.display==='none'?'block':'none'}
+function makeFriend(){
+ const names=['Alex','Jordan','Taylor','Morgan','Casey','Riley','Cameron','Jamie','Avery','Sam','Drew','Robin'];
+ let p={name:pick(names),relation:'Friend',age:Math.max(6,(game.age||18)+Math.floor(Math.random()*9)-4),relationship:45+Math.floor(Math.random()*25)};
+ state().friends.push(p);let id=idFor(p,'friend',state().friends.length-1);profile(p,id);log('Became friends with '+p.name+'.');showToast('You made a new friend: '+p.name,'🤝');render()
+}
+function partnerActions(){
+ if(!game.partner)return;
+ let buttons=[];
+ if(typeof window.P27?.date==='function')buttons.push(`<button onclick="P27.date()">🌹 Go on a Date</button>`);
+ if(typeof window.P27?.intimacy==='function')buttons.push(`<button onclick="P27.intimacy()">❤️ Intimacy</button>`);
+ if(typeof window.P27?.propose==='function'&&!game.partner.engaged&&!game.partner.married)buttons.push(`<button onclick="P27.propose()">💍 Propose</button>`);
+ if(typeof window.P27?.marry==='function'&&game.partner.engaged&&!game.partner.married)buttons.push(`<button onclick="P27.marry()">💒 Get Married</button>`);
+ if(typeof window.P27?.divorce==='function'&&game.partner.married)buttons.push(`<button onclick="P27.divorce()">💔 Divorce</button>`);
+ openModal(`<h3 class="text-xl font-bold">❤️ ${esc(game.partner.name)}</h3><div class="p31-actions">${buttons.join('')||'<div>No additional romance actions available.</div>'}</div><button onclick="P31.render()" class="w-full bg-slate-700 mt-3">Back</button>`)
+}
+function eventCandidates(){
+ let ps=people();return ps.filter(o=>EVENTS.some(e=>e.rel===o.type))
+}
+function maybeEvent(force=false){
+ let ps=eventCandidates();if(!ps.length)return false;if(!force&&Math.random()>.58)return false;
+ let o=pick(ps),recent=state().eventHistory.slice(-15).map(x=>x.eid),pool=EVENTS.filter(e=>e.rel===o.type&&!recent.includes(e.id));if(!pool.length)pool=EVENTS.filter(e=>e.rel===o.type);
+ let ev=pick(pool);showEvent(o,ev);return true
+}
+function showEvent(o,ev){
+ openModal(`<div class="p31-event"><span class="p31-chip">RELATIONSHIP EVENT</span><h3 class="text-xl font-bold">${esc(ev.title)}</h3><p class="text-sm text-slate-400">${esc(ev.text.replace('{name}',o.p.name))}</p>${ev.choices.map((c,i)=>`<button class="bg-slate-800" onclick="P31.choose('${o.id}',${ev.id},${i})"><b>${esc(c.label)}</b></button>`).join('')}</div>`)
+}
+function choose(id,eid,ci){
+ let o=people().find(z=>z.id===id),ev=EVENTS.find(e=>e.id===eid);if(!o||!ev)return;let c=ev.choices[ci],x=profile(o.p,o.id);
+ if(c.money<0&&game.money<Math.abs(c.money))c.money=0;game.money=(game.money||0)+(c.money||0);
+ modify(o,c.bond,c.respect,c.bond,c.conflict,c.happy);addMemory(x,ev.title+' — '+c.label);state().eventHistory.push({age:game.age,eid:ev.id,person:o.p.name,choice:c.label});state().eventHistory=state().eventHistory.slice(-80);log(ev.title+' with '+o.p.name+': '+c.label+'.');closeModal();updateUI();showToast('Relationship updated','❤️')
+}
+function yearly(){
+ let s=state();if(s.lastAge===game.age)return;s.lastAge=game.age;
+ people().forEach(o=>{let x=profile(o.p,o.id),gap=(game.age||0)-(x.lastContact||game.age||0);if(gap>=2){o.p.relationship=cl(o.p.relationship-1-Math.min(3,gap-1));x.closeness=cl(x.closeness-2)}x.conflict=cl(x.conflict-1)});
+ setTimeout(()=>maybeEvent(false),350)
+}
+
+/* Replace the shallow original renderer. */
+window.renderRelationshipsTab=render;
+window.interactFamily=function(idx){let o=people().find(x=>x.source==='family'&&x.index===idx);if(o){modify(o,4,2,4,-2,2);addMemory(profile(o.p,o.id),'Spent quality time together');log('Spent quality time with '+o.p.name+'.');render()}};
+
+const oldAge=window.ageOneYear||window.ageUp;
+if(typeof oldAge==='function'){
+ const wrapped=function(){let before=game.age,r=oldAge.apply(this,arguments);if(game.alive&&game.age>before)setTimeout(yearly,80);return r};
+ if(window.ageOneYear)window.ageOneYear=wrapped; else window.ageUp=wrapped;
+}
+window.P31={render,toggle,interact,giftMenu,gift,makeFriend,partnerActions,choose,randomEvent:()=>maybeEvent(true),events:EVENTS,marker:'LIFE SIM PATCH 31: DEEP RELATIONSHIPS + 100 SOCIAL EVENTS'};
+console.log('[Patch 31] Deep relationship system active with '+EVENTS.length+' social events.');
+})();
+</script>
+<!-- ===== MERGED PATCH END ===== -->
+
 </body>
 
 <!-- ===== LIFE SIM PATCH 18: FINAL LIFE VLOG VISIBILITY + RENDERER LOCK ===== -->
