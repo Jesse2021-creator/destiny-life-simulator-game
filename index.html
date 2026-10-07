@@ -6994,6 +6994,325 @@ console.log('[Patch 31] Deep relationship system active with '+EVENTS.length+' s
 </script>
 <!-- ===== MERGED PATCH END ===== -->
 
+
+
+<!-- ===== MERGED PATCH START ===== -->
+<!-- LIFE SIM PATCH 32: STABLE UNIVERSAL MENU UI -->
+<style>
+/* =========================================================
+   DESTINY PATCH 32 — STABLE UNIVERSAL MENU / MODAL SHELL
+   Owns presentation for every menu. Existing actions remain.
+========================================================= */
+:root{
+ --p32-bg:#0b0e14;--p32-panel:#11161f;--p32-card:#181e29;--p32-border:#283140;
+ --p32-text:#f7f8fb;--p32-muted:#8e99aa;--p32-accent:#7c3aed;--p32-accent2:#5b21b6;
+}
+html[data-theme="light"]{
+ --p32-bg:#f2f3f6;--p32-panel:#fff;--p32-card:#f7f8fa;--p32-border:#e2e5ea;
+ --p32-text:#17191e;--p32-muted:#737d8c;
+}
+html.p32-modal-open,body.p32-modal-open{overflow:hidden!important;overscroll-behavior:none!important}
+#gameModal.p32-modal{
+ position:fixed!important;inset:0!important;z-index:9999!important;
+ display:flex!important;align-items:center!important;justify-content:center!important;
+ padding:14px!important;background:rgba(3,6,12,.76)!important;
+ backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+ overflow:hidden!important;touch-action:none;
+}
+#gameModal.p32-modal.hidden{display:none!important}
+#gameModal.p32-opening #modalContent{visibility:hidden!important;opacity:0!important}
+#modalContent.p32-menu{
+ width:min(100%,560px)!important;height:min(86dvh,780px)!important;max-height:min(86dvh,780px)!important;
+ margin:0!important;padding:0!important;border:1px solid var(--p32-border)!important;
+ border-radius:22px!important;background:var(--p32-panel)!important;color:var(--p32-text)!important;
+ box-shadow:0 24px 70px rgba(0,0,0,.45)!important;overflow:hidden!important;
+ animation:none!important;transform:none!important;position:relative!important;
+ display:block!important;touch-action:pan-y!important;
+}
+#modalContent.p32-menu.p29-more,#modalContent.p32-menu.p30-game-menu{background:var(--p32-panel)!important;padding:0!important;overflow:hidden!important}
+.p32-shell{height:100%;min-height:0;display:flex;flex-direction:column;overflow:hidden;background:var(--p32-panel)}
+.p32-head{
+ flex:0 0 auto;min-height:66px;padding:12px 12px 11px 14px;
+ display:flex;align-items:center;gap:10px;color:#fff;
+ background:linear-gradient(135deg,var(--p32-accent),var(--p32-accent2));
+ border-bottom:1px solid rgba(255,255,255,.08);z-index:5
+}
+.p32-head-icon{width:40px;height:40px;min-width:40px;border-radius:13px;display:grid;place-items:center;background:rgba(255,255,255,.14);font-size:1.2rem}
+.p32-head-copy{min-width:0;flex:1}.p32-head-title{display:block;font-size:.98rem;font-weight:900;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.p32-head-sub{display:block;font-size:.58rem;font-weight:650;opacity:.7;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.p32-close{
+ width:40px!important;height:40px!important;min-height:40px!important;min-width:40px!important;
+ margin:0!important;padding:0!important;border:0!important;border-radius:50%!important;
+ background:rgba(255,255,255,.15)!important;color:#fff!important;font-size:22px!important;
+ line-height:1!important;display:grid!important;place-items:center!important;box-shadow:none!important;
+ cursor:pointer!important;touch-action:manipulation!important
+}
+.p32-close:active{transform:scale(.94)!important;background:rgba(255,255,255,.24)!important}
+.p32-body{
+ flex:1 1 auto;min-height:0;overflow-x:hidden!important;overflow-y:auto!important;
+ -webkit-overflow-scrolling:touch!important;overscroll-behavior:contain!important;
+ touch-action:pan-y!important;padding:12px 12px 26px!important;scrollbar-width:thin;
+ scrollbar-color:#6d28d9 transparent
+}
+.p32-body::-webkit-scrollbar{width:5px}.p32-body::-webkit-scrollbar-track{background:transparent}.p32-body::-webkit-scrollbar-thumb{background:#6d28d9;border-radius:99px}
+.p32-body>*:first-child{margin-top:0!important}.p32-body>*:last-child{margin-bottom:0!important}
+
+/* Neutralize the old nested Patch 29 / Patch 30 scrolling shells if they appear. */
+.p32-menu .p29-more-shell,.p32-menu .p30-shell{
+ max-height:none!important;height:auto!important;min-height:0!important;overflow:visible!important;
+ padding:0!important;background:transparent!important
+}
+.p32-menu .p29-hero,.p32-menu .p30-head{display:none!important}
+.p32-menu .p29-content,.p32-menu .p30-body{padding:0!important;overflow:visible!important}
+.p32-menu .p29-footer{padding-bottom:4px}
+
+/* Consistent menu cards without destroying feature-specific layouts. */
+.p32-menu .bg-slate-900:not(button),.p32-menu .bg-slate-800:not(button),
+.p32-menu .bg-gray-900:not(button),.p32-menu .bg-gray-800:not(button),
+.p32-menu .rounded-xl:not(button):not(input):not(select),
+.p32-menu .rounded-2xl:not(button):not(input):not(select){
+ background:var(--p32-card)!important;border-color:var(--p32-border)!important;color:var(--p32-text)!important
+}
+.p32-menu h1,.p32-menu h2,.p32-menu h3,.p32-menu h4,.p32-menu h5{color:var(--p32-text)!important}
+.p32-menu .text-slate-400,.p32-menu .text-slate-500,.p32-menu .text-gray-400,.p32-menu small{color:var(--p32-muted)!important}
+.p32-menu button{touch-action:manipulation}
+.p32-menu button:not(.p32-close){min-height:42px}
+.p32-menu input,.p32-menu select,.p32-menu textarea{max-width:100%}
+
+/* Patch 29 More rows remain game-like, but the new body is the only scroller. */
+.p32-menu .p29-row{min-height:58px!important}
+.p32-menu .p29-group{background:var(--p32-card)!important;border-color:var(--p32-border)!important}
+.p32-menu .p29-section-title{color:var(--p32-muted)!important}
+
+/* Prevent horizontal overflow from grids/cards/charts. */
+.p32-body *{max-width:100%;box-sizing:border-box}
+.p32-body canvas{width:100%!important}
+.p32-body .grid{min-width:0}
+.p32-body .flex>*{min-width:0}
+
+/* Mobile = proper bottom sheet with a fixed header and independently scrolling content. */
+@media(max-width:640px){
+ #gameModal.p32-modal{align-items:flex-end!important;padding:0!important}
+ #modalContent.p32-menu{
+   width:100%!important;height:min(91dvh,820px)!important;max-height:91dvh!important;
+   border-left:0!important;border-right:0!important;border-bottom:0!important;
+   border-radius:24px 24px 0 0!important
+ }
+ .p32-head{min-height:64px;padding:11px 11px 10px 13px}
+ .p32-body{padding:10px 10px calc(24px + env(safe-area-inset-bottom))!important}
+}
+@media(max-height:600px){
+ #modalContent.p32-menu{height:94dvh!important;max-height:94dvh!important}
+}
+</style>
+
+<script>
+/* LIFE SIM PATCH 32: STABLE UNIVERSAL MENU UI */
+(function(){
+'use strict';
+if(window.__DESTINY32__)return;
+window.__DESTINY32__=1;
+const MARK='LIFE SIM PATCH 32: STABLE UNIVERSAL MENU UI';
+const modal=()=>document.getElementById('gameModal');
+const content=()=>document.getElementById('modalContent');
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const TYPES=[
+ [/relationship|people|partner|family|friend/i,'❤️','Relationships','Family, friends and your love life'],
+ [/career|job|work|occupation/i,'💼','Career','Work, business and professional life'],
+ [/market|stock|crypto|portfolio|invest/i,'📈','Markets','Investments and financial markets'],
+ [/activit/i,'🎯','Activities','Things to do in your life'],
+ [/asset management|assets/i,'🏠','Assets','Manage property, vehicles and valuables'],
+ [/casino|sportsbook|betting|roulette|blackjack/i,'🎰','Casino','Games, racing and sports betting'],
+ [/lottery/i,'🎟️','Lottery','Tickets, draws and jackpots'],
+ [/fame|celebrity/i,'⭐','Fame','Your public life and reputation'],
+ [/luxury|shopping|yacht|private jet/i,'💎','Luxury','Cars, homes, yachts and private jets'],
+ [/bank|loan|finance|credit/i,'🏦','Bank & Finance','Money, borrowing and repayments'],
+ [/setting|theme|appearance/i,'⚙️','Settings','Game and appearance preferences'],
+ [/stats|statistics/i,'📊','Stats','Your complete life statistics'],
+ [/achievement|goal/i,'🏆','Achievements','Goals and milestones'],
+ [/travel|vacation/i,'✈️','Travel','Trips and destinations'],
+ [/saved|save life/i,'💾','Saved Lives','Save and continue your lives'],
+ [/education|school|university|college/i,'🎓','Education','School and qualifications'],
+ [/health|doctor|medical/i,'❤️‍🩹','Health','Health and wellbeing'],
+ [/crime|criminal/i,'🕶️','Crime','Risky choices and consequences'],
+ [/more/i,'☰','More','Everything else in your life']
+];
+function textOf(el){return (el?.textContent||'').replace(/\s+/g,' ').trim()}
+function detect(root){
+ const t=textOf(root).slice(0,1400);
+ for(const [re,icon,title,sub] of TYPES)if(re.test(t))return{icon,title,sub};
+ const h=root.querySelector('h1,h2,h3,h4');
+ let title=h?textOf(h).replace(/^[^\w]+/,'').trim():'Destiny';
+ return{icon:'✦',title:title||'Destiny',sub:'Make your next choice'};
+}
+function realClose(){
+ const m=modal();
+ try{
+   if(typeof window.__p32OriginalClose==='function')window.__p32OriginalClose();
+   else if(typeof closeModal==='function')closeModal();
+   else m?.classList.add('hidden');
+ }catch(e){m?.classList.add('hidden')}
+ document.documentElement.classList.remove('p32-modal-open');
+ document.body.classList.remove('p32-modal-open');
+ if(m)m.classList.remove('p32-modal','p32-opening');
+}
+function unwrapLegacy(root){
+ /* If Patch 30 already wrapped the newly rendered screen, recover its body only. */
+ const p30=root.querySelector(':scope > .p30-shell');
+ if(p30){
+   const b=p30.querySelector(':scope > .p30-body');
+   if(b){const f=document.createDocumentFragment();while(b.firstChild)f.appendChild(b.firstChild);root.innerHTML='';root.appendChild(f)}
+ }
+ /* If Patch 29 rebuilt More, preserve its useful content but remove its competing hero. */
+ const p29=root.querySelector(':scope > .p29-more-shell');
+ if(p29){
+   const pc=p29.querySelector('.p29-content');
+   if(pc){const f=document.createDocumentFragment();while(pc.firstChild)f.appendChild(pc.firstChild);root.innerHTML='';root.appendChild(f)}
+ }
+}
+function build(){
+ const m=modal(),root=content();if(!m||!root)return;
+ if(m.classList.contains('hidden'))return;
+ /* Already ours and no external patch replaced the shell. */
+ if(root.querySelector(':scope > .p32-shell')){m.classList.remove('p32-opening');return}
+ unwrapLegacy(root);
+ const type=detect(root);
+ const oldClose=[...root.querySelectorAll('button')].find(b=>/^\s*(×|✕|close)\s*$/i.test(textOf(b)));
+ const firstHeading=[...root.children].find(n=>/^H[1-4]$/.test(n.tagName||''));
+ const shell=document.createElement('div');shell.className='p32-shell';
+ const head=document.createElement('div');head.className='p32-head';
+ head.innerHTML=`<span class="p32-head-icon">${type.icon}</span><span class="p32-head-copy"><b class="p32-head-title">${esc(type.title)}</b><span class="p32-head-sub">${esc(type.sub)}</span></span><button type="button" class="p32-close" aria-label="Close menu">×</button>`;
+ const body=document.createElement('div');body.className='p32-body';body.setAttribute('role','document');
+ [...root.childNodes].forEach(n=>{
+   if(n===oldClose||n===firstHeading)return;
+   body.appendChild(n);
+ });
+ shell.append(head,body);
+ root.innerHTML='';root.appendChild(shell);
+ root.className='p32-menu p29-more'; /* p29-more intentionally blocks old P29/P30 observers */
+ root.dataset.p32='1';
+ m.classList.add('p32-modal');
+ document.documentElement.classList.add('p32-modal-open');
+ document.body.classList.add('p32-modal-open');
+ head.querySelector('.p32-close').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();realClose()});
+ m.classList.remove('p32-opening');
+ body.scrollTop=0;
+}
+const originalOpen=window.openModal;
+const originalClose=window.closeModal;
+window.__p32OriginalClose=originalClose;
+if(typeof originalOpen==='function'){
+ window.openModal=function(){
+   const m=modal();if(m)m.classList.add('p32-opening');
+   const r=originalOpen.apply(this,arguments);
+   build(); /* synchronous: no visible old-menu frame */
+   return r;
+ };
+}
+window.closeModal=function(){
+ const r=typeof originalClose==='function'?originalClose.apply(this,arguments):undefined;
+ document.documentElement.classList.remove('p32-modal-open');
+ document.body.classList.remove('p32-modal-open');
+ const m=modal();if(m){m.classList.remove('p32-modal','p32-opening')}
+ return r;
+};
+/* Backdrop and Escape always provide a way out. */
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&modal()&&!modal().classList.contains('hidden'))realClose()});
+document.addEventListener('pointerdown',e=>{
+ const m=modal();if(m&&e.target===m&&!m.classList.contains('hidden'))realClose();
+},{passive:true});
+/* Repair any menu opened by a legacy direct renderer that bypasses openModal. */
+const obs=new MutationObserver(()=>{
+ const m=modal(),root=content();if(!m||!root||m.classList.contains('hidden'))return;
+ if(!root.querySelector(':scope > .p32-shell')){
+   m.classList.add('p32-opening');
+   build();
+ }
+});
+obs.observe(document.body,{childList:true,subtree:true});
+/* If a menu was open when this patch initialized, normalize it immediately. */
+if(modal()&&!modal().classList.contains('hidden'))build();
+window.P32={refresh:build,close:realClose,marker:MARK};
+console.log('[Patch 32] Stable universal menu shell active.');
+})();
+</script>
+<!-- ===== MERGED PATCH END ===== -->
+
+
+
+<!-- ===== MERGED PATCH START ===== -->
+<!-- LIFE SIM PATCH 33: RESTORE FAME MENU ACCESS -->
+<style>
+#p33FameEntry{
+ width:100%!important;min-height:58px!important;margin:8px 0!important;padding:9px 12px!important;
+ display:flex!important;align-items:center!important;gap:11px!important;text-align:left!important;
+ border:1px solid var(--p32-border,#283140)!important;border-radius:15px!important;
+ background:linear-gradient(135deg,rgba(124,58,237,.18),rgba(236,72,153,.10))!important;
+ color:var(--p32-text,#f7f8fb)!important;box-shadow:none!important
+}
+#p33FameEntry .p33-icon{width:39px;height:39px;min-width:39px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,#7c3aed,#db2777);font-size:1.15rem}
+#p33FameEntry .p33-copy{min-width:0;flex:1}#p33FameEntry b{display:block;font-size:.79rem}#p33FameEntry small{display:block;font-size:.57rem;opacity:.68;margin-top:2px}
+#p33FameEntry .p33-arrow{font-size:1.25rem;opacity:.55}
+</style>
+<script>
+/* LIFE SIM PATCH 33: RESTORE FAME MENU ACCESS */
+(function(){
+'use strict';if(window.__DESTINY33__)return;window.__DESTINY33__=1;
+const MARK='LIFE SIM PATCH 33: RESTORE FAME MENU ACCESS';
+
+function openFame(){
+ /* Patch 27 kept the actual fameCareer function private, but its Career
+    injection button still owns the correct closure callback. Reuse it. */
+ let old=document.getElementById('p27FameBtn');
+ if(old&&typeof old.onclick==='function'){old.onclick();return}
+ /* Render Career once so Patch 27 can recreate its Fame button. */
+ try{renderCareerTab()}catch(e){}
+ setTimeout(()=>{
+   let b=document.getElementById('p27FameBtn');
+   if(b){b.click();return}
+   /* Fame status/events remain available even if the old career opener is missing. */
+   if(window.P28?.status){
+     let z=P28.status();
+     openModal(`<h3>⭐ Fame</h3>
+       <div class="bg-slate-900 p-4 rounded-xl border border-slate-700">
+        <div class="font-black text-lg">${z.rank||'Not Famous'}</div>
+        <div class="text-sm text-slate-400 mt-1">Fame ${z.f||0}% · Fans ${(z.fans||0).toLocaleString()} · Public Interest ${z.interest||0}%</div>
+        <div class="text-xs text-slate-400 mt-2">${z.source||'Public Figure'} · Media heat ${z.heat||0}% · Security attention ${z.risk||0}%</div>
+       </div>
+       <button onclick="P28.randomEvent()" class="w-full py-3 bg-purple-600 rounded-xl font-bold mt-3">⭐ Celebrity Interaction</button>
+       <button onclick="renderCareerTab()" class="w-full py-3 bg-slate-700 rounded-xl font-bold mt-2">Fame & Entertainment Careers</button>`);
+   }else showToast('Fame system is unavailable. Make sure Patch 27 and Patch 28 are merged.','⚠️');
+ },0);
+}
+function makeEntry(){
+ let b=document.createElement('button');b.id='p33FameEntry';b.type='button';
+ let fame=Math.max(0,Math.min(100,game?.fame||0));
+ let rank='Not Famous';try{rank=window.P28?.status?.().rank||rank}catch(e){}
+ b.innerHTML=`<span class="p33-icon">⭐</span><span class="p33-copy"><b>Fame & Celebrity Life</b><small>${rank} · ${fame}% fame · careers, fans, media & celebrity events</small></span><span class="p33-arrow">›</span>`;
+ b.onclick=openFame;return b;
+}
+function inject(){
+ let root=document.querySelector('#modalContent .p32-body')||document.getElementById('modalContent');
+ if(!root||document.getElementById('p33FameEntry'))return;
+ let txt=(root.textContent||'');
+ /* Career and More are both permanent access points. */
+ if(!/Career|Job|Business|More|Everything else/i.test(txt))return;
+ let b=makeEntry();
+ let target=root.querySelector('.p29-content')||root;
+ let close=[...target.querySelectorAll('button')].find(x=>/^\s*close\s*$/i.test(x.textContent||''));
+ close?target.insertBefore(b,close):target.prepend(b);
+}
+const oldCareer=renderCareerTab;
+renderCareerTab=function(){let r=oldCareer.apply(this,arguments);inject();return r};
+const oldMore=window.renderMoreTab||renderMoreTab;
+window.renderMoreTab=renderMoreTab=function(){let r=oldMore.apply(this,arguments);inject();return r};
+new MutationObserver(()=>{let m=document.getElementById('gameModal');if(m&&!m.classList.contains('hidden'))inject()}).observe(document.body,{childList:true,subtree:true});
+window.P33={openFame,refresh:inject,marker:MARK};
+console.log('[Patch 33] Fame menu access restored.');
+})();
+</script>
+<!-- ===== MERGED PATCH END ===== -->
+
 </body>
 
 <!-- ===== LIFE SIM PATCH 18: FINAL LIFE VLOG VISIBILITY + RENDERER LOCK ===== -->
