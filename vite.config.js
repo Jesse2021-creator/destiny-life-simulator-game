@@ -17,18 +17,20 @@ export default defineConfig(({ mode }) => {
       proxy: {}
     },
 
-    plugins: [{
-      name: 'paystack-marketplace-api',
+    plugins: [
+      {
+        name: 'paystack-marketplace-api',
 
-      configureServer(server) {
-        server.middlewares.use((req, res, next) => {
-          Promise.resolve(handlePaystack(req, res))
-            .then(handled => {
-              if (!handled) next();
-            })
-            .catch(next);
-        });
-      },
-    }]
+        configureServer(server) {
+          server.middlewares.use((req, res, next) => {
+            Promise.resolve(handlePaystack(req, res))
+              .then(handled => {
+                if (!handled) next();
+              })
+              .catch(next);
+          });
+        },
+      }
+    ]
   };
 });
