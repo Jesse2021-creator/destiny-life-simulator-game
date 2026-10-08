@@ -1,3 +1,4 @@
+import {useFeedbackNotice} from './OutcomeFeedback.jsx';
 import {formatMoney} from './money.js';
 import React,{useEffect,useId,useMemo,useState} from 'react';
 import {ArrowDownRight,ArrowUpRight,ChartNoAxesCombined,Clock3,Coins,Newspaper,RefreshCw,TrendingDown,TrendingUp,Wallet,X,Check} from 'lucide-react';
@@ -13,7 +14,7 @@ function Sparkline({values=[],large=false}){
   return <svg className={`investment-chart ${large?'large':''} ${up?'up':'down'}`} viewBox="0 0 320 100" preserveAspectRatio="none" aria-label={`Simulated price chart, ${up?'up':'down'} over this period`}><defs><linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="currentColor" stopOpacity=".27"/><stop offset="1" stopColor="currentColor" stopOpacity="0"/></linearGradient></defs><polygon points={`0,100 ${coords} 320,100`} fill={`url(#${gradientId})`}/><polyline points={coords} fill="none" stroke="currentColor" strokeWidth={large?3:2.6} strokeLinecap="round" strokeLinejoin="round"/></svg>;
 }
 export default function InvestmentMarketScreen({game,setGame}){
-  const [section,setSection]=useState('Market');const [assetClass,setAssetClass]=useState('Stocks');const [category,setCategory]=useState('All');const [selectedId,setSelectedId]=useState('');const [orderAmount,setOrderAmount]=useState('1000');const [notice,setNotice]=useState('');const [saleReceipt,setSaleReceipt]=useState(null);const [buyConfirmation,setBuyConfirmation]=useState(null);
+  const [section,setSection]=useState('Market');const [assetClass,setAssetClass]=useState('Stocks');const [category,setCategory]=useState('All');const [selectedId,setSelectedId]=useState('');const [orderAmount,setOrderAmount]=useState('1000');const [notice,setNotice]=useFeedbackNotice('');const [saleReceipt,setSaleReceipt]=useState(null);const [buyConfirmation,setBuyConfirmation]=useState(null);
   useEffect(()=>{if(!game.investments)setGame(g=>g.investments?g:{...g,investments:createInvestmentMarket(g.year)});},[game.investments,game.year,setGame]);
   useEffect(()=>{if(!game.investments)return;const timer=setInterval(()=>setGame(g=>g.investments?{...g,investments:tickInvestmentMarket(g.investments)}:g),7000);return()=>clearInterval(timer);},[Boolean(game.investments),setGame]);
   const market=game.investments||createInvestmentMarket(game.year);const universe=marketInstruments(market);const holdings=market.holdings||[];const liveInstruments=market[marketKey[assetClass]]||[];

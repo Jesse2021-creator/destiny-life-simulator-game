@@ -1,3 +1,4 @@
+import {useFeedbackNotice} from './OutcomeFeedback.jsx';
 import {surgeryRecovery} from './realism.js';
 import {formatMoney} from './money.js';
 import React from 'react';
@@ -9,7 +10,7 @@ const conditions=['Seasonal flu','Stomach infection','Respiratory infection','Ch
 const costFor=name=>name==='Seasonal flu'?180:name==='Stomach infection'?260:name==='Respiratory infection'?320:650;
 const money=formatMoney;
 export default function HealthCenterScreen({game,setGame,onSterilization,onOpenRealism}){
- const [cosmeticNotice,setCosmeticNotice]=React.useState('');
+ const [cosmeticNotice,setCosmeticNotice]=useFeedbackNotice('');
  const conditionsNow=game.healthConditions||[];
  const checkup=()=>{if(game.age<13){setGame(g=>({...g,log:[{year:g.year,age:g.age,text:'Your parent or guardian took you to a clinic for a health checkup.',tag:'Clinic visit',icon:'🏥'},...(g.log||[])]}));return;}const found=Math.random()<.58?conditions[Math.floor(Math.random()*conditions.length)]:null;if(!found){setGame(g=>({...g,stats:{...g.stats,health:Math.min(100,(g.stats.health||50)+2)},log:[{year:g.year,age:g.age,text:'Your checkup found no new concerns. The clinician shared some practical prevention advice.',tag:'Health checkup',icon:'🩺'},...(g.log||[])]}));return;}if(conditionsNow.some(c=>c.name===found)){setGame(g=>({...g,log:[{year:g.year,age:g.age,text:`A clinician reviewed your ongoing ${found.toLowerCase()} and discussed treatment options.`,tag:'Health checkup',icon:'🩺'},...(g.log||[])]}));return;}setGame(g=>({...g,healthConditions:[{id:`condition-${Date.now()}`,name:found,diagnosed:true,year:g.year,severity:found==='Seasonal flu'?1:2},...conditionsNow],stats:{...g.stats,health:Math.max(1,(g.stats.health||50)-8)},log:[{year:g.year,age:g.age,text:`A clinician diagnosed ${found}. You can arrange treatment at the hospital.` ,tag:'Diagnosis',icon:'🏥'},...(g.log||[])]}));};
  const cosmeticProcedures=[{name:'Liposuction',cost:18500,looks:7,minAge:18,risk:.09},{name:'Breast augmentation',cost:16500,looks:7,minAge:21,risk:.08},{name:'Tummy tuck',cost:22000,looks:8,minAge:21,risk:.11},{name:'Hair transplant',cost:12000,looks:6,minAge:21,risk:.04},{name:'Jawline contouring',cost:24000,looks:8,minAge:21,risk:.1},{name:'Dental veneers',cost:8500,looks:5,minAge:18,risk:.025},{name:'Rhinoplasty',cost:14500,looks:8,minAge:18,risk:.06},{name:'Laser skin treatment',cost:4200,looks:3,minAge:21,risk:.025},{name:'Facelift',cost:28000,looks:9,minAge:40,risk:.12}];

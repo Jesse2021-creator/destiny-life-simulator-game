@@ -1,3 +1,4 @@
+import {useFeedbackNotice} from './OutcomeFeedback.jsx';
 import {formatMoney} from './money.js';
 import React,{useState} from 'react';
 import './systems.css';
@@ -10,7 +11,7 @@ export const offices=[
 ];
 const fmt=formatMoney;const clamp=n=>Math.max(0,Math.min(100,n));
 export default function PoliticalCareer({game,setGame,moneyAvailable,onMoney}){
- const [notice,setNotice]=useState('');const [race,setRace]=useState(game.politicalOffice||'City Councillor');
+ const [notice,setNotice]=useFeedbackNotice('');const [race,setRace]=useState(game.politicalOffice||'City Councillor');
  const [party,setParty]=useState(game.politicalParty||'Independent');const [platform,setPlatform]=useState(game.politicalPlatform||'Education');
  const active=!!game.politicalOffice&&game.job===game.politicalOffice;const target=offices.find(o=>o.name===race)||offices[0];const approval=game.publicApproval??48;
  const support=Math.max(.05,Math.min(.9,.12+approval*.004+(game.stats?.smarts??50)*.0018+(game.careerReputation||0)*.002+(game.politicalReadiness||0)*.002-(game.criminalRecord||[]).length*.1));

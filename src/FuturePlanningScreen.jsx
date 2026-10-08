@@ -1,3 +1,4 @@
+import {useFeedbackNotice} from './OutcomeFeedback.jsx';
 import ChildSupportScreen from './ChildSupportScreen.jsx';
 import React,{useState} from 'react';
 import {PersonPortrait} from './RelationshipPortrait.jsx';
@@ -6,7 +7,7 @@ import {funds,marry,divorce,divorceQuote,policyQuote,buyInsurance,pensionEstimat
 import './systems.css';
 const tabs=['Marriage','Child Support','Insurance','Retirement','Children’s education','Family business'];
 export default function FuturePlanningScreen({game,setGame,section}){
- const [tab,setTab]=useState(section||'Marriage');const [notice,setNotice]=useState('');const [confirmation,setConfirmation]=useState('');
+ const [tab,setTab]=useState(section||'Marriage');const [notice,setNotice]=useFeedbackNotice('');const [confirmation,setConfirmation]=useState('');
  const [prenup,setPrenup]=useState(true);const [weddingCost,setWeddingCost]=useState(2500);const [spouseShare,setSpouseShare]=useState(50);
  const [custody,setCustody]=useState('Shared');const [method,setMethod]=useState('Amicable');const [educationDrafts,setEducationDrafts]=useState({});const [successors,setSuccessors]=useState({});
  const available=funds(game);const active=section||tab;const quote=divorceQuote(game,custody,method);const pension=pensionEstimate(game);const p=game.pension||{};

@@ -1,3 +1,4 @@
+import {useFeedbackNotice} from './OutcomeFeedback.jsx';
 import RealismScreen from './RealismScreen.jsx';
 import {prepareInterview,employmentBonus} from './realism.js';
 import {careerBonus} from './lifeSystems.js';
@@ -103,7 +104,7 @@ export default function CareerSystems({ game, setGame, money, onMoney, onFame, n
   const [saleCandidate, setSaleCandidate] = useState(null);
   const [shareSale, setShareSale] = useState(null);
   const [contractOffer, setContractOffer] = useState(null);
-  const [notice, setNotice] = useState('');
+  const [notice, setNotice] = useFeedbackNotice('');
   const [startupOffer, setStartupOffer] = useState(null);
   const [courseChoice, setCourseChoice] = useState('Business');
   const [housingChoice, setHousingChoice] = useState('Commute from home');

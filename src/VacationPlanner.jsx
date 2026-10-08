@@ -1,3 +1,4 @@
+import {useFeedbackNotice} from './OutcomeFeedback.jsx';
 import {formatMoney} from './money.js';
 import React, { useMemo, useState } from 'react';
 import { ArrowRight, Plane, MapPin, CalendarDays, X } from 'lucide-react';
@@ -20,7 +21,7 @@ export default function VacationPlanner({game,setGame,notify,onClose}) {
   const [spending,setSpending]=useState('Balanced');
   const [travelers,setTravelers]=useState(['self']);
   const [selectedActivities,setSelectedActivities]=useState(['food','culture']);
-  const [notice,setNotice]=useState('');
+  const [notice,setNotice]=useFeedbackNotice('');
   const [bookedTrip,setBookedTrip]=useState(null);
   const chosen=destinations.find(item=>item.country===destination)||destinations[0];
   const jetAvailable=(game.assets||[]).some(asset=>asset.kind?.toLowerCase().includes('jet')||asset.name?.toLowerCase().includes('jet'));

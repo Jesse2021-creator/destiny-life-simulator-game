@@ -1,3 +1,4 @@
+import {useFeedbackNotice} from './OutcomeFeedback.jsx';
 import React,{useState} from 'react';
 import {PersonPortrait} from './RelationshipPortrait.jsx';
 import {formatMoney} from './money.js';
@@ -8,7 +9,7 @@ const topics=['Lifestyle','Travel','Education','Fitness','Fashion','Politics','C
 const fmt=n=>new Intl.NumberFormat('en-US',{notation:'compact'}).format(n||0);
 export default function SocialMedia({game,setGame}){
  const [selected,setSelected]=useState('PhotoShare');const [text,setText]=useState('');
- const [format,setFormat]=useState('Photos');const [topic,setTopic]=useState('Lifestyle');const [notice,setNotice]=useState('');
+ const [format,setFormat]=useState('Photos');const [topic,setTopic]=useState('Lifestyle');const [notice,setNotice]=useFeedbackNotice('');
  const account=game.socialAccounts?.[selected];const platform=platforms.find(p=>p.name===selected);
  const update=fn=>setGame(g=>{const previous=g.socialAccounts?.[selected]||{};return {...g,socialAccounts:{...(g.socialAccounts||{}),[selected]:fn(previous,g)}};});
  const create=()=>{if(game.age<13||!game.alive)return;update(()=>({handle:game.name.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,20),followers:0,posts:[],reputation:60,earnings:0,privacy:'Public',verified:false}));setNotice(`Your ${selected} account is ready.`);};

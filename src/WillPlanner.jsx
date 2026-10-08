@@ -1,8 +1,9 @@
+import {useFeedbackNotice} from './OutcomeFeedback.jsx';
 import React,{useState} from 'react';
 import {defaultWill,willRecipients,validateWill} from './estate.js';
 import {formatMoney} from './money.js';
 export default function WillPlanner({game,setGame,netWorth,onClose}){
- const [draft,setDraft]=useState(()=>game.will?{...game.will,beneficiaries:game.will.beneficiaries.map(p=>({...p}))}:defaultWill(game));const [notice,setNotice]=useState('');
+ const [draft,setDraft]=useState(()=>game.will?{...game.will,beneficiaries:game.will.beneficiaries.map(p=>({...p}))}:defaultWill(game));const [notice,setNotice]=useFeedbackNotice('');
  const recipients=willRecipients(game);const total=draft.beneficiaries.reduce((sum,p)=>sum+(Number(p.percent)||0),0);
  const toggle=person=>setDraft(d=>({...d,beneficiaries:d.beneficiaries.some(p=>p.id===person.id)?d.beneficiaries.filter(p=>p.id!==person.id):[...d.beneficiaries,{...person,percent:0}]}));
  const save=()=>{const error=validateWill(draft,game);if(error){setNotice(error);return;}setGame(g=>({...g,will:{...draft,beneficiaries:draft.beneficiaries.map(p=>({...p,percent:Number(p.percent)})),signedYear:g.year,signedAge:g.age},log:[{year:g.year,age:g.age,text:`You ${g.will?'updated':'wrote'} your will: ${draft.beneficiaries.map(p=>`${p.name} ${p.percent}%`).join(', ')}.`,tag:'Estate planning',icon:'📜'},...(g.log||[])]}));onClose();};
