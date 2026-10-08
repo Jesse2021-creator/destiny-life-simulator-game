@@ -17,7 +17,7 @@ export function companyEquity(c){return Math.max(0,Math.round((c.valuation||0)*(
 export function planningNetWorth(g){
  const assets=(g.assets||[]).filter(a=>a.status==='owned').reduce((s,a)=>s+Math.max(0,Math.round((a.value||0)*(a.condition??100)/100)),0);
  const investments=(g.investments?.holdings||[]).reduce((s,p)=>s+p.units*instrumentPrice(g.investments,p.assetId),0);
- return funds(g)-(g.childSupportOrders||[]).reduce((n,o)=>n+(o.arrears||0),0)-(g.realism?.housingArrears||0)-(g.realism?.careArrears||0)-(g.economyArrears||0)+assets+investments+(g.companies||[]).reduce((s,c)=>s+companyEquity(c),0)+(g.pension?.balance||0)-(g.loans||[]).reduce((s,l)=>s+(l.balance||0),0)-(g.divorceObligations||[]).reduce((s,o)=>s+(o.arrears||0),0);
+ return funds(g)+(g.worldLife?.inheritance?.held||0)-(g.childSupportOrders||[]).reduce((n,o)=>n+(o.arrears||0),0)-(g.realism?.housingArrears||0)-(g.realism?.careArrears||0)-(g.economyArrears||0)+assets+investments+(g.companies||[]).reduce((s,c)=>s+companyEquity(c),0)+(g.pension?.balance||0)-(g.loans||[]).reduce((s,l)=>s+(l.balance||0),0)-(g.divorceObligations||[]).reduce((s,o)=>s+(o.arrears||0),0);
 }
 
 export function marry(g,{prenup=false,weddingCost=2500,spouseShare=50}={}){

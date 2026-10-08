@@ -1,3 +1,4 @@
+import {recordAge} from './lifeRecords.js';
 import {useFeedbackNotice} from './OutcomeFeedback.jsx';
 import React,{useState} from 'react';
 import {PersonPortrait} from './RelationshipPortrait.jsx';
@@ -44,7 +45,7 @@ export default function SocialMedia({game,setGame}){
    <label className="social-compose">Write your post<textarea maxLength={280} value={text} onChange={e=>setText(e.target.value)} placeholder="What would you like to share?"/></label><small>{text.length}/280 · {account.lastPostYear===game.year?account.postsThisYear:0}/6 posts this year · {platform.strength} perform best here.</small>
    <div className="social-platform-tabs"><button disabled={!text.trim()||!game.alive||account.suspended} onClick={publish}>Publish post</button><button disabled={game.age<18||account.privacy==='Private'||game.money+(game.bankBalance||0)<500||account.lastPromotionYear===game.year} onClick={promote}>Promote · $500</button><button disabled={account.verified||account.followers<25000||account.reputation<70} onClick={()=>{update(a=>({...a,verified:true}));setNotice('Your account was verified.');}}>Request verification</button></div>
    <p>Ad revenue unlocks at 18 with 10,000 followers, a public account, and at least 40% reputation. Verification requires 25,000 followers and 70% reputation.</p>
-   {(account.posts||[]).length===0?<div className="system-empty">Publish your first post to start your feed.</div>:(account.posts||[]).slice(0,8).map(post=><article className="social-feed-post" key={post.id}><small>{post.format} · {post.topic} · Year {post.year}{post.viral?' · 🔥 Viral':''}</small><p>{post.text}</p><small>{fmt(post.views)} views · {fmt(post.likes)} likes · {fmt(post.comments)} comments</small><button disabled={post.replied||!game.alive} onClick={()=>engage(post)}>{post.replied?'Replied to community':'Reply to comments'}</button></article>)}
+   {(account.posts||[]).length===0?<div className="system-empty">Publish your first post to start your feed.</div>:(account.posts||[]).slice(0,8).map(post=><article className="social-feed-post" key={post.id}><small>{post.format} · {post.topic} · Age {recordAge(post,game)}{post.viral?' · 🔥 Viral':''}</small><p>{post.text}</p><small>{fmt(post.views)} views · {fmt(post.likes)} likes · {fmt(post.comments)} comments</small><button disabled={post.replied||!game.alive} onClick={()=>engage(post)}>{post.replied?'Replied to community':'Reply to comments'}</button></article>)}
   </>}
  </section>;
 }

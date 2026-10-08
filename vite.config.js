@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => {
   });
 
   return {
-    base: '/destiny-life-simulator-game/',
+    base: '/little-life/',
 
     server: {
       proxy: {}

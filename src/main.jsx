@@ -11,3 +11,10 @@ import './realism.css';
 createRoot(document.getElementById('root')).render(<React.StrictMode><FeedbackProvider><App /></FeedbackProvider></React.StrictMode>);
 
 import './casual-encounters.css';
+import './interface-polish.css';
+
+import './vertical-navigation.css';
+
+import './life-screen-ui.css';
+
+import './living-world.css';
